@@ -7,6 +7,6 @@ namespace Nanoray.Pintail
         ProxyInfo<Context> ProxyInfo { get; }
 
         object? ObtainProxy(IProxyManager<Context> manager, object? targetInstance);
-        bool TryUnproxy(object potentialProxyInstance, out object? targetInstance);
+        bool TryUnproxy(object? potentialProxyInstance, out object? targetInstance);
     }
 }

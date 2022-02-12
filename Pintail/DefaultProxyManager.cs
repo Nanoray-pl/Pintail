@@ -7,7 +7,7 @@ namespace Nanoray.Pintail
     public struct DefaultProxyManagerConfiguration<Context> where Context : notnull, IEquatable<Context>
     {
         public static readonly Func<ModuleBuilder, ProxyInfo<Context>, string> DefaultTypeNameProvider
-            = (moduleBuilder, key) => $"{moduleBuilder.FullyQualifiedName}.From<{key.Proxy.Context}_{key.Proxy.Type.Name}>_To<{key.Target.Context}_{key.Target.Type.Name}>";
+            = (moduleBuilder, key) => $"{moduleBuilder.FullyQualifiedName}.From<{key.Proxy.Context}_{key.Proxy.Type.FullName}>_To<{key.Target.Context}_{key.Target.Type.FullName}>";
 
         public Func<ModuleBuilder, ProxyInfo<Context>, string> TypeNameProvider { get; set; }
     }
