@@ -98,7 +98,35 @@ namespace Nanoray.Pintail
                         return MatchingTypesResult.IfProxied;
                 }
 
-                return MatchingTypesResult.False;
+                var targetTypeGenericArguments = targetType.GetGenericArguments();
+                var proxyTypeGenericArguments = proxyType.GetGenericArguments();
+                if (targetTypeGenericArguments.Length != proxyTypeGenericArguments.Length || targetTypeGenericArguments.Length == 0)
+                    return MatchingTypesResult.False;
+
+                var genericTargetType = targetType.GetGenericTypeDefinition();
+                var genericProxyType = proxyType.GetGenericTypeDefinition();
+                switch (AreTypesMatching(genericTargetType, genericProxyType, part))
+                {
+                    case MatchingTypesResult.True:
+                        break;
+                    case MatchingTypesResult.IfProxied:
+                    case MatchingTypesResult.False:
+                        return MatchingTypesResult.False;
+                }
+
+                for (int i = 0; i < targetTypeGenericArguments.Length; i++)
+                {
+                    switch (AreTypesMatching(targetTypeGenericArguments[i], proxyTypeGenericArguments[i], part))
+                    {
+                        case MatchingTypesResult.True:
+                            break;
+                        case MatchingTypesResult.IfProxied:
+                        case MatchingTypesResult.False:
+                            return MatchingTypesResult.False;
+                    }
+                }
+
+                return MatchingTypesResult.True;
             }
 
             // proxy methods

@@ -15,13 +15,12 @@ namespace Nanoray.Pintail.Tests
             var manager = new DefaultProxyManager<int>(moduleBuilder);
 
             var providerApi = new ProviderApi();
-            IConsumerApi consumerApi = null!;
-            Assert.DoesNotThrow(() => consumerApi = manager.ObtainProxy<int, IConsumerApi>(providerApi, 0, 0)!);
-
-            Assert.DoesNotThrow(() => consumerApi.VoidMethod());
             Assert.DoesNotThrow(() =>
             {
+                IConsumerApi consumerApi = manager.ObtainProxy<int, IConsumerApi>(providerApi, 0, 0)!;
+                consumerApi.VoidMethod();
                 Assert.AreEqual(123, consumerApi.IntMethod(123));
+                Assert.AreEqual(5, consumerApi.MapperMethod("word.", (t) => t.Length));
             });
         }
 	}

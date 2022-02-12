@@ -1,3 +1,5 @@
+using System;
+
 namespace Nanoray.Pintail.Tests
 {
     public class ProviderApi
@@ -6,5 +8,8 @@ namespace Nanoray.Pintail.Tests
 
         public int IntMethod(int num)
             => num;
+
+        public R MapperMethod<T, R>(T t, Func<T, R> mapper)
+            => mapper(t);
     }
 }
