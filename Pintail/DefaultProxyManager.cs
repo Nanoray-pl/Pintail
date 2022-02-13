@@ -1,15 +1,58 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
+using System.Reflection;
 using System.Reflection.Emit;
 
 namespace Nanoray.Pintail
 {
-    public struct DefaultProxyManagerConfiguration<Context> where Context : notnull, IEquatable<Context>
-    {
-        public static readonly Func<ModuleBuilder, ProxyInfo<Context>, string> DefaultTypeNameProvider
-            = (moduleBuilder, key) => $"{moduleBuilder.FullyQualifiedName}.From<{key.Proxy.Context}_{key.Proxy.Type.FullName}>_To<{key.Target.Context}_{key.Target.Type.FullName}>";
+    public delegate string DefaultProxyManagerTypeNameProvider<Context>(ModuleBuilder moduleBuilder, ProxyInfo<Context> proxyInfo) where Context : notnull, IEquatable<Context>;
+    public delegate void NoMatchingMethodHandler<Context>(TypeBuilder proxyBuilder, ProxyInfo<Context> proxyInfo, FieldBuilder targetField, FieldBuilder glueField, FieldBuilder proxyInfosField, MethodInfo proxyMethod) where Context : notnull, IEquatable<Context>;
 
-        public Func<ModuleBuilder, ProxyInfo<Context>, string> TypeNameProvider { get; set; }
+    public class DefaultProxyManagerConfiguration<Context> where Context : notnull, IEquatable<Context>
+    {
+        public static readonly DefaultProxyManagerTypeNameProvider<Context> DefaultTypeNameProvider = (moduleBuilder, proxyInfo)
+            => $"{moduleBuilder.FullyQualifiedName}.From<{proxyInfo.Proxy.Context}_{proxyInfo.Proxy.Type.FullName}>_To<{proxyInfo.Target.Context}_{proxyInfo.Target.Type.FullName}>";
+
+        public static readonly NoMatchingMethodHandler<Context> ThrowExceptionNoMatchingMethodHandler = (proxyBuilder, proxyInfo, _, _, _, proxyMethod)
+            => throw new ArgumentException($"The {proxyInfo.Proxy.Type.FullName} interface defines method {proxyMethod.Name} which doesn't exist in the API.");
+
+        public static readonly NoMatchingMethodHandler<Context> ThrowingImplementationNoMatchingMethodHandler = (proxyBuilder, proxyInfo, _, _, _, proxyMethod) =>
+        {
+            MethodBuilder methodBuilder = proxyBuilder.DefineMethod(proxyMethod.Name, MethodAttributes.Public | MethodAttributes.Final | MethodAttributes.Virtual);
+
+            Type[] proxyGenericArguments = proxyMethod.GetGenericArguments();
+            string[] genericArgNames = proxyGenericArguments.Select(a => a.Name).ToArray();
+            GenericTypeParameterBuilder[] genericTypeParameterBuilders = proxyGenericArguments.Length == 0 ? Array.Empty<GenericTypeParameterBuilder>() : methodBuilder.DefineGenericParameters(genericArgNames);
+            for (int i = 0; i < proxyGenericArguments.Length; i++)
+                genericTypeParameterBuilders[i].SetGenericParameterAttributes(proxyGenericArguments[i].GenericParameterAttributes);
+
+            Type returnType = proxyMethod.ReturnType.IsGenericMethodParameter ? genericTypeParameterBuilders[proxyMethod.ReturnType.GenericParameterPosition] : proxyMethod.ReturnType;
+            methodBuilder.SetReturnType(returnType);
+
+            Type[] argTypes = proxyMethod.GetParameters()
+                .Select(a => a.ParameterType)
+                .Select(t => t.IsGenericMethodParameter ? genericTypeParameterBuilders[t.GenericParameterPosition] : t)
+                .ToArray();
+            methodBuilder.SetParameters(argTypes);
+
+            ILGenerator il = methodBuilder.GetILGenerator();
+            il.Emit(OpCodes.Ldstr, $"The {proxyInfo.Proxy.Type.FullName} interface defines method {proxyMethod.Name} which doesn't exist in the API.");
+            il.Emit(OpCodes.Newobj, typeof(NotImplementedException).GetConstructor(new Type[] { typeof(string) })!);
+            il.Emit(OpCodes.Throw);
+        };
+
+        public DefaultProxyManagerTypeNameProvider<Context> TypeNameProvider { get; set; }
+        public NoMatchingMethodHandler<Context> NoMatchingMethodHandler;
+
+        public DefaultProxyManagerConfiguration(
+            DefaultProxyManagerTypeNameProvider<Context>? typeNameProvider = null,
+            NoMatchingMethodHandler<Context>? noMatchingMethodHandler = null
+        )
+        {
+            this.TypeNameProvider = typeNameProvider ?? DefaultTypeNameProvider;
+            this.NoMatchingMethodHandler = noMatchingMethodHandler ?? ThrowExceptionNoMatchingMethodHandler;
+        }
     }
 
     public sealed class DefaultProxyManager<Context>: IProxyManager<Context> where Context: notnull, IEquatable<Context>
@@ -18,15 +61,10 @@ namespace Nanoray.Pintail
         internal readonly DefaultProxyManagerConfiguration<Context> Configuration;
 		private readonly IDictionary<ProxyInfo<Context>, DefaultProxyFactory<Context>> Factories = new Dictionary<ProxyInfo<Context>, DefaultProxyFactory<Context>>();
 
-        public DefaultProxyManager(ModuleBuilder moduleBuilder): this(
-            moduleBuilder,
-            new DefaultProxyManagerConfiguration<Context> { TypeNameProvider = DefaultProxyManagerConfiguration<Context>.DefaultTypeNameProvider }
-        ) { }
-
-        public DefaultProxyManager(ModuleBuilder moduleBuilder, DefaultProxyManagerConfiguration<Context> configuration)
+        public DefaultProxyManager(ModuleBuilder moduleBuilder, DefaultProxyManagerConfiguration<Context>? configuration = null)
 		{
 			this.ModuleBuilder = moduleBuilder;
-            this.Configuration = configuration;
+            this.Configuration = configuration ?? new();
 		}
 
         public IProxyFactory<Context>? GetProxyFactory(ProxyInfo<Context> proxyInfo)

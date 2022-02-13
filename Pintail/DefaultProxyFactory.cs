@@ -181,7 +181,7 @@ namespace Nanoray.Pintail
                     targetMethodLoopContinue:;
                 }
 
-                throw new InvalidOperationException($"The {this.ProxyInfo.Proxy.Type.FullName} interface defines method {proxyMethod.Name} which doesn't exist in the API.");
+                throw new ArgumentException($"The {this.ProxyInfo.Proxy.Type.FullName} interface defines method {proxyMethod.Name} which doesn't exist in the API.");
                 proxyMethodLoopContinue:;
             }
 

@@ -11,18 +11,18 @@ namespace Nanoray.Pintail.Tests
 	{
         private static int nextModuleIndex = 0;
 
-        private DefaultProxyManager<int> CreateModuleBuilder()
+        private DefaultProxyManager<int> CreateProxyManager(DefaultProxyManagerConfiguration<int>? configuration = null)
         {
             var assemblyBuilder = AssemblyBuilder.DefineDynamicAssembly(new AssemblyName($"Proxies_{nextModuleIndex++}, Version={this.GetType().Assembly.GetName().Version}, Culture=neutral"), AssemblyBuilderAccess.Run);
             var moduleBuilder = assemblyBuilder.DefineDynamicModule($"Proxies_{nextModuleIndex++}");
-            var manager = new DefaultProxyManager<int>(moduleBuilder);
+            var manager = new DefaultProxyManager<int>(moduleBuilder, configuration);
             return manager;
         }
 
         [Test]
         public void TestSuccessfulBasicApi()
         {
-            var manager = this.CreateModuleBuilder();
+            var manager = this.CreateProxyManager();
             var providerApi = new ProviderApi();
 
             var consumerApi = manager.ObtainProxy<int, IConsumerApi>(providerApi, 0, 0)!;
@@ -37,7 +37,7 @@ namespace Nanoray.Pintail.Tests
         [Test]
         public void TestIsAssignable()
         {
-            var manager = this.CreateModuleBuilder();
+            var manager = this.CreateProxyManager();
             var providerApi = new ProviderApi();
 
             var consumerApi = manager.ObtainProxy<int, IConsumerApi>(providerApi, 0, 0)!;
@@ -49,7 +49,7 @@ namespace Nanoray.Pintail.Tests
         [Test]
         public void TestOutParameters()
         {
-            var manager = this.CreateModuleBuilder();
+            var manager = this.CreateProxyManager();
             var providerApi = new ProviderApi();
 
             var consumerApi = manager.ObtainProxy<int, IConsumerApi>(providerApi, 0, 0)!;
@@ -60,7 +60,7 @@ namespace Nanoray.Pintail.Tests
         [Test]
         public void TestInputOutputApi()
         {
-            var manager = this.CreateModuleBuilder();
+            var manager = this.CreateProxyManager();
             var providerApi = new ProviderApi();
             var consumerApi = manager.ObtainProxy<int, IConsumerApi>(providerApi, 0, 0)!;
 
@@ -82,7 +82,7 @@ namespace Nanoray.Pintail.Tests
         [Test]
         public void TestTryProxy()
         {
-            var manager = this.CreateModuleBuilder();
+            var manager = this.CreateProxyManager();
             var providerApi = new ProviderApi();
             Assert.IsTrue(manager.TryProxy(providerApi, 0, 0, out IConsumerApi? consumerApi));
             Assert.NotNull(consumerApi);
