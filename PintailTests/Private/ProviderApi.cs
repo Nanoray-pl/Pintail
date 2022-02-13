@@ -32,6 +32,9 @@ namespace Nanoray.Pintail.Tests.Provider
         public int IntMethod(int num)
             => num;
 
+        public int IntProperty
+            => 42;
+
         public string this[string key]
             => key;
 

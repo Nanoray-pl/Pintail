@@ -29,6 +29,7 @@ namespace Nanoray.Pintail.Tests
             consumerApi.VoidMethod();
             Assert.AreEqual(123, consumerApi.IntMethod(123));
             Assert.AreEqual(144, consumerApi.DefaultMethod(12));
+            Assert.AreEqual(42, consumerApi.IntProperty);
             Assert.AreEqual("asdf", consumerApi["asdf"]);
             Assert.AreEqual(5, consumerApi.MapperMethod("word.", (t) => t.Length));
         }
