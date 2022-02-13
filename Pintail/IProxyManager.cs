@@ -1,11 +1,11 @@
 using System;
-using System.Collections.Generic;
 
 namespace Nanoray.Pintail
 {
-	public interface IProxyManager<Context> where Context: notnull, IEquatable<Context>
-	{
-		IProxyFactory<Context> ObtainProxyFactory(ProxyInfo<Context> proxyInfo);
+    public interface IProxyManager<Context> where Context: notnull, IEquatable<Context>
+    {
+        IProxyFactory<Context>? GetProxyFactory(ProxyInfo<Context> proxyInfo);
+        IProxyFactory<Context> ObtainProxyFactory(ProxyInfo<Context> proxyInfo);
 	}
 
     public static class ProxyManagerExtensions
@@ -32,12 +32,14 @@ namespace Nanoray.Pintail
 
             try
             {
-                foreach (Type interfaceType in toProxy.GetType().GetInterfacesRecursively())
+                foreach (Type interfaceType in toProxy.GetType().GetInterfacesRecursively(includingSelf: true))
                 {
-                    var unproxyFactory = self.ObtainProxyFactory(new ProxyInfo<Context>(
+                    var unproxyFactory = self.GetProxyFactory(new ProxyInfo<Context>(
                         target: new TypeInfo<Context>(targetContext, typeof(TProxy)),
                         proxy: new TypeInfo<Context>(proxyContext, interfaceType)
                     ));
+                    if (unproxyFactory is null)
+                        continue;
                     if (unproxyFactory.TryUnproxy(toProxy, out object? targetInstance))
                     {
                         proxy = (TProxy?)targetInstance;

@@ -29,7 +29,17 @@ namespace Nanoray.Pintail
             this.Configuration = configuration;
 		}
 
-		public IProxyFactory<Context> ObtainProxyFactory(ProxyInfo<Context> proxyInfo)
+        public IProxyFactory<Context>? GetProxyFactory(ProxyInfo<Context> proxyInfo)
+        {
+            lock (this.Factories)
+            {
+                if (this.Factories.TryGetValue(proxyInfo, out DefaultProxyFactory<Context>? factory))
+                    return factory;
+            }
+            return null;
+        }
+
+        public IProxyFactory<Context> ObtainProxyFactory(ProxyInfo<Context> proxyInfo)
 		{
 			lock (this.Factories)
 			{

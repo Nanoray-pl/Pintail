@@ -11,17 +11,19 @@ namespace Nanoray.Pintail
             return type.IsByRef ? (type.GetElementType() ?? type) : type;
         }
 
-        internal static ISet<Type> GetInterfacesRecursively(this Type type)
+        internal static ISet<Type> GetInterfacesRecursively(this Type type, bool includingSelf)
         {
-            return type.GetInterfacesRecursivelyAsEnumerable().ToHashSet();
+            return type.GetInterfacesRecursivelyAsEnumerable(includingSelf).ToHashSet();
         }
 
-        private static IEnumerable<Type> GetInterfacesRecursivelyAsEnumerable(this Type type)
+        private static IEnumerable<Type> GetInterfacesRecursivelyAsEnumerable(this Type type, bool includingSelf)
         {
+            if (includingSelf && type.IsInterface)
+                yield return type;
             foreach (Type interfaceType in type.GetInterfaces())
             {
                 yield return interfaceType;
-                foreach (Type recursiveInterfaceType in interfaceType.GetInterfacesRecursivelyAsEnumerable())
+                foreach (Type recursiveInterfaceType in interfaceType.GetInterfacesRecursivelyAsEnumerable(false))
                 {
                     yield return recursiveInterfaceType;
                 }

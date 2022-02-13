@@ -23,8 +23,8 @@ namespace Nanoray.Pintail
         {
             if (toProxy is null)
                 return null;
-            var unproxyFactory = this.Manager.ObtainProxyFactory(unproxyInfo);
-            if (unproxyFactory.TryUnproxy(toProxy, out object? targetInstance))
+            var unproxyFactory = this.Manager.GetProxyFactory(unproxyInfo);
+            if (unproxyFactory is not null && unproxyFactory.TryUnproxy(toProxy, out object? targetInstance))
                 return targetInstance;
             return this.ObtainProxy(proxyInfo, toProxy);
         }

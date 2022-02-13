@@ -398,7 +398,7 @@ namespace Nanoray.Pintail
             {
                 foreach ((object cachedTargetInstance, object cachedProxyInstance) in this.ProxyCache)
                 {
-                    if (object.ReferenceEquals(potentialProxyInstance, cachedProxyInstance))
+                    if (ReferenceEquals(potentialProxyInstance, cachedProxyInstance))
                     {
                         targetInstance = cachedTargetInstance;
                         return true;
