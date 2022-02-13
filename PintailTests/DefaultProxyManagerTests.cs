@@ -32,6 +32,18 @@ namespace Nanoray.Pintail.Tests
         }
 
         [Test]
+        public void TestIsAssignable()
+        {
+            var manager = this.CreateModuleBuilder();
+            var providerApi = new ProviderApi();
+
+            var consumerApi = manager.ObtainProxy<int, IConsumerApi>(providerApi, 0, 0)!;
+            object? obj = null;
+            Assert.DoesNotThrow(() => obj = consumerApi.IsAssignableTest("testing"));
+            Assert.AreEqual("testing", obj);
+        }
+
+        [Test]
         public void TestOutParameters()
         {
             var manager = this.CreateModuleBuilder();

@@ -22,6 +22,7 @@ namespace Nanoray.Pintail.Tests.Consumer
         void VoidMethod();
         int IntMethod(int num);
         R MapperMethod<T, R>(T t, Func<T, R> mapper);
+        object? IsAssignableTest(string? anyObj);
         void GetOutResult(string text, out IApiResult result);
         IApiResult GetSameResult(IApiResult result);
         IApiResult GetModifiedResult(IApiResult result);
