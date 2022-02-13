@@ -2,7 +2,7 @@ using System;
 
 namespace Nanoray.Pintail
 {
-    public class ProxyInfo<C>: IEquatable<ProxyInfo<C>> where C : notnull, IEquatable<C>
+    public class ProxyInfo<C>: IEquatable<ProxyInfo<C>>
     {
         public TypeInfo<C> Target { get; set; }
         public TypeInfo<C> Proxy { get; set; }
@@ -41,7 +41,7 @@ namespace Nanoray.Pintail
             => !Equals(left, right);
     }
 
-    public class TypeInfo<C>: IEquatable<TypeInfo<C>> where C: notnull, IEquatable<C>
+    public class TypeInfo<C>: IEquatable<TypeInfo<C>>
     {
         public C Context { get; set; }
         public Type Type { get; set; }
@@ -53,7 +53,7 @@ namespace Nanoray.Pintail
         }
 
         public bool Equals(TypeInfo<C>? other)
-            => other is not null && this.Context.Equals(other.Context) && this.Type == other.Type;
+            => other is not null && (typeof(C).GetInterfacesRecursively(true).Contains(typeof(IEquatable<C>)) ? ((IEquatable<C>)other).Equals(this) : (Equals(this.Context, other.Context) && Equals(this.Type, other.Type)));
 
         public override bool Equals(object? obj)
             => obj is TypeInfo<C> info && ((TypeInfo<C>)this).Equals(info);

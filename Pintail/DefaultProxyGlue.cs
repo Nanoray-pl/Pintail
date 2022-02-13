@@ -1,8 +1,6 @@
-using System;
-
 namespace Nanoray.Pintail
 {
-    public sealed class DefaultProxyGlue<Context> where Context: notnull, IEquatable<Context>
+    public sealed class DefaultProxyGlue<Context>
     {
         private readonly IProxyManager<Context> Manager;
 

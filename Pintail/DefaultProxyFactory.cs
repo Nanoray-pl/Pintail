@@ -7,7 +7,7 @@ using System.Runtime.CompilerServices;
 
 namespace Nanoray.Pintail
 {
-    internal class DefaultProxyFactory<Context>: IProxyFactory<Context> where Context: notnull, IEquatable<Context>
+    internal class DefaultProxyFactory<Context>: IProxyFactory<Context>
     {
         private enum MethodTypeMatchingPart { ReturnType, Parameter }
 

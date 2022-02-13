@@ -1,9 +1,8 @@
-using System;
 using System.Diagnostics.CodeAnalysis;
 
 namespace Nanoray.Pintail
 {
-	public interface IProxyFactory<Context> where Context: notnull, IEquatable<Context>
+    public interface IProxyFactory<Context>
 	{
         ProxyInfo<Context> ProxyInfo { get; }
 

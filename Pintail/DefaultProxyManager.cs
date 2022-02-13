@@ -6,15 +6,15 @@ using System.Reflection.Emit;
 
 namespace Nanoray.Pintail
 {
-    public delegate string DefaultProxyManagerTypeNameProvider<Context>(ModuleBuilder moduleBuilder, ProxyInfo<Context> proxyInfo) where Context : notnull, IEquatable<Context>;
-    public delegate void DefaultProxyManagerNoMatchingMethodHandler<Context>(TypeBuilder proxyBuilder, ProxyInfo<Context> proxyInfo, FieldBuilder targetField, FieldBuilder glueField, FieldBuilder proxyInfosField, MethodInfo proxyMethod) where Context : notnull, IEquatable<Context>;
+    public delegate string DefaultProxyManagerTypeNameProvider<Context>(ModuleBuilder moduleBuilder, ProxyInfo<Context> proxyInfo);
+    public delegate void DefaultProxyManagerNoMatchingMethodHandler<Context>(TypeBuilder proxyBuilder, ProxyInfo<Context> proxyInfo, FieldBuilder targetField, FieldBuilder glueField, FieldBuilder proxyInfosField, MethodInfo proxyMethod);
 
     public enum ProxyObjectInterfaceMarking { Disabled, Marker, Property }
 
-    public class DefaultProxyManagerConfiguration<Context> where Context : notnull, IEquatable<Context>
+    public class DefaultProxyManagerConfiguration<Context>
     {
         public static readonly DefaultProxyManagerTypeNameProvider<Context> DefaultTypeNameProvider = (moduleBuilder, proxyInfo)
-            => $"{moduleBuilder.FullyQualifiedName}.From<{proxyInfo.Proxy.Context}_{proxyInfo.Proxy.Type.FullName}>_To<{proxyInfo.Target.Context}_{proxyInfo.Target.Type.FullName}>";
+            => $"{moduleBuilder.FullyQualifiedName}.From<<{proxyInfo.Proxy.Context}>_<{proxyInfo.Proxy.Type.FullName}>>_To<<{proxyInfo.Target.Context}>_<{proxyInfo.Target.Type.FullName}>>";
 
         public static readonly DefaultProxyManagerNoMatchingMethodHandler<Context> ThrowExceptionNoMatchingMethodHandler = (proxyBuilder, proxyInfo, _, _, _, proxyMethod)
             => throw new ArgumentException($"The {proxyInfo.Proxy.Type.FullName} interface defines method {proxyMethod.Name} which doesn't exist in the API.");
@@ -60,8 +60,8 @@ namespace Nanoray.Pintail
         }
     }
 
-    public sealed class DefaultProxyManager<Context>: IProxyManager<Context> where Context: notnull, IEquatable<Context>
-	{
+    public sealed class DefaultProxyManager<Context>: IProxyManager<Context>
+    {
 		internal readonly ModuleBuilder ModuleBuilder;
         internal readonly DefaultProxyManagerConfiguration<Context> Configuration;
 		private readonly IDictionary<ProxyInfo<Context>, DefaultProxyFactory<Context>> Factories = new Dictionary<ProxyInfo<Context>, DefaultProxyFactory<Context>>();

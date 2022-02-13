@@ -12,11 +12,11 @@ namespace Nanoray.Pintail.Tests
 	{
         private static int nextModuleIndex = 0;
 
-        private DefaultProxyManager<int> CreateProxyManager(DefaultProxyManagerConfiguration<int>? configuration = null)
+        private DefaultProxyManager<Nothing> CreateProxyManager(DefaultProxyManagerConfiguration<Nothing>? configuration = null)
         {
             var assemblyBuilder = AssemblyBuilder.DefineDynamicAssembly(new AssemblyName($"Proxies_{nextModuleIndex++}, Version={this.GetType().Assembly.GetName().Version}, Culture=neutral"), AssemblyBuilderAccess.Run);
             var moduleBuilder = assemblyBuilder.DefineDynamicModule($"Proxies_{nextModuleIndex++}");
-            var manager = new DefaultProxyManager<int>(moduleBuilder, configuration);
+            var manager = new DefaultProxyManager<Nothing>(moduleBuilder, configuration);
             return manager;
         }
 
@@ -26,7 +26,7 @@ namespace Nanoray.Pintail.Tests
             var manager = this.CreateProxyManager();
             var providerApi = new ProviderApi();
 
-            var consumerApi = manager.ObtainProxy<int, IConsumerApi>(providerApi, 0, 0)!;
+            var consumerApi = manager.ObtainProxy<IConsumerApi>(providerApi)!;
             consumerApi.VoidMethod();
             Assert.AreEqual(123, consumerApi.IntMethod(123));
             Assert.AreEqual(144, consumerApi.DefaultMethod(12));
@@ -41,7 +41,7 @@ namespace Nanoray.Pintail.Tests
             var manager = this.CreateProxyManager();
             var providerApi = new ProviderApi();
 
-            var consumerApi = manager.ObtainProxy<int, IConsumerApi>(providerApi, 0, 0)!;
+            var consumerApi = manager.ObtainProxy<IConsumerApi>(providerApi)!;
             object? obj = null;
             Assert.DoesNotThrow(() => obj = consumerApi.IsAssignableTest("testing"));
             Assert.AreEqual("testing", obj);
@@ -53,7 +53,7 @@ namespace Nanoray.Pintail.Tests
             var manager = this.CreateProxyManager();
             var providerApi = new ProviderApi();
 
-            var consumerApi = manager.ObtainProxy<int, IConsumerApi>(providerApi, 0, 0)!;
+            var consumerApi = manager.ObtainProxy<IConsumerApi>(providerApi)!;
             consumerApi.GetOutResult("testing", out Consumer.IApiResult result);
             Assert.AreEqual("testing", result.Text);
         }
@@ -63,7 +63,7 @@ namespace Nanoray.Pintail.Tests
         {
             var manager = this.CreateProxyManager();
             var providerApi = new ProviderApi();
-            var consumerApi = manager.ObtainProxy<int, IConsumerApi>(providerApi, 0, 0)!;
+            var consumerApi = manager.ObtainProxy<IConsumerApi>(providerApi)!;
 
             {
                 Consumer.IApiResult input = new Consumer.ApiResult("input");
@@ -85,7 +85,7 @@ namespace Nanoray.Pintail.Tests
         {
             var manager = this.CreateProxyManager();
             var providerApi = new ProviderApi();
-            Assert.IsTrue(manager.TryProxy(providerApi, 0, 0, out IConsumerApi? consumerApi));
+            Assert.IsTrue(manager.TryProxy(providerApi, out IConsumerApi? consumerApi));
             Assert.NotNull(consumerApi);
         }
 
@@ -93,21 +93,21 @@ namespace Nanoray.Pintail.Tests
         public void TestNonExistentApiMethodByThrowingOnPrepare()
         {
             var manager = this.CreateProxyManager(new(
-                noMatchingMethodHandler: DefaultProxyManagerConfiguration<int>.ThrowExceptionNoMatchingMethodHandler
+                noMatchingMethodHandler: DefaultProxyManagerConfiguration<Nothing>.ThrowExceptionNoMatchingMethodHandler
             ));
             var providerApi = new ProviderApi();
-            Assert.Throws<ArgumentException>(() => manager.ObtainProxy<int, IInvalidConsumerApi>(providerApi, 0, 0));
+            Assert.Throws<ArgumentException>(() => manager.ObtainProxy<IInvalidConsumerApi>(providerApi));
         }
 
         [Test]
         public void TestNonExistentApiMethodByThrowingImplementation()
         {
             var manager = this.CreateProxyManager(new(
-                noMatchingMethodHandler: DefaultProxyManagerConfiguration<int>.ThrowingImplementationNoMatchingMethodHandler
+                noMatchingMethodHandler: DefaultProxyManagerConfiguration<Nothing>.ThrowingImplementationNoMatchingMethodHandler
             ));
             var providerApi = new ProviderApi();
             IInvalidConsumerApi consumerApi = null!;
-            Assert.DoesNotThrow(() => consumerApi = manager.ObtainProxy<int, IInvalidConsumerApi>(providerApi, 0, 0)!);
+            Assert.DoesNotThrow(() => consumerApi = manager.ObtainProxy<IInvalidConsumerApi>(providerApi)!);
             Assert.Throws<NotImplementedException>(() => consumerApi.NonExistentApiMethod());
         }
 
@@ -118,7 +118,7 @@ namespace Nanoray.Pintail.Tests
                 proxyObjectInterfaceMarking: ProxyObjectInterfaceMarking.Marker
             ));
             var providerApi = new ProviderApi();
-            var consumerApi = manager.ObtainProxy<int, IConsumerApi>(providerApi, 0, 0)!;
+            var consumerApi = manager.ObtainProxy<IConsumerApi>(providerApi)!;
             Assert.IsTrue(consumerApi is IProxyObject);
             Assert.IsFalse(consumerApi is IProxyObject.IWithProxyTargetInstanceProperty);
         }
@@ -130,7 +130,7 @@ namespace Nanoray.Pintail.Tests
                 proxyObjectInterfaceMarking: ProxyObjectInterfaceMarking.Property
             ));
             var providerApi = new ProviderApi();
-            var consumerApi = manager.ObtainProxy<int, IConsumerApi>(providerApi, 0, 0)!;
+            var consumerApi = manager.ObtainProxy<IConsumerApi>(providerApi)!;
             Assert.IsTrue(consumerApi is IProxyObject);
             Assert.IsTrue(consumerApi is IProxyObject.IWithProxyTargetInstanceProperty);
             Assert.IsTrue(ReferenceEquals(providerApi, ((IProxyObject.IWithProxyTargetInstanceProperty)consumerApi).ProxyTargetInstance));
