@@ -110,5 +110,30 @@ namespace Nanoray.Pintail.Tests
             Assert.DoesNotThrow(() => consumerApi = manager.ObtainProxy<int, IInvalidConsumerApi>(providerApi, 0, 0)!);
             Assert.Throws<NotImplementedException>(() => consumerApi.NonExistentApiMethod());
         }
+
+        [Test]
+        public void TestMarkerInterfaceWithoutProperty()
+        {
+            var manager = this.CreateProxyManager(new(
+                proxyObjectInterfaceMarking: ProxyObjectInterfaceMarking.Marker
+            ));
+            var providerApi = new ProviderApi();
+            var consumerApi = manager.ObtainProxy<int, IConsumerApi>(providerApi, 0, 0)!;
+            Assert.IsTrue(consumerApi is IProxyObject);
+            Assert.IsFalse(consumerApi is IProxyObject.IWithProxyTargetInstanceProperty);
+        }
+
+        [Test]
+        public void TestMarkerInterfaceWithProperty()
+        {
+            var manager = this.CreateProxyManager(new(
+                proxyObjectInterfaceMarking: ProxyObjectInterfaceMarking.Property
+            ));
+            var providerApi = new ProviderApi();
+            var consumerApi = manager.ObtainProxy<int, IConsumerApi>(providerApi, 0, 0)!;
+            Assert.IsTrue(consumerApi is IProxyObject);
+            Assert.IsTrue(consumerApi is IProxyObject.IWithProxyTargetInstanceProperty);
+            Assert.IsTrue(ReferenceEquals(providerApi, ((IProxyObject.IWithProxyTargetInstanceProperty)consumerApi).ProxyTargetInstance));
+        }
     }
 }

@@ -22,13 +22,15 @@ namespace Nanoray.Pintail
 
         public ProxyInfo<Context> ProxyInfo { get; private set; }
         private readonly DefaultProxyManagerNoMatchingMethodHandler<Context> NoMatchingMethodHandler;
+        private readonly ProxyObjectInterfaceMarking ProxyObjectInterfaceMarking;
         private readonly ConditionalWeakTable<object, object> ProxyCache = new();
         private Type? BuiltProxyType;
 
-        internal DefaultProxyFactory(ProxyInfo<Context> proxyInfo, DefaultProxyManagerNoMatchingMethodHandler<Context> noMatchingMethodHandler)
+        internal DefaultProxyFactory(ProxyInfo<Context> proxyInfo, DefaultProxyManagerNoMatchingMethodHandler<Context> noMatchingMethodHandler, ProxyObjectInterfaceMarking proxyObjectInterfaceMarking)
         {
             this.ProxyInfo = proxyInfo;
             this.NoMatchingMethodHandler = noMatchingMethodHandler;
+            this.ProxyObjectInterfaceMarking = proxyObjectInterfaceMarking;
         }
 
         internal void Prepare(DefaultProxyManager<Context> manager, string typeName)
@@ -62,6 +64,32 @@ namespace Nanoray.Pintail
                 il.Emit(OpCodes.Stfld, glueField);
 
                 il.Emit(OpCodes.Ret);
+            }
+
+            // marking with an IProxyObject interface if needed
+            switch (this.ProxyObjectInterfaceMarking)
+            {
+                case ProxyObjectInterfaceMarking.Disabled:
+                    break;
+                case ProxyObjectInterfaceMarking.Marker:
+                    proxyBuilder.AddInterfaceImplementation(typeof(IProxyObject));
+                    break;
+                case ProxyObjectInterfaceMarking.Property:
+                    Type markerInterfaceType = typeof(IProxyObject.IWithProxyTargetInstanceProperty);
+                    proxyBuilder.AddInterfaceImplementation(markerInterfaceType);
+
+                    MethodInfo proxyTargetInstanceGetter = markerInterfaceType.GetProperty(nameof(IProxyObject.IWithProxyTargetInstanceProperty.ProxyTargetInstance))!.GetGetMethod()!;
+                    MethodBuilder methodBuilder = proxyBuilder.DefineMethod(proxyTargetInstanceGetter.Name, MethodAttributes.Public | MethodAttributes.Final | MethodAttributes.Virtual);
+                    methodBuilder.SetParameters(Array.Empty<Type>());
+                    methodBuilder.SetReturnType(typeof(object));
+
+                    ILGenerator il = methodBuilder.GetILGenerator();
+                    il.Emit(OpCodes.Ldarg_0);
+                    il.Emit(OpCodes.Ldfld, targetField);
+                    il.Emit(OpCodes.Castclass, typeof(object));
+                    il.Emit(OpCodes.Ret);
+
+                    break;
             }
 
             IEnumerable<MethodInfo> FindInterfaceMethods(Type baseType)

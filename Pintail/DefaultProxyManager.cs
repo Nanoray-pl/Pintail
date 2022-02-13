@@ -9,6 +9,8 @@ namespace Nanoray.Pintail
     public delegate string DefaultProxyManagerTypeNameProvider<Context>(ModuleBuilder moduleBuilder, ProxyInfo<Context> proxyInfo) where Context : notnull, IEquatable<Context>;
     public delegate void DefaultProxyManagerNoMatchingMethodHandler<Context>(TypeBuilder proxyBuilder, ProxyInfo<Context> proxyInfo, FieldBuilder targetField, FieldBuilder glueField, FieldBuilder proxyInfosField, MethodInfo proxyMethod) where Context : notnull, IEquatable<Context>;
 
+    public enum ProxyObjectInterfaceMarking { Disabled, Marker, Property }
+
     public class DefaultProxyManagerConfiguration<Context> where Context : notnull, IEquatable<Context>
     {
         public static readonly DefaultProxyManagerTypeNameProvider<Context> DefaultTypeNameProvider = (moduleBuilder, proxyInfo)
@@ -44,14 +46,17 @@ namespace Nanoray.Pintail
 
         public DefaultProxyManagerTypeNameProvider<Context> TypeNameProvider { get; set; }
         public DefaultProxyManagerNoMatchingMethodHandler<Context> NoMatchingMethodHandler;
+        public ProxyObjectInterfaceMarking ProxyObjectInterfaceMarking { get; }
 
         public DefaultProxyManagerConfiguration(
             DefaultProxyManagerTypeNameProvider<Context>? typeNameProvider = null,
-            DefaultProxyManagerNoMatchingMethodHandler<Context>? noMatchingMethodHandler = null
+            DefaultProxyManagerNoMatchingMethodHandler<Context>? noMatchingMethodHandler = null,
+            ProxyObjectInterfaceMarking proxyObjectInterfaceMarking = ProxyObjectInterfaceMarking.Marker
         )
         {
             this.TypeNameProvider = typeNameProvider ?? DefaultTypeNameProvider;
             this.NoMatchingMethodHandler = noMatchingMethodHandler ?? ThrowExceptionNoMatchingMethodHandler;
+            this.ProxyObjectInterfaceMarking = proxyObjectInterfaceMarking;
         }
     }
 
@@ -83,7 +88,7 @@ namespace Nanoray.Pintail
 			{
                 if (!this.Factories.TryGetValue(proxyInfo, out DefaultProxyFactory<Context>? factory))
                 {
-                    factory = new DefaultProxyFactory<Context>(proxyInfo, this.Configuration.NoMatchingMethodHandler);
+                    factory = new DefaultProxyFactory<Context>(proxyInfo, this.Configuration.NoMatchingMethodHandler, this.Configuration.ProxyObjectInterfaceMarking);
                     this.Factories[proxyInfo] = factory;
                     try
                     {
