@@ -17,12 +17,23 @@ namespace Nanoray.Pintail.Tests.Provider
         }
     }
 
-    public class ProviderApi
+    public interface IProviderApiDefaultMethods
+    {
+        int IntMethod(int num);
+
+        int DefaultMethod(int num)
+            => this.IntMethod(num * num);
+    }
+
+    public class ProviderApi: IProviderApiDefaultMethods
     {
         public void VoidMethod() { }
 
         public int IntMethod(int num)
             => num;
+
+        public string this[string key]
+            => key;
 
         public R MapperMethod<T, R>(T t, Func<T, R> mapper)
             => mapper(t);
