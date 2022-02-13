@@ -74,7 +74,7 @@ namespace Nanoray.Pintail
                 case ProxyObjectInterfaceMarking.Marker:
                     proxyBuilder.AddInterfaceImplementation(typeof(IProxyObject));
                     break;
-                case ProxyObjectInterfaceMarking.Property:
+                case ProxyObjectInterfaceMarking.MarkerWithProperty:
                     Type markerInterfaceType = typeof(IProxyObject.IWithProxyTargetInstanceProperty);
                     proxyBuilder.AddInterfaceImplementation(markerInterfaceType);
 
@@ -399,6 +399,7 @@ namespace Nanoray.Pintail
             }
         }
 
+        /// <inheritdoc/>
         public object? ObtainProxy(IProxyManager<Context> manager, object? targetInstance)
         {
             if (targetInstance is null)
@@ -417,6 +418,7 @@ namespace Nanoray.Pintail
             }
         }
 
+        /// <inheritdoc/>
         public bool TryUnproxy(object? potentialProxyInstance, out object? targetInstance)
         {
             if (potentialProxyInstance is null)

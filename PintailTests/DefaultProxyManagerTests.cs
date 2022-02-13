@@ -127,7 +127,7 @@ namespace Nanoray.Pintail.Tests
         public void TestMarkerInterfaceWithProperty()
         {
             var manager = this.CreateProxyManager(new(
-                proxyObjectInterfaceMarking: ProxyObjectInterfaceMarking.Property
+                proxyObjectInterfaceMarking: ProxyObjectInterfaceMarking.MarkerWithProperty
             ));
             var providerApi = new ProviderApi();
             var consumerApi = manager.ObtainProxy<IConsumerApi>(providerApi)!;
