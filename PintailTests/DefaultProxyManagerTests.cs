@@ -1,3 +1,4 @@
+using System;
 using System.Reflection;
 using System.Reflection.Emit;
 using Nanoray.Pintail.Tests.Consumer;
@@ -87,5 +88,27 @@ namespace Nanoray.Pintail.Tests
             Assert.IsTrue(manager.TryProxy(providerApi, 0, 0, out IConsumerApi? consumerApi));
             Assert.NotNull(consumerApi);
         }
-	}
+
+        [Test]
+        public void TestNonExistentApiMethodByThrowingOnPrepare()
+        {
+            var manager = this.CreateProxyManager(new(
+                noMatchingMethodHandler: DefaultProxyManagerConfiguration<int>.ThrowExceptionNoMatchingMethodHandler
+            ));
+            var providerApi = new ProviderApi();
+            Assert.Throws<ArgumentException>(() => manager.ObtainProxy<int, IInvalidConsumerApi>(providerApi, 0, 0));
+        }
+
+        [Test]
+        public void TestNonExistentApiMethodByThrowingImplementation()
+        {
+            var manager = this.CreateProxyManager(new(
+                noMatchingMethodHandler: DefaultProxyManagerConfiguration<int>.ThrowingImplementationNoMatchingMethodHandler
+            ));
+            var providerApi = new ProviderApi();
+            IInvalidConsumerApi consumerApi = null!;
+            Assert.DoesNotThrow(() => consumerApi = manager.ObtainProxy<int, IInvalidConsumerApi>(providerApi, 0, 0)!);
+            Assert.Throws<NotImplementedException>(() => consumerApi.NonExistentApiMethod());
+        }
+    }
 }

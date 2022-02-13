@@ -21,12 +21,14 @@ namespace Nanoray.Pintail
         private static readonly MethodInfo ProxyInfoListGetMethod = typeof(IList<ProxyInfo<Context>>).GetProperty("Item")!.GetGetMethod()!;
 
         public ProxyInfo<Context> ProxyInfo { get; private set; }
+        private readonly DefaultProxyManagerNoMatchingMethodHandler<Context> NoMatchingMethodHandler;
         private readonly ConditionalWeakTable<object, object> ProxyCache = new();
         private Type? BuiltProxyType;
 
-        internal DefaultProxyFactory(ProxyInfo<Context> proxyInfo)
+        internal DefaultProxyFactory(ProxyInfo<Context> proxyInfo, DefaultProxyManagerNoMatchingMethodHandler<Context> noMatchingMethodHandler)
         {
             this.ProxyInfo = proxyInfo;
+            this.NoMatchingMethodHandler = noMatchingMethodHandler;
         }
 
         internal void Prepare(DefaultProxyManager<Context> manager, string typeName)
@@ -181,7 +183,7 @@ namespace Nanoray.Pintail
                     targetMethodLoopContinue:;
                 }
 
-                throw new ArgumentException($"The {this.ProxyInfo.Proxy.Type.FullName} interface defines method {proxyMethod.Name} which doesn't exist in the API.");
+                this.NoMatchingMethodHandler(proxyBuilder, this.ProxyInfo, targetField, glueField, proxyInfosField, proxyMethod);
                 proxyMethodLoopContinue:;
             }
 

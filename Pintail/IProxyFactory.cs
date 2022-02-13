@@ -1,4 +1,5 @@
 using System;
+using System.Diagnostics.CodeAnalysis;
 
 namespace Nanoray.Pintail
 {
@@ -6,7 +7,7 @@ namespace Nanoray.Pintail
 	{
         ProxyInfo<Context> ProxyInfo { get; }
 
-        object? ObtainProxy(IProxyManager<Context> manager, object? targetInstance);
+        [return: NotNullIfNotNull("targetInstance")] object? ObtainProxy(IProxyManager<Context> manager, object? targetInstance);
         bool TryUnproxy(object? potentialProxyInstance, out object? targetInstance);
     }
 }

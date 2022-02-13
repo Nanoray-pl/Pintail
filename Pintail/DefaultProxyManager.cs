@@ -7,17 +7,17 @@ using System.Reflection.Emit;
 namespace Nanoray.Pintail
 {
     public delegate string DefaultProxyManagerTypeNameProvider<Context>(ModuleBuilder moduleBuilder, ProxyInfo<Context> proxyInfo) where Context : notnull, IEquatable<Context>;
-    public delegate void NoMatchingMethodHandler<Context>(TypeBuilder proxyBuilder, ProxyInfo<Context> proxyInfo, FieldBuilder targetField, FieldBuilder glueField, FieldBuilder proxyInfosField, MethodInfo proxyMethod) where Context : notnull, IEquatable<Context>;
+    public delegate void DefaultProxyManagerNoMatchingMethodHandler<Context>(TypeBuilder proxyBuilder, ProxyInfo<Context> proxyInfo, FieldBuilder targetField, FieldBuilder glueField, FieldBuilder proxyInfosField, MethodInfo proxyMethod) where Context : notnull, IEquatable<Context>;
 
     public class DefaultProxyManagerConfiguration<Context> where Context : notnull, IEquatable<Context>
     {
         public static readonly DefaultProxyManagerTypeNameProvider<Context> DefaultTypeNameProvider = (moduleBuilder, proxyInfo)
             => $"{moduleBuilder.FullyQualifiedName}.From<{proxyInfo.Proxy.Context}_{proxyInfo.Proxy.Type.FullName}>_To<{proxyInfo.Target.Context}_{proxyInfo.Target.Type.FullName}>";
 
-        public static readonly NoMatchingMethodHandler<Context> ThrowExceptionNoMatchingMethodHandler = (proxyBuilder, proxyInfo, _, _, _, proxyMethod)
+        public static readonly DefaultProxyManagerNoMatchingMethodHandler<Context> ThrowExceptionNoMatchingMethodHandler = (proxyBuilder, proxyInfo, _, _, _, proxyMethod)
             => throw new ArgumentException($"The {proxyInfo.Proxy.Type.FullName} interface defines method {proxyMethod.Name} which doesn't exist in the API.");
 
-        public static readonly NoMatchingMethodHandler<Context> ThrowingImplementationNoMatchingMethodHandler = (proxyBuilder, proxyInfo, _, _, _, proxyMethod) =>
+        public static readonly DefaultProxyManagerNoMatchingMethodHandler<Context> ThrowingImplementationNoMatchingMethodHandler = (proxyBuilder, proxyInfo, _, _, _, proxyMethod) =>
         {
             MethodBuilder methodBuilder = proxyBuilder.DefineMethod(proxyMethod.Name, MethodAttributes.Public | MethodAttributes.Final | MethodAttributes.Virtual);
 
@@ -43,11 +43,11 @@ namespace Nanoray.Pintail
         };
 
         public DefaultProxyManagerTypeNameProvider<Context> TypeNameProvider { get; set; }
-        public NoMatchingMethodHandler<Context> NoMatchingMethodHandler;
+        public DefaultProxyManagerNoMatchingMethodHandler<Context> NoMatchingMethodHandler;
 
         public DefaultProxyManagerConfiguration(
             DefaultProxyManagerTypeNameProvider<Context>? typeNameProvider = null,
-            NoMatchingMethodHandler<Context>? noMatchingMethodHandler = null
+            DefaultProxyManagerNoMatchingMethodHandler<Context>? noMatchingMethodHandler = null
         )
         {
             this.TypeNameProvider = typeNameProvider ?? DefaultTypeNameProvider;
@@ -83,7 +83,7 @@ namespace Nanoray.Pintail
 			{
                 if (!this.Factories.TryGetValue(proxyInfo, out DefaultProxyFactory<Context>? factory))
                 {
-                    factory = new DefaultProxyFactory<Context>(proxyInfo);
+                    factory = new DefaultProxyFactory<Context>(proxyInfo, this.Configuration.NoMatchingMethodHandler);
                     this.Factories[proxyInfo] = factory;
                     try
                     {

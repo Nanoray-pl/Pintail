@@ -1,4 +1,5 @@
 using System;
+using System.Diagnostics.CodeAnalysis;
 
 namespace Nanoray.Pintail
 {
@@ -10,6 +11,7 @@ namespace Nanoray.Pintail
 
     public static class ProxyManagerExtensions
     {
+        [return: NotNullIfNotNull("instance")]
         public static TProxy? ObtainProxy<Context, TProxy>(this IProxyManager<Context> self, object? instance, Context targetContext, Context proxyContext) where Context: notnull, IEquatable<Context> where TProxy : class
         {
             if (instance is null)
@@ -19,7 +21,7 @@ namespace Nanoray.Pintail
                 target: new TypeInfo<Context>(targetContext, instance.GetType()),
                 proxy: new TypeInfo<Context>(proxyContext, typeof(TProxy))
             ));
-            return (TProxy?)factory.ObtainProxy(self, instance);
+            return (TProxy)factory.ObtainProxy(self, instance);
         }
 
         public static bool TryProxy<Context, TProxy>(this IProxyManager<Context> self, object? toProxy, Context targetContext, Context proxyContext, out TProxy? proxy) where Context : notnull, IEquatable<Context> where TProxy : class

@@ -30,4 +30,9 @@ namespace Nanoray.Pintail.Tests.Consumer
         IApiResult GetSameResult(IApiResult result);
         IApiResult GetModifiedResult(IApiResult result);
     }
+
+    public interface IInvalidConsumerApi
+    {
+        void NonExistentApiMethod();
+    }
 }

@@ -1,5 +1,4 @@
 using System;
-using System.Diagnostics.Contracts;
 
 namespace Nanoray.Pintail
 {
@@ -10,14 +9,16 @@ namespace Nanoray.Pintail
 
         public ProxyInfo(TypeInfo<C> target, TypeInfo<C> proxy)
         {
-            Contract.Requires(proxy.Type.IsInterface);
+            if (!proxy.Type.IsInterface)
+                throw new ArgumentException($"{proxy.Type.FullName} has to be an interface.");
             this.Target = target;
             this.Proxy = proxy;
         }
 
         public ProxyInfo<C> Copy(Type? targetType = null, Type? proxyType = null)
         {
-            Contract.Requires(targetType == null || targetType.IsInterface);
+            if (proxyType is not null && !proxyType.IsInterface)
+                throw new ArgumentException($"{proxyType.FullName} has to be an interface.");
             return new(
                 target: new TypeInfo<C>(this.Target.Context, targetType ?? this.Target.Type),
                 proxy: new TypeInfo<C>(this.Proxy.Context, proxyType ?? this.Proxy.Type)
