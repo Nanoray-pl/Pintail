@@ -27,6 +27,9 @@ namespace Nanoray.Pintail.Tests.Provider
         public R MapperMethod<T, R>(T t, Func<T, R> mapper)
             => mapper(t);
 
+        public void GetOutResult(string text, out IApiResult result)
+            => result = new ApiResult(text);
+
         public IApiResult GetSameResult(IApiResult result)
             => result;
 

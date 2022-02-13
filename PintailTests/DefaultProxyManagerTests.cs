@@ -24,13 +24,22 @@ namespace Nanoray.Pintail.Tests
         {
             var manager = this.CreateModuleBuilder();
             var providerApi = new ProviderApi();
-            Assert.DoesNotThrow(() =>
-            {
-                var consumerApi = manager.ObtainProxy<int, IConsumerApi>(providerApi, 0, 0)!;
-                consumerApi.VoidMethod();
-                Assert.AreEqual(123, consumerApi.IntMethod(123));
-                Assert.AreEqual(5, consumerApi.MapperMethod("word.", (t) => t.Length));
-            });
+
+            var consumerApi = manager.ObtainProxy<int, IConsumerApi>(providerApi, 0, 0)!;
+            consumerApi.VoidMethod();
+            Assert.AreEqual(123, consumerApi.IntMethod(123));
+            Assert.AreEqual(5, consumerApi.MapperMethod("word.", (t) => t.Length));
+        }
+
+        [Test]
+        public void TestOutParameters()
+        {
+            var manager = this.CreateModuleBuilder();
+            var providerApi = new ProviderApi();
+
+            var consumerApi = manager.ObtainProxy<int, IConsumerApi>(providerApi, 0, 0)!;
+            consumerApi.GetOutResult("testing", out Consumer.IApiResult result);
+            Assert.AreEqual("testing", result.Text);
         }
 
         [Test]
