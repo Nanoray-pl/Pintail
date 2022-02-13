@@ -214,7 +214,8 @@ namespace Nanoray.Pintail
                 .ToArray();
 
             // proxy additional types
-            int? returnValueProxyInfoIndex = null;
+            int? returnValueTargetToArgProxyInfoIndex = null;
+            int? returnValueArgToTargetProxyInfoIndex = null;
             int?[] parameterTargetToArgProxyInfoIndexes = new int?[argTypes.Length];
             int?[] parameterArgToTargetProxyInfoIndexes = new int?[argTypes.Length];
             if (positionsToProxy.Count > 0)
@@ -224,10 +225,15 @@ namespace Nanoray.Pintail
                     // we don't check for generics here, because earlier code does and generic positions won't end up here
                     if (position == null) // it's the return type
                     {
-                        var factory = manager.ObtainProxyFactory(this.ProxyInfo.Copy(targetType: target.ReturnType, proxyType: proxy.ReturnType));
                         returnType = proxy.ReturnType;
-                        returnValueProxyInfoIndex = relatedProxyInfos.Count;
-                        relatedProxyInfos.Add(factory.ProxyInfo);
+
+                        var targetToArgFactory = manager.ObtainProxyFactory(this.ProxyInfo.Copy(targetType: target.ReturnType, proxyType: proxy.ReturnType));
+                        returnValueTargetToArgProxyInfoIndex = relatedProxyInfos.Count;
+                        relatedProxyInfos.Add(targetToArgFactory.ProxyInfo);
+
+                        var argToTargetFactory = manager.ObtainProxyFactory(this.ProxyInfo.Copy(targetType: proxy.ReturnType, proxyType: target.ReturnType));
+                        returnValueArgToTargetProxyInfoIndex = relatedProxyInfos.Count;
+                        relatedProxyInfos.Add(argToTargetFactory.ProxyInfo);
                     }
                     else // it's one of the parameters
                     {
@@ -354,7 +360,7 @@ namespace Nanoray.Pintail
 
                 // proxying return value
                 if (target.ReturnType != typeof(void))
-                    ProxyIfNeededAndStore(resultInputLocal!, resultOutputLocal!, returnValueProxyInfoIndex, null);
+                    ProxyIfNeededAndStore(resultInputLocal!, resultOutputLocal!, returnValueTargetToArgProxyInfoIndex, returnValueArgToTargetProxyInfoIndex);
 
                 // return result
                 if (target.ReturnType != typeof(void))
