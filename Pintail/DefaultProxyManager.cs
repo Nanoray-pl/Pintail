@@ -19,24 +19,19 @@ namespace Nanoray.Pintail
     public delegate void DefaultProxyManagerNoMatchingMethodHandler<Context>(TypeBuilder proxyBuilder, ProxyInfo<Context> proxyInfo, FieldBuilder targetField, FieldBuilder glueField, FieldBuilder proxyInfosField, MethodInfo proxyMethod);
 
     /// <summary>
-    /// Defines whether a proxy type should implement any marker interfaces.<br/>
-    /// See also: <seealso cref="IProxyObject"/>, <seealso cref="IProxyObject.IWithProxyTargetInstanceProperty"/>.
+    /// Defines the behavior to use when mapping <see cref="Enum"/> arguments while matching methods to proxy.
     /// </summary>
-    public enum ProxyObjectInterfaceMarking {
+    public enum DefaultProxyManagerEnumMappingBehavior
+    {
         /// <summary>
-        /// Do not implement any marker interfaces.
+        /// Only allow 1:1 mappings; don't match otherwise.
         /// </summary>
-        Disabled,
+        Strict,
 
         /// <summary>
-        /// Implement the <see cref="IProxyObject"/> interface.
+        /// Allow mappings where the proxy <see cref="Enum"/> has extra values not found in the target <see cref="Enum"/>.
         /// </summary>
-        Marker,
-
-        /// <summary>
-        /// Implement the <see cref="IProxyObject.IWithProxyTargetInstanceProperty"/> interface.
-        /// </summary>
-        MarkerWithProperty
+        AllowAdditive
     }
 
     /// <summary>
@@ -49,14 +44,14 @@ namespace Nanoray.Pintail
         /// The default <see cref="DefaultProxyManagerTypeNameProvider{}"/> implementation.
         /// </summary>
         public static readonly DefaultProxyManagerTypeNameProvider<Context> DefaultTypeNameProvider = (moduleBuilder, proxyInfo)
-            => $"{moduleBuilder.FullyQualifiedName}.From<<{proxyInfo.Proxy.Context}>_<{proxyInfo.Proxy.Type.FullName}>>_To<<{proxyInfo.Target.Context}>_<{proxyInfo.Target.Type.FullName}>>";
+            => $"{moduleBuilder.FullyQualifiedName}.From<<{proxyInfo.Proxy.Context}>_<{proxyInfo.Proxy.Type.GetBestName()}>>_To<<{proxyInfo.Target.Context}>_<{proxyInfo.Target.Type.GetBestName()}>>";
 
         /// <summary>
         /// The default <see cref="DefaultProxyManagerNoMatchingMethodHandler{}"/> implementation.<br/>
         /// If a method cannot be implemented, <see cref="ArgumentException"/> will be thrown right away.
         /// </summary>
         public static readonly DefaultProxyManagerNoMatchingMethodHandler<Context> ThrowExceptionNoMatchingMethodHandler = (proxyBuilder, proxyInfo, _, _, _, proxyMethod)
-            => throw new ArgumentException($"The {proxyInfo.Proxy.Type.FullName} interface defines method {proxyMethod.Name} which doesn't exist in the API.");
+            => throw new ArgumentException($"The {proxyInfo.Proxy.Type.GetBestName()} interface defines method {proxyMethod.Name} which doesn't exist in the API.");
 
         /// <summary>
         /// If a method cannot be implemented, a blank implementation will be created instead, which will throw <see cref="NotImplementedException"/> when called.
@@ -81,7 +76,7 @@ namespace Nanoray.Pintail
             methodBuilder.SetParameters(argTypes);
 
             ILGenerator il = methodBuilder.GetILGenerator();
-            il.Emit(OpCodes.Ldstr, $"The {proxyInfo.Proxy.Type.FullName} interface defines method {proxyMethod.Name} which doesn't exist in the API.");
+            il.Emit(OpCodes.Ldstr, $"The {proxyInfo.Proxy.Type.GetBestName()} interface defines method {proxyMethod.Name} which doesn't exist in the API.");
             il.Emit(OpCodes.Newobj, typeof(NotImplementedException).GetConstructor(new Type[] { typeof(string) })!);
             il.Emit(OpCodes.Throw);
         };
@@ -97,6 +92,11 @@ namespace Nanoray.Pintail
         public readonly DefaultProxyManagerNoMatchingMethodHandler<Context> NoMatchingMethodHandler;
 
         /// <summary>
+        /// The behavior to use when mapping <see cref="Enum"/> arguments while matching methods to proxy.
+        /// </summary>
+        public readonly DefaultProxyManagerEnumMappingBehavior EnumMappingBehavior;
+
+        /// <summary>
         /// Whether proxy types should implement any marker interfaces.
         /// </summary>
         public readonly ProxyObjectInterfaceMarking ProxyObjectInterfaceMarking;
@@ -106,15 +106,18 @@ namespace Nanoray.Pintail
         /// </summary>
         /// <param name="typeNameProvider">The type name provider to use.<br/>Defaults to <see cref="DefaultTypeNameProvider"/>.</param>
         /// <param name="noMatchingMethodHandler">The behavior to use if no matching method to proxy is found.<br/>Defaults to <see cref="ThrowExceptionNoMatchingMethodHandler"/>.</param>
+        /// <param name="enumMappingBehavior">The behavior to use when mapping <see cref="Enum"/> arguments while matching methods to proxy.<br/>Defaults to <see cref="DefaultProxyManagerEnumMappingBehavior.AllowAdditive"/>.</param>
         /// <param name="proxyObjectInterfaceMarking">Whether proxy types should implement any marker interfaces.<br/>Defaults to <see cref="ProxyObjectInterfaceMarking.Marker"/>.</param>
         public DefaultProxyManagerConfiguration(
             DefaultProxyManagerTypeNameProvider<Context>? typeNameProvider = null,
             DefaultProxyManagerNoMatchingMethodHandler<Context>? noMatchingMethodHandler = null,
+            DefaultProxyManagerEnumMappingBehavior enumMappingBehavior = DefaultProxyManagerEnumMappingBehavior.AllowAdditive,
             ProxyObjectInterfaceMarking proxyObjectInterfaceMarking = ProxyObjectInterfaceMarking.Marker
         )
         {
             this.TypeNameProvider = typeNameProvider ?? DefaultTypeNameProvider;
             this.NoMatchingMethodHandler = noMatchingMethodHandler ?? ThrowExceptionNoMatchingMethodHandler;
+            this.EnumMappingBehavior = enumMappingBehavior;
             this.ProxyObjectInterfaceMarking = proxyObjectInterfaceMarking;
         }
     }
@@ -158,7 +161,7 @@ namespace Nanoray.Pintail
 			{
                 if (!this.Factories.TryGetValue(proxyInfo, out DefaultProxyFactory<Context>? factory))
                 {
-                    factory = new DefaultProxyFactory<Context>(proxyInfo, this.Configuration.NoMatchingMethodHandler, this.Configuration.ProxyObjectInterfaceMarking);
+                    factory = new DefaultProxyFactory<Context>(proxyInfo, this.Configuration.NoMatchingMethodHandler, this.Configuration.EnumMappingBehavior, this.Configuration.ProxyObjectInterfaceMarking);
                     this.Factories[proxyInfo] = factory;
                     try
                     {

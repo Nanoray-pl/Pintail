@@ -2,6 +2,11 @@ using System;
 
 namespace Nanoray.Pintail.Tests.Consumer
 {
+    public enum StateEnum
+    {
+        State0, State1, State2, StateNonExisting
+    }
+
     public interface IApiResult
     {
         string Text { get; }
@@ -26,6 +31,11 @@ namespace Nanoray.Pintail.Tests.Consumer
         string this[string key] { get; }
         R MapperMethod<T, R>(T t, Func<T, R> mapper);
         object? IsAssignableTest(string? anyObj);
+
+        StateEnum GetStateEnum();
+        void GetOutStateEnum(out StateEnum state);
+        StateEnum GetSameEnumState(StateEnum state);
+
         void GetOutResult(string text, out IApiResult result);
         IApiResult GetSameResult(IApiResult result);
         IApiResult GetModifiedResult(IApiResult result);

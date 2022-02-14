@@ -26,7 +26,7 @@ namespace Nanoray.Pintail
         public ProxyInfo(TypeInfo<Context> target, TypeInfo<Context> proxy)
         {
             if (!proxy.Type.IsInterface)
-                throw new ArgumentException($"{proxy.Type.FullName} has to be an interface.");
+                throw new ArgumentException($"{proxy.Type.GetBestName()} has to be an interface.");
             this.Target = target;
             this.Proxy = proxy;
         }
@@ -40,7 +40,7 @@ namespace Nanoray.Pintail
         public ProxyInfo<Context> Copy(Type? targetType = null, Type? proxyType = null)
         {
             if (proxyType is not null && !proxyType.IsInterface)
-                throw new ArgumentException($"{proxyType.FullName} has to be an interface.");
+                throw new ArgumentException($"{proxyType.GetBestName()} has to be an interface.");
             return new(
                 target: new TypeInfo<Context>(this.Target.Context, targetType ?? this.Target.Type),
                 proxy: new TypeInfo<Context>(this.Proxy.Context, proxyType ?? this.Proxy.Type)

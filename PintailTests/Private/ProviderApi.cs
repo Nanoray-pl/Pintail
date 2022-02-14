@@ -2,6 +2,11 @@ using System;
 
 namespace Nanoray.Pintail.Tests.Provider
 {
+    public enum StateEnum
+    {
+        State0, State1, State2
+    }
+
     public interface IApiResult
     {
         string Text { get; }
@@ -43,6 +48,15 @@ namespace Nanoray.Pintail.Tests.Provider
 
         public string? IsAssignableTest(object? anyObj)
             => anyObj?.ToString();
+
+        public StateEnum GetStateEnum()
+            => StateEnum.State1;
+
+        public void GetOutStateEnum(out StateEnum state)
+            => state = StateEnum.State1;
+
+        public StateEnum GetSameEnumState(StateEnum state)
+            => state;
 
         public void GetOutResult(string text, out IApiResult result)
             => result = new ApiResult(text);

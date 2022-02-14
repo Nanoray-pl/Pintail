@@ -1,5 +1,12 @@
+using System;
+
 namespace Nanoray.Pintail
 {
+    /// <summary>
+    /// A "glue" worker instance used by proxy instances to do any proxying-related tasks.
+    /// </summary>
+    /// <remarks>This type is not meant to be used directly, but due to the nature of the proxy objects it has to be `public`.</remarks>
+    /// <typeparam name="Context"></typeparam>
     public sealed class DefaultProxyGlue<Context>
     {
         private readonly IProxyManager<Context> Manager;
@@ -25,6 +32,17 @@ namespace Nanoray.Pintail
             if (unproxyFactory is not null && unproxyFactory.TryUnproxy(toProxy, out object? targetInstance))
                 return targetInstance;
             return this.ObtainProxy(proxyInfo, toProxy);
+        }
+
+        public Output MapEnum<Input, Output>(Input input) where Input: Enum where Output: Enum
+        {
+            foreach (object outputValue in Enum.GetValues(typeof(Output)))
+            {
+                var output = (Output)outputValue;
+                if ((int)(object)output == (int)(object)input)
+                    return output;
+            }
+            throw new ArgumentException($"There is no matching {typeof(Output).GetBestName()}");
         }
     }
 }

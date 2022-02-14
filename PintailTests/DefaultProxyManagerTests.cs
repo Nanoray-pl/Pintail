@@ -59,6 +59,38 @@ namespace Nanoray.Pintail.Tests
         }
 
         [Test]
+        public void TestEnum()
+        {
+            var manager = this.CreateProxyManager();
+            var providerApi = new ProviderApi();
+
+            var consumerApi = manager.ObtainProxy<IConsumerApi>(providerApi)!;
+            Assert.AreEqual(Consumer.StateEnum.State1, consumerApi.GetStateEnum());
+        }
+
+        [Test]
+        public void TestOutEnum()
+        {
+            var manager = this.CreateProxyManager();
+            var providerApi = new ProviderApi();
+
+            var consumerApi = manager.ObtainProxy<IConsumerApi>(providerApi)!;
+            consumerApi.GetOutStateEnum(out Consumer.StateEnum state);
+            Assert.AreEqual(Consumer.StateEnum.State1, state);
+        }
+
+        [Test]
+        public void TestReturnSameEnum()
+        {
+            var manager = this.CreateProxyManager();
+            var providerApi = new ProviderApi();
+
+            var consumerApi = manager.ObtainProxy<IConsumerApi>(providerApi)!;
+            var state = consumerApi.GetSameEnumState(Consumer.StateEnum.State2);
+            Assert.AreEqual(Consumer.StateEnum.State2, state);
+        }
+
+        [Test]
         public void TestInputOutputApi()
         {
             var manager = this.CreateProxyManager();

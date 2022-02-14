@@ -16,6 +16,11 @@ namespace Nanoray.Pintail
             return type.GetInterfacesRecursivelyAsEnumerable(includingSelf).ToHashSet();
         }
 
+        internal static string GetBestName(this Type type)
+        {
+            return type.FullName ?? type.Name;
+        }
+
         private static IEnumerable<Type> GetInterfacesRecursivelyAsEnumerable(this Type type, bool includingSelf)
         {
             if (includingSelf && type.IsInterface)
@@ -28,6 +33,19 @@ namespace Nanoray.Pintail
                     yield return recursiveInterfaceType;
                 }
             }
+        }
+
+        internal static IEnumerable<Enum> GetEnumerableEnumValues(this Type type)
+        {
+            if (!type.IsEnum)
+                throw new ArgumentException($"{type.GetBestName()} is not an enum.");
+            foreach (object value in Enum.GetValues(type))
+                yield return (Enum)value;
+        }
+
+        internal static IEnumerable<EnumType> GetEnumerableEnumValues<EnumType>() where EnumType: Enum
+        {
+            return typeof(EnumType).GetEnumerableEnumValues().Select(e => (EnumType)e);
         }
     }
 }
