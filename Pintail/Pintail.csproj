@@ -11,6 +11,7 @@
 		<PackageTags>proxy; proxying; duck typing</PackageTags>
 		<Authors>Shockah</Authors>
 		<GeneratePackageOnBuild>True</GeneratePackageOnBuild>
+		<Version>1.1.0</Version>
 	</PropertyGroup>
 	<ItemGroup>
 	  <None Include="..\.editorconfig" Link=".editorconfig" />
