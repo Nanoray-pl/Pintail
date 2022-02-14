@@ -42,7 +42,7 @@ namespace Nanoray.Pintail
                 if ((int)(object)output == (int)(object)input)
                     return output;
             }
-            throw new ArgumentException($"There is no matching {typeof(Output).GetBestName()}");
+            throw new ArgumentException($"Cannot map {input} to type {typeof(Output).GetBestName()}.");
         }
     }
 }

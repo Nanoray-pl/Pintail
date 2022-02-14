@@ -124,6 +124,8 @@ namespace Nanoray.Pintail
                     return MatchingTypesResult.False;
                 if (proxyType.IsEnum && targetType.IsEnum)
                 {
+                    if (proxyType == targetType)
+                        return MatchingTypesResult.True;
                     var proxyEnumRawValues = proxyType.GetEnumerableEnumValues().Select(e => (int)(object)e).ToList();
                     var targetEnumRawValues = targetType.GetEnumerableEnumValues().Select(e => (int)(object)e).ToList();
                     switch (this.EnumMappingBehavior)
@@ -132,6 +134,8 @@ namespace Nanoray.Pintail
                             return proxyEnumRawValues.OrderBy(e => e).SequenceEqual(targetEnumRawValues.OrderBy(e => e)) ? MatchingTypesResult.IfEnumMapped : MatchingTypesResult.False;
                         case DefaultProxyManagerEnumMappingBehavior.AllowAdditive:
                             return targetEnumRawValues.ToHashSet().Except(proxyEnumRawValues).Any() ? MatchingTypesResult.False : MatchingTypesResult.IfEnumMapped;
+                        case DefaultProxyManagerEnumMappingBehavior.ThrowAtRuntime:
+                            return MatchingTypesResult.IfEnumMapped;
                     }
                 }
                 if (typeA.IsGenericMethodParameter ? typeA.GenericParameterPosition == typeB.GenericParameterPosition : typeA.IsAssignableFrom(typeB))

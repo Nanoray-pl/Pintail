@@ -31,7 +31,12 @@ namespace Nanoray.Pintail
         /// <summary>
         /// Allow mappings where the proxy <see cref="Enum"/> has extra values not found in the target <see cref="Enum"/>.
         /// </summary>
-        AllowAdditive
+        AllowAdditive,
+
+        /// <summary>
+        /// Allow all mappings; throw <see cref="ArgumentException"/> if it couldn't be mapped at runtime.
+        /// </summary>
+        ThrowAtRuntime
     }
 
     /// <summary>
