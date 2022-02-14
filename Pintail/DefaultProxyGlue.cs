@@ -1,4 +1,5 @@
 using System;
+using System.Diagnostics.CodeAnalysis;
 
 namespace Nanoray.Pintail
 {
@@ -16,6 +17,7 @@ namespace Nanoray.Pintail
             this.Manager = manager;
         }
 
+        [return: NotNullIfNotNull("toProxy")]
         public object? ObtainProxy(ProxyInfo<Context> proxyInfo, object? toProxy)
         {
             if (toProxy is null)
@@ -24,6 +26,7 @@ namespace Nanoray.Pintail
             return factory.ObtainProxy(this.Manager, toProxy);
         }
 
+        [return: NotNullIfNotNull("toProxy")]
         public object? UnproxyOrObtainProxy(ProxyInfo<Context> proxyInfo, ProxyInfo<Context> unproxyInfo, object? toProxy)
         {
             if (toProxy is null)
@@ -43,6 +46,24 @@ namespace Nanoray.Pintail
                     return output;
             }
             throw new ArgumentException($"Cannot map {input} to type {typeof(Output).GetBestName()}.");
+        }
+
+        public Output[] MakeMappedArray<Input, Output>(ProxyInfo<Context> proxyInfo, ProxyInfo<Context> unproxyInfo, Input[] input)
+        {
+            var output = new Output[input.Length];
+            this.MapArray(proxyInfo, unproxyInfo, input, output);
+            return output;
+        }
+
+        public void MapArray<Input, Output>(ProxyInfo<Context> proxyInfo, ProxyInfo<Context> unproxyInfo, Input[] input, Output[] output)
+        {
+            if (!proxyInfo.Target.Type.IsAssignableFrom(typeof(Input)))
+                throw new ArgumentException("Mismatched array element type to proxy.");
+            if (!proxyInfo.Proxy.Type.IsAssignableFrom(typeof(Output)))
+                throw new ArgumentException("Mismatched array element type to proxy.");
+
+            for (int i = 0; i < input.Length; i++)
+                output[i] = (Output)this.UnproxyOrObtainProxy(proxyInfo, unproxyInfo, input[i])!;
         }
     }
 }

@@ -24,6 +24,6 @@ namespace Nanoray.Pintail
         /// <param name="potentialProxyInstance">The instance to unproxy.</param>
         /// <param name="targetInstance">The unproxied instance, if the unproxying succeeds.</param>
         /// <returns>`true` if the unproxying succeeds, `false` otherwise.</returns>
-        bool TryUnproxy(object? potentialProxyInstance, out object? targetInstance);
+        bool TryUnproxy(object? potentialProxyInstance, [NotNullWhen(true)] out object? targetInstance);
     }
 }

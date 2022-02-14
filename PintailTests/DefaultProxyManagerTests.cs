@@ -91,6 +91,43 @@ namespace Nanoray.Pintail.Tests
         }
 
         [Test]
+        public void TestReturnArray()
+        {
+            var manager = this.CreateProxyManager();
+            var providerApi = new ProviderApi();
+
+            var consumerApi = manager.ObtainProxy<IConsumerApi>(providerApi)!;
+            var result = consumerApi.GetArray();
+            Assert.AreEqual(1, result.Length);
+            Assert.AreEqual("0", result[0].Text);
+        }
+
+        [Test]
+        public void TestArrayParameter()
+        {
+            var manager = this.CreateProxyManager();
+            var providerApi = new ProviderApi();
+
+            var consumerApi = manager.ObtainProxy<IConsumerApi>(providerApi)!;
+            var input = new Consumer.ApiResult[] { new Consumer.ApiResult("1") };
+            consumerApi.ArrayMethod(input);
+            Assert.AreEqual(1, input.Length);
+            Assert.AreEqual("1", input[0].Text);
+        }
+
+        [Test]
+        public void TestReturnList()
+        {
+            var manager = this.CreateProxyManager();
+            var providerApi = new ProviderApi();
+
+            var consumerApi = manager.ObtainProxy<IConsumerApi>(providerApi)!;
+            var result = consumerApi.GetList();
+            Assert.AreEqual(1, result.Count);
+            Assert.AreEqual("0", result[0].Text);
+        }
+
+        [Test]
         public void TestInputOutputApi()
         {
             var manager = this.CreateProxyManager();

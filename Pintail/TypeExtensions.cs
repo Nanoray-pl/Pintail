@@ -8,7 +8,12 @@ namespace Nanoray.Pintail
     {
         internal static Type GetNonRefType(this Type type)
         {
-            return type.IsByRef ? (type.GetElementType() ?? type) : type;
+            return type.IsByRef ? type.GetElementOrSelfType() : type;
+        }
+
+        internal static Type GetElementOrSelfType(this Type type)
+        {
+            return type.GetElementType() ?? type;
         }
 
         internal static ISet<Type> GetInterfacesRecursively(this Type type, bool includingSelf)

@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 
 namespace Nanoray.Pintail.Tests.Provider
 {
@@ -57,6 +58,19 @@ namespace Nanoray.Pintail.Tests.Provider
 
         public StateEnum GetSameEnumState(StateEnum state)
             => state;
+
+        public IApiResult[] GetArray()
+            => new IApiResult[] { new ApiResult("0") };
+
+        public void ArrayMethod(IApiResult[] array)
+        { }
+
+        public IList<IApiResult> GetList()
+        {
+            var list = new List<IApiResult>();
+            list.Add(new ApiResult("0"));
+            return list;
+        }
 
         public void GetOutResult(string text, out IApiResult result)
             => result = new ApiResult(text);

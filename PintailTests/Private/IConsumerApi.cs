@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 
 namespace Nanoray.Pintail.Tests.Consumer
 {
@@ -35,6 +36,10 @@ namespace Nanoray.Pintail.Tests.Consumer
         StateEnum GetStateEnum();
         void GetOutStateEnum(out StateEnum state);
         StateEnum GetSameEnumState(StateEnum state);
+
+        IApiResult[] GetArray();
+        void ArrayMethod(IApiResult[] array);
+        IList<IApiResult> GetList();
 
         void GetOutResult(string text, out IApiResult result);
         IApiResult GetSameResult(IApiResult result);
