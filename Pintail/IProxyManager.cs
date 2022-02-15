@@ -37,11 +37,8 @@ namespace Nanoray.Pintail
         /// <param name="proxyContext">The context of the proxy instance.</param>
         /// <returns>A proxy of the given instance.</returns>
         [return: NotNullIfNotNull("instance")]
-        public static TProxy? ObtainProxy<Context, TProxy>(this IProxyManager<Context> self, object? instance, Context targetContext, Context proxyContext) where TProxy: class
+        public static TProxy ObtainProxy<Context, TProxy>(this IProxyManager<Context> self, object instance, Context targetContext, Context proxyContext) where TProxy: class
         {
-            if (instance is null)
-                return null;
-
             var factory = self.ObtainProxyFactory(new ProxyInfo<Context>(
                 target: new TypeInfo<Context>(targetContext, instance.GetType()),
                 proxy: new TypeInfo<Context>(proxyContext, typeof(TProxy))
@@ -60,14 +57,8 @@ namespace Nanoray.Pintail
         /// <param name="proxyContext">The context of the proxy instance.</param>
         /// <param name="proxy">The resulting proxy instance (or unproxied instance), if the (un)proxying succeeds.</param>
         /// <returns>`true` if the (un)proxying succeeds, `false` otherwise.</returns>
-        public static bool TryProxy<Context, TProxy>(this IProxyManager<Context> self, object? toProxy, Context targetContext, Context proxyContext, out TProxy? proxy) where TProxy: class
+        public static bool TryProxy<Context, TProxy>(this IProxyManager<Context> self, object toProxy, Context targetContext, Context proxyContext, [NotNullWhen(true)] out TProxy? proxy) where TProxy: class
         {
-            if (toProxy is null)
-            {
-                proxy = null;
-                return true;
-            }
-
             try
             {
                 foreach (Type interfaceType in toProxy.GetType().GetInterfacesRecursively(includingSelf: true))
@@ -80,7 +71,7 @@ namespace Nanoray.Pintail
                         continue;
                     if (unproxyFactory.TryUnproxy(toProxy, out object? targetInstance))
                     {
-                        proxy = (TProxy?)targetInstance;
+                        proxy = (TProxy)targetInstance;
                         return true;
                     }
                 }
@@ -109,8 +100,7 @@ namespace Nanoray.Pintail
         /// <param name="self">Target of the extension method.</param>
         /// <param name="instance">The instance to create a proxy for.</param>
         /// <returns>A proxy of the given instance.</returns>
-        [return: NotNullIfNotNull("instance")]
-        public static TProxy? ObtainProxy<TProxy>(this IProxyManager<Nothing> self, object? instance) where TProxy : class
+        public static TProxy ObtainProxy<TProxy>(this IProxyManager<Nothing> self, object instance) where TProxy : class
         {
             return self.ObtainProxy<Nothing, TProxy>(instance, Nothing.AtAll, Nothing.AtAll);
         }
@@ -124,9 +114,9 @@ namespace Nanoray.Pintail
         /// <param name="toProxy">The instance to create a proxy for (or to unproxy).</param>
         /// <param name="proxy">The resulting proxy instance (or unproxied instance), if the (un)proxying succeeds.</param>
         /// <returns>`true` if the (un)proxying succeeds, `false` otherwise.</returns>
-        public static bool TryProxy<TProxy>(this IProxyManager<Nothing> self, object? toProxy, out TProxy? proxy) where TProxy : class
+        public static bool TryProxy<TProxy>(this IProxyManager<Nothing> self, object toProxy, [NotNullWhen(true)] out TProxy? proxy) where TProxy : class
         {
-            return self.TryProxy<Nothing, TProxy>(toProxy, Nothing.AtAll, Nothing.AtAll, out proxy);
+            return self.TryProxy(toProxy, Nothing.AtAll, Nothing.AtAll, out proxy);
         }
     }
 }

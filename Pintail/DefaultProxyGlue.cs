@@ -37,17 +37,6 @@ namespace Nanoray.Pintail
             return this.ObtainProxy(proxyInfo, toProxy);
         }
 
-        public Output MapEnum<Input, Output>(Input input) where Input: Enum where Output: Enum
-        {
-            foreach (object outputValue in Enum.GetValues(typeof(Output)))
-            {
-                var output = (Output)outputValue;
-                if ((int)(object)output == (int)(object)input)
-                    return output;
-            }
-            throw new ArgumentException($"Cannot map {input} to type {typeof(Output).GetBestName()}.");
-        }
-
         public Output[] MakeMappedArray<Input, Output>(ProxyInfo<Context> proxyInfo, ProxyInfo<Context> unproxyInfo, Input[] input)
         {
             var output = new Output[input.Length];

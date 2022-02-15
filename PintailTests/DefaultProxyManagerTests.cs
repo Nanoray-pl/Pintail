@@ -48,17 +48,6 @@ namespace Nanoray.Pintail.Tests
         }
 
         [Test]
-        public void TestOutParameters()
-        {
-            var manager = this.CreateProxyManager();
-            var providerApi = new ProviderApi();
-
-            var consumerApi = manager.ObtainProxy<IConsumerApi>(providerApi)!;
-            consumerApi.GetOutResult("testing", out Consumer.IApiResult result);
-            Assert.AreEqual("testing", result.Text);
-        }
-
-        [Test]
         public void TestEnum()
         {
             var manager = this.CreateProxyManager();
@@ -128,6 +117,17 @@ namespace Nanoray.Pintail.Tests
         }
 
         [Test]
+        public void TestOutParameters()
+        {
+            var manager = this.CreateProxyManager();
+            var providerApi = new ProviderApi();
+
+            var consumerApi = manager.ObtainProxy<IConsumerApi>(providerApi)!;
+            consumerApi.GetOutResult("testing", out Consumer.IApiResult result);
+            Assert.AreEqual("testing", result.Text);
+        }
+
+        [Test]
         public void TestInputOutputApi()
         {
             var manager = this.CreateProxyManager();
@@ -148,6 +148,11 @@ namespace Nanoray.Pintail.Tests
                 Assert.IsFalse(ReferenceEquals(input, output));
             }
         }
+
+        //[Test]
+        //public void TestComplexType()
+        //{
+        //}
 
         [Test]
         public void TestTryProxy()

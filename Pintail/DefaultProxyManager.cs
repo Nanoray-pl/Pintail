@@ -111,12 +111,12 @@ namespace Nanoray.Pintail
         /// </summary>
         /// <param name="typeNameProvider">The type name provider to use.<br/>Defaults to <see cref="DefaultTypeNameProvider"/>.</param>
         /// <param name="noMatchingMethodHandler">The behavior to use if no matching method to proxy is found.<br/>Defaults to <see cref="ThrowExceptionNoMatchingMethodHandler"/>.</param>
-        /// <param name="enumMappingBehavior">The behavior to use when mapping <see cref="Enum"/> arguments while matching methods to proxy.<br/>Defaults to <see cref="DefaultProxyManagerEnumMappingBehavior.AllowAdditive"/>.</param>
+        /// <param name="enumMappingBehavior">The behavior to use when mapping <see cref="Enum"/> arguments while matching methods to proxy.<br/>Defaults to <see cref="DefaultProxyManagerEnumMappingBehavior.ThrowAtRuntime"/>.</param>
         /// <param name="proxyObjectInterfaceMarking">Whether proxy types should implement any marker interfaces.<br/>Defaults to <see cref="ProxyObjectInterfaceMarking.Marker"/>.</param>
         public DefaultProxyManagerConfiguration(
             DefaultProxyManagerTypeNameProvider<Context>? typeNameProvider = null,
             DefaultProxyManagerNoMatchingMethodHandler<Context>? noMatchingMethodHandler = null,
-            DefaultProxyManagerEnumMappingBehavior enumMappingBehavior = DefaultProxyManagerEnumMappingBehavior.AllowAdditive,
+            DefaultProxyManagerEnumMappingBehavior enumMappingBehavior = DefaultProxyManagerEnumMappingBehavior.ThrowAtRuntime,
             ProxyObjectInterfaceMarking proxyObjectInterfaceMarking = ProxyObjectInterfaceMarking.Marker
         )
         {
@@ -135,7 +135,7 @@ namespace Nanoray.Pintail
     {
 		internal readonly ModuleBuilder ModuleBuilder;
         internal readonly DefaultProxyManagerConfiguration<Context> Configuration;
-		private readonly IDictionary<ProxyInfo<Context>, DefaultProxyFactory<Context>> Factories = new Dictionary<ProxyInfo<Context>, DefaultProxyFactory<Context>>();
+		private readonly IDictionary<ProxyInfo<Context>, IProxyFactory<Context>> Factories = new Dictionary<ProxyInfo<Context>, IProxyFactory<Context>>();
 
         /// <summary>
         /// Constructs a <see cref="DefaultProxyManager{}"./>
@@ -153,7 +153,7 @@ namespace Nanoray.Pintail
         {
             lock (this.Factories)
             {
-                if (this.Factories.TryGetValue(proxyInfo, out DefaultProxyFactory<Context>? factory))
+                if (this.Factories.TryGetValue(proxyInfo, out IProxyFactory<Context>? factory))
                     return factory;
             }
             return null;
@@ -164,18 +164,27 @@ namespace Nanoray.Pintail
 		{
 			lock (this.Factories)
 			{
-                if (!this.Factories.TryGetValue(proxyInfo, out DefaultProxyFactory<Context>? factory))
+                if (!this.Factories.TryGetValue(proxyInfo, out IProxyFactory<Context>? factory))
                 {
-                    factory = new DefaultProxyFactory<Context>(proxyInfo, this.Configuration.NoMatchingMethodHandler, this.Configuration.EnumMappingBehavior, this.Configuration.ProxyObjectInterfaceMarking);
-                    this.Factories[proxyInfo] = factory;
-                    try
+                    if (proxyInfo.Target.Type.IsEnum && proxyInfo.Proxy.Type.IsEnum)
                     {
-                        factory.Prepare(this, this.Configuration.TypeNameProvider(this.ModuleBuilder, proxyInfo));
+                        factory = new DefaultEnumProxyFactory<Context>(proxyInfo);
+                        this.Factories[proxyInfo] = factory;
                     }
-                    catch
+                    else
                     {
-                        this.Factories.Remove(proxyInfo);
-                        throw;
+                        var newFactory = new DefaultProxyFactory<Context>(proxyInfo, this.Configuration.NoMatchingMethodHandler, this.Configuration.EnumMappingBehavior, this.Configuration.ProxyObjectInterfaceMarking);
+                        factory = newFactory;
+                        this.Factories[proxyInfo] = factory;
+                        try
+                        {
+                            newFactory.Prepare(this, this.Configuration.TypeNameProvider(this.ModuleBuilder, proxyInfo));
+                        }
+                        catch
+                        {
+                            this.Factories.Remove(proxyInfo);
+                            throw;
+                        }
                     }
                 }
                 return factory;
