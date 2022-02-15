@@ -116,7 +116,7 @@ namespace Nanoray.Pintail
             var allTargetMethods = FindInterfaceMethods(this.ProxyInfo.Target.Type).ToHashSet();
             var allProxyMethods = FindInterfaceMethods(this.ProxyInfo.Proxy.Type).ToHashSet();
 
-            MatchingTypesResult AreTypesMatching(Type targetType, Type proxyType, MethodTypeMatchingPart part, bool exactTypes)
+            MatchingTypesResult AreTypesMatching(Type targetType, Type proxyType, MethodTypeMatchingPart part)
             {
                 var typeA = part == MethodTypeMatchingPart.Parameter ? targetType : proxyType;
                 var typeB = part == MethodTypeMatchingPart.Parameter ? proxyType : targetType;
@@ -144,8 +144,6 @@ namespace Nanoray.Pintail
                 if (typeA.IsGenericMethodParameter)
                     return typeA.GenericParameterPosition == typeB.GenericParameterPosition ? MatchingTypesResult.True : MatchingTypesResult.False;
 
-                if (exactTypes)
-                    return typeA == typeB ? MatchingTypesResult.True : MatchingTypesResult.False;
                 if (typeA.IsAssignableFrom(typeB))
                     return MatchingTypesResult.True;
 
@@ -163,7 +161,7 @@ namespace Nanoray.Pintail
                 var genericProxyType = proxyType.GetGenericTypeDefinition();
 
                 var matchingTypesResult = MatchingTypesResult.True;
-                switch (AreTypesMatching(genericTargetType, genericProxyType, part, exactTypes))
+                switch (AreTypesMatching(genericTargetType, genericProxyType, part))
                 {
                     case MatchingTypesResult.True:
                         break;
@@ -175,7 +173,7 @@ namespace Nanoray.Pintail
                 }
                 for (int i = 0; i < targetTypeGenericArguments.Length; i++)
                 {
-                    switch (AreTypesMatching(targetTypeGenericArguments[i], proxyTypeGenericArguments[i], part, exactTypes))
+                    switch (AreTypesMatching(targetTypeGenericArguments[i], proxyTypeGenericArguments[i], part))
                     {
                         case MatchingTypesResult.True:
                             break;
@@ -196,7 +194,7 @@ namespace Nanoray.Pintail
                 var proxyMethodParameters = proxyMethod.GetParameters();
                 var proxyMethodGenericArguments = proxyMethod.GetGenericArguments();
 
-                PositionConversion?[]? MatchProxyMethod(MethodInfo targetMethod, bool exactTypes)
+                PositionConversion?[]? MatchProxyMethod(MethodInfo targetMethod)
                 {
                     // checking if `targetMethod` matches `proxyMethod`
 
@@ -209,7 +207,7 @@ namespace Nanoray.Pintail
                         return null;
                     var positionConversions = new PositionConversion?[mParameters.Length + 1]; // 0 = return type; n + 1 = parameter position n
 
-                    switch (AreTypesMatching(targetMethod.ReturnType, proxyMethod.ReturnType, MethodTypeMatchingPart.ReturnType, exactTypes))
+                    switch (AreTypesMatching(targetMethod.ReturnType, proxyMethod.ReturnType, MethodTypeMatchingPart.ReturnType))
                     {
                         case MatchingTypesResult.False:
                             return null;
@@ -222,7 +220,7 @@ namespace Nanoray.Pintail
 
                     for (int i = 0; i < mParameters.Length; i++)
                     {
-                        switch (AreTypesMatching(mParameters[i].ParameterType, proxyMethodParameters[i].ParameterType, MethodTypeMatchingPart.Parameter, exactTypes))
+                        switch (AreTypesMatching(mParameters[i].ParameterType.GetNonRefType(), proxyMethodParameters[i].ParameterType.GetNonRefType(), MethodTypeMatchingPart.Parameter))
                         {
                             case MatchingTypesResult.False:
                                 return null;
@@ -240,15 +238,7 @@ namespace Nanoray.Pintail
 
                 foreach (MethodInfo targetMethod in allTargetMethods)
                 {
-                    var positionConversions = MatchProxyMethod(targetMethod, true);
-                    if (positionConversions is null)
-                        continue;
-                    this.ProxyMethod(manager, proxyBuilder, proxyMethod, targetMethod, targetField, glueField, proxyInfosField, positionConversions, relatedProxyInfos);
-                    goto proxyMethodLoopContinue;
-                }
-                foreach (MethodInfo targetMethod in allTargetMethods)
-                {
-                    var positionConversions = MatchProxyMethod(targetMethod, false);
+                    var positionConversions = MatchProxyMethod(targetMethod);
                     if (positionConversions is null)
                         continue;
                     this.ProxyMethod(manager, proxyBuilder, proxyMethod, targetMethod, targetField, glueField, proxyInfosField, positionConversions, relatedProxyInfos);
@@ -309,10 +299,8 @@ namespace Nanoray.Pintail
                 switch (positionConversions[i + 1])
                 {
                     case PositionConversion.Proxy:
-                        bool isByRef = argTypes[i].IsByRef;
                         var targetType = targetParameters[i].ParameterType;
                         var argType = argTypes[i];
-                        argTypes[i] = argType;
 
                         var targetToArgFactory = manager.ObtainProxyFactory(this.ProxyInfo.Copy(targetType: targetType.GetNonRefType(), proxyType: argType.GetNonRefType()));
                         parameterTargetToArgProxyInfoIndexes[i] = relatedProxyInfos.Count;
@@ -335,9 +323,11 @@ namespace Nanoray.Pintail
 
             // create method body
             {
+                if (target.Name == "TryGetValue")
+                    Console.WriteLine("huhu");
                 ILGenerator il = methodBuilder.GetILGenerator();
-                LocalBuilder?[] inputLocals = new LocalBuilder?[argTypes.Length];
-                LocalBuilder?[] outputLocals = new LocalBuilder?[argTypes.Length];
+                LocalBuilder?[] proxyLocals = new LocalBuilder?[argTypes.Length];
+                LocalBuilder?[] targetLocals = new LocalBuilder?[argTypes.Length];
 
                 void ConvertIfNeededAndStore(LocalBuilder inputLocal, LocalBuilder outputLocal, int? proxyInfoIndex, int? unproxyInfoIndex, PositionConversion? positionConversion)
                 {
@@ -404,24 +394,39 @@ namespace Nanoray.Pintail
                 il.Emit(OpCodes.Ldfld, instanceField);
                 for (int i = 0; i < argTypes.Length; i++)
                 {
-                    if (targetParameters[i].IsOut && parameterTargetToArgProxyInfoIndexes[i] is not null) // out parameter, proxy on the way back
+                    switch (positionConversions[i + 1])
                     {
-                        inputLocals[i] = il.DeclareLocal(targetParameters[i].ParameterType.GetNonRefType());
-                        outputLocals[i] = il.DeclareLocal(argTypes[i].GetNonRefType());
-                        il.Emit(OpCodes.Ldloca, inputLocals[i]!);
-                    }
-                    else if (parameterArgToTargetProxyInfoIndexes[i] is not null) // normal parameter, proxy on the way in
-                    {
-                        inputLocals[i] = il.DeclareLocal(argTypes[i].GetNonRefType());
-                        outputLocals[i] = il.DeclareLocal(targetParameters[i].ParameterType.GetNonRefType());
-                        il.Emit(OpCodes.Ldarg, i + 1);
-                        il.Emit(OpCodes.Stloc, inputLocals[i]!);
-                        ConvertIfNeededAndStore(inputLocals[i]!, outputLocals[i]!, parameterArgToTargetProxyInfoIndexes[i], parameterTargetToArgProxyInfoIndexes[i], positionConversions[i + 1]);
-                        il.Emit(OpCodes.Ldloc, outputLocals[i]!);
-                    }
-                    else // normal parameter, no proxying
-                    {
-                        il.Emit(OpCodes.Ldarg, i + 1);
+                        case PositionConversion.Proxy:
+                            if (argTypes[i].IsByRef)
+                            {
+                                proxyLocals[i] = il.DeclareLocal(argTypes[i].GetNonRefType());
+                                targetLocals[i] = il.DeclareLocal(targetParameters[i].ParameterType.GetNonRefType());
+                                if (targetParameters[i].IsOut)
+                                {
+                                    il.Emit(OpCodes.Ldloca, targetLocals[i]!);
+                                }
+                                else
+                                {
+                                    il.Emit(OpCodes.Ldarg, i + 1);
+                                    il.Emit(OpCodes.Ldind_Ref);
+                                    il.Emit(OpCodes.Stloc, proxyLocals[i]!);
+                                    ConvertIfNeededAndStore(proxyLocals[i]!, targetLocals[i]!, parameterArgToTargetProxyInfoIndexes[i], parameterTargetToArgProxyInfoIndexes[i], positionConversions[i + 1]);
+                                    il.Emit(OpCodes.Ldloca, targetLocals[i]!);
+                                }
+                            }
+                            else
+                            {
+                                proxyLocals[i] = il.DeclareLocal(argTypes[i]);
+                                targetLocals[i] = il.DeclareLocal(targetParameters[i].ParameterType);
+                                il.Emit(OpCodes.Ldarg, i + 1);
+                                il.Emit(OpCodes.Stloc, proxyLocals[i]!);
+                                ConvertIfNeededAndStore(proxyLocals[i]!, targetLocals[i]!, parameterArgToTargetProxyInfoIndexes[i], parameterTargetToArgProxyInfoIndexes[i], positionConversions[i + 1]);
+                                il.Emit(OpCodes.Ldloc, targetLocals[i]!);
+                            }
+                            break;
+                        case null:
+                            il.Emit(OpCodes.Ldarg, i + 1);
+                            break;
                     }
                 }
                 il.Emit(target.IsVirtual ? OpCodes.Callvirt : OpCodes.Call, target);
@@ -431,43 +436,42 @@ namespace Nanoray.Pintail
                 // proxying `out` parameters
                 for (int i = 0; i < argTypes.Length; i++)
                 {
-                    if (parameterTargetToArgProxyInfoIndexes[i] == null)
-                        continue;
-                    if (!targetParameters[i].IsOut)
-                        continue;
+                    switch (positionConversions[i + 1])
+                    {
+                        case PositionConversion.Proxy:
+                            if (argTypes[i].IsByRef)
+                            {
+                                ConvertIfNeededAndStore(proxyLocals[i]!, targetLocals[i]!, parameterTargetToArgProxyInfoIndexes[i], null, positionConversions[i + 1]);
+                                il.Emit(OpCodes.Ldarg, i + 1);
+                                il.Emit(OpCodes.Ldloc, targetLocals[i]!);
+                                il.Emit(OpCodes.Stind_Ref);
+                            }
+                            else if (argTypes[i].IsArray)
+                            {
+                                int arrayProxyInfoIndex = argTypes[i].IsByRef ? parameterTargetToArgProxyInfoIndexes[i]!.Value : parameterArgToTargetProxyInfoIndexes[i]!.Value;
 
-                    ConvertIfNeededAndStore(inputLocals[i]!, outputLocals[i]!, parameterTargetToArgProxyInfoIndexes[i], null, positionConversions[i + 1]);
-                    il.Emit(OpCodes.Ldarg, i + 1);
-                    il.Emit(OpCodes.Ldloc, outputLocals[i]!);
-                    il.Emit(OpCodes.Stind_Ref);
+                                il.Emit(OpCodes.Ldarg_0);
+                                il.Emit(OpCodes.Ldfld, glueField);
+
+                                // load proxy ProxyInfo
+                                il.Emit(OpCodes.Ldsfld, proxyInfosField);
+                                il.Emit(OpCodes.Ldc_I4, arrayProxyInfoIndex);
+                                il.Emit(OpCodes.Callvirt, ProxyInfoListGetMethod);
+
+                                il.Emit(OpCodes.Ldloc, targetLocals[i]!);
+                                il.Emit(OpCodes.Ldloc, proxyLocals[i]!);
+                                il.Emit(OpCodes.Callvirt, MapArrayContentsMethod);
+                            }
+                            break;
+                        case null:
+                            il.Emit(OpCodes.Ldarg, i + 1);
+                            break;
+                    }
                 }
 
                 // proxying return value
                 if (target.ReturnType != typeof(void))
                     ConvertIfNeededAndStore(resultInputLocal!, resultOutputLocal!, returnValueTargetToArgProxyInfoIndex, returnValueArgToTargetProxyInfoIndex, positionConversions[0]);
-
-                // mapping arrays
-                for (int i = 0; i < argTypes.Length; i++)
-                {
-                    if (targetParameters[i].IsOut)
-                        continue;
-                    if (argTypes[i].IsArray && positionConversions[i + 1] == PositionConversion.Proxy)
-                    {
-                        int arrayProxyInfoIndex = argTypes[i].IsByRef ? parameterTargetToArgProxyInfoIndexes[i]!.Value : parameterArgToTargetProxyInfoIndexes[i]!.Value;
-
-                        il.Emit(OpCodes.Ldarg_0);
-                        il.Emit(OpCodes.Ldfld, glueField);
-
-                        // load proxy ProxyInfo
-                        il.Emit(OpCodes.Ldsfld, proxyInfosField);
-                        il.Emit(OpCodes.Ldc_I4, arrayProxyInfoIndex);
-                        il.Emit(OpCodes.Callvirt, ProxyInfoListGetMethod);
-
-                        il.Emit(OpCodes.Ldloc, outputLocals[i]!);
-                        il.Emit(OpCodes.Ldloc, inputLocals[i]!);
-                        il.Emit(OpCodes.Callvirt, MapArrayContentsMethod);
-                    }
-                }
 
                 // return result
                 if (target.ReturnType != typeof(void))

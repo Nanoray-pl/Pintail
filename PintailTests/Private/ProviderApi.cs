@@ -84,7 +84,10 @@ namespace Nanoray.Pintail.Tests.Provider
         public IApiResult GetModifiedResult(IApiResult result)
             => new ApiResult(result.Text);
 
-        public IDictionary<ISet<IApiResult>, StateEnum[]> GetComplexType()
-            => new Dictionary<ISet<IApiResult>, StateEnum[]>();
+        //public IDictionary<StateEnum, StateEnum> GetDictionary()
+        //    => new Dictionary<StateEnum, StateEnum>();
+
+        public IList<StateEnum[]> GetComplexType()
+            => new List<StateEnum[]>();
     }
 }
