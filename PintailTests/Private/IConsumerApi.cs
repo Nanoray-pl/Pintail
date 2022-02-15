@@ -38,6 +38,7 @@ namespace Nanoray.Pintail.Tests.Consumer
         StateEnum GetSameEnumState(StateEnum state);
 
         IApiResult[] GetArray();
+        IApiResult[][] GetJaggedArray();
         void ArrayMethod(IApiResult[] array);
         IList<IApiResult> GetList();
 
@@ -45,7 +46,7 @@ namespace Nanoray.Pintail.Tests.Consumer
         IApiResult GetSameResult(IApiResult result);
         IApiResult GetModifiedResult(IApiResult result);
 
-        //IDictionary<ISet<IApiResult>, StateEnum> GetComplexType();
+        //IDictionary<ISet<IApiResult>, StateEnum[]> GetComplexType();
     }
 
     public interface IInvalidConsumerApi

@@ -21,7 +21,7 @@ namespace Nanoray.Pintail
             return this.MapEnum(targetInstance, this.ProxyInfo.Proxy.Type);
         }
 
-        public bool TryUnproxy(object potentialProxyInstance, [NotNullWhen(true)] out object? targetInstance)
+        public bool TryUnproxy(IProxyManager<Context> manager, object potentialProxyInstance, [NotNullWhen(true)] out object? targetInstance)
         {
             if (!this.ProxyInfo.Target.Type.IsEnum)
                 throw new ArgumentException($"{this.ProxyInfo.Target.Type.GetBestName()} is not an enum.");

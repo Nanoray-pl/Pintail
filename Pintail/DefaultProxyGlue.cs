@@ -32,27 +32,15 @@ namespace Nanoray.Pintail
             if (toProxy is null)
                 return null;
             var unproxyFactory = this.Manager.GetProxyFactory(unproxyInfo);
-            if (unproxyFactory is not null && unproxyFactory.TryUnproxy(toProxy, out object? targetInstance))
+            if (unproxyFactory is not null && unproxyFactory.TryUnproxy(this.Manager, toProxy, out object? targetInstance))
                 return targetInstance;
             return this.ObtainProxy(proxyInfo, toProxy);
         }
 
-        public Output[] MakeMappedArray<Input, Output>(ProxyInfo<Context> proxyInfo, ProxyInfo<Context> unproxyInfo, Input[] input)
+        public void MapArrayContents(ProxyInfo<Context> proxyInfo, Array inputArray, Array outputArray)
         {
-            var output = new Output[input.Length];
-            this.MapArray(proxyInfo, unproxyInfo, input, output);
-            return output;
-        }
-
-        public void MapArray<Input, Output>(ProxyInfo<Context> proxyInfo, ProxyInfo<Context> unproxyInfo, Input[] input, Output[] output)
-        {
-            if (!proxyInfo.Target.Type.IsAssignableFrom(typeof(Input)))
-                throw new ArgumentException("Mismatched array element type to proxy.");
-            if (!proxyInfo.Proxy.Type.IsAssignableFrom(typeof(Output)))
-                throw new ArgumentException("Mismatched array element type to proxy.");
-
-            for (int i = 0; i < input.Length; i++)
-                output[i] = (Output)this.UnproxyOrObtainProxy(proxyInfo, unproxyInfo, input[i])!;
+            var arrayProxyFactory = this.Manager.ObtainProxyFactory(proxyInfo) as DefaultArrayProxyFactory<Context> ?? throw new ArgumentException($"Could not obtain DefaultArrayProxyFactory for {proxyInfo}.");
+            arrayProxyFactory.MapArrayContents(this.Manager, inputArray, outputArray);
         }
     }
 }

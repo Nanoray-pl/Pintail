@@ -16,21 +16,6 @@ namespace Nanoray.Pintail
             return type.GetElementType() ?? type;
         }
 
-        // TODO: remove when arrays are implemented properly
-        internal static Type GetRecursiveElementOrSelfType(this Type type)
-        {
-            Type result = type;
-            while (true)
-            {
-                Type? elementType = result.GetElementType();
-                if (elementType == null)
-                    break;
-                else
-                    result = elementType;
-            }
-            return result;
-        }
-
         internal static ISet<Type> GetInterfacesRecursively(this Type type, bool includingSelf)
         {
             return type.GetInterfacesRecursivelyAsEnumerable(includingSelf).ToHashSet();

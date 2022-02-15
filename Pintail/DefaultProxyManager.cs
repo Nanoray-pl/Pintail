@@ -171,6 +171,11 @@ namespace Nanoray.Pintail
                         factory = new DefaultEnumProxyFactory<Context>(proxyInfo);
                         this.Factories[proxyInfo] = factory;
                     }
+                    else if (proxyInfo.Target.Type.IsArray && proxyInfo.Proxy.Type.IsArray)
+                    {
+                        factory = new DefaultArrayProxyFactory<Context>(proxyInfo);
+                        this.Factories[proxyInfo] = factory;
+                    }
                     else
                     {
                         var newFactory = new DefaultProxyFactory<Context>(proxyInfo, this.Configuration.NoMatchingMethodHandler, this.Configuration.EnumMappingBehavior, this.Configuration.ProxyObjectInterfaceMarking);

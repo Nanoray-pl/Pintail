@@ -92,6 +92,19 @@ namespace Nanoray.Pintail.Tests
         }
 
         [Test]
+        public void TestReturnJaggedArray()
+        {
+            var manager = this.CreateProxyManager();
+            var providerApi = new ProviderApi();
+
+            var consumerApi = manager.ObtainProxy<IConsumerApi>(providerApi)!;
+            var result = consumerApi.GetJaggedArray();
+            Assert.AreEqual(1, result.Length);
+            Assert.AreEqual(1, result[0].Length);
+            Assert.AreEqual("0", result[0][0].Text);
+        }
+
+        [Test]
         public void TestArrayParameter()
         {
             var manager = this.CreateProxyManager();
@@ -152,6 +165,12 @@ namespace Nanoray.Pintail.Tests
         //[Test]
         //public void TestComplexType()
         //{
+        //    var manager = this.CreateProxyManager();
+        //    var providerApi = new ProviderApi();
+
+        //    var consumerApi = manager.ObtainProxy<IConsumerApi>(providerApi)!;
+        //    var result = consumerApi.GetComplexType();
+        //    Assert.AreEqual(0, result.Count);
         //}
 
         [Test]

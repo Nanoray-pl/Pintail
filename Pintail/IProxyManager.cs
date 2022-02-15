@@ -69,7 +69,7 @@ namespace Nanoray.Pintail
                     ));
                     if (unproxyFactory is null)
                         continue;
-                    if (unproxyFactory.TryUnproxy(toProxy, out object? targetInstance))
+                    if (unproxyFactory.TryUnproxy(self, toProxy, out object? targetInstance))
                     {
                         proxy = (TProxy)targetInstance;
                         return true;
