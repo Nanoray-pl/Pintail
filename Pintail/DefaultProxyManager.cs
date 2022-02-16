@@ -3,6 +3,8 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
 using System.Reflection.Emit;
+using System.Security.Cryptography;
+using System.Text;
 
 namespace Nanoray.Pintail
 {
@@ -45,11 +47,36 @@ namespace Nanoray.Pintail
     /// <typeparam name="Context">The context type used to describe the current proxy process. Use <see cref="Nothing"/> if not needed.</typeparam>
     public class DefaultProxyManagerConfiguration<Context>
     {
+        private static readonly MD5 MD5 = MD5.Create();
+
+        private static string GetMd5String(string input)
+        {
+            byte[] inputBytes = Encoding.UTF8.GetBytes(input);
+            byte[] hashBytes = MD5.ComputeHash(inputBytes);
+
+            StringBuilder sb = new StringBuilder();
+            for (int i = 0; i < hashBytes.Length; i++)
+                sb.Append(hashBytes[i].ToString("X2"));
+            return sb.ToString();
+        }
+
         /// <summary>
-        /// The default <see cref="DefaultProxyManagerTypeNameProvider{}"/> implementation.
+        /// A <see cref="DefaultProxyManagerTypeNameProvider{}"/> implementation using full type names.
         /// </summary>
-        public static readonly DefaultProxyManagerTypeNameProvider<Context> DefaultTypeNameProvider = (moduleBuilder, proxyInfo)
+        public static readonly DefaultProxyManagerTypeNameProvider<Context> FullNameTypeNameProvider = (moduleBuilder, proxyInfo)
             => $"{moduleBuilder.FullyQualifiedName}.From<<{proxyInfo.Proxy.Context}>_<{proxyInfo.Proxy.Type.GetBestName()}>>_To<<{proxyInfo.Target.Context}>_<{proxyInfo.Target.Type.GetBestName()}>>";
+
+        /// <summary>
+        /// A <see cref="DefaultProxyManagerTypeNameProvider{}"/> implementation using short type names.
+        /// </summary>
+        public static readonly DefaultProxyManagerTypeNameProvider<Context> ShortNameTypeNameProvider = (moduleBuilder, proxyInfo)
+            => $"{moduleBuilder.FullyQualifiedName}.From<<{proxyInfo.Proxy.Context}>_<{proxyInfo.Proxy.Type.Name}>>_To<<{proxyInfo.Target.Context}>_<{proxyInfo.Target.Type.Name}>>";
+
+        /// <summary>
+        /// A <see cref="DefaultProxyManagerTypeNameProvider{}"/> implementation using MD5 hashes.
+        /// </summary>
+        public static readonly DefaultProxyManagerTypeNameProvider<Context> Md5TypeNameProvider = (moduleBuilder, proxyInfo)
+            => $"{moduleBuilder.FullyQualifiedName}.From<{GetMd5String($"{proxyInfo.Proxy.Context}_{proxyInfo.Proxy.Type.GetBestName()}")}>_To<{GetMd5String($"{proxyInfo.Target.Context}_{proxyInfo.Target.Type.GetBestName()}")}>";
 
         /// <summary>
         /// The default <see cref="DefaultProxyManagerNoMatchingMethodHandler{}"/> implementation.<br/>
@@ -109,7 +136,7 @@ namespace Nanoray.Pintail
         /// <summary>
         /// Creates a new configuration for <see cref="DefaultProxyManager{}"/>.
         /// </summary>
-        /// <param name="typeNameProvider">The type name provider to use.<br/>Defaults to <see cref="DefaultTypeNameProvider"/>.</param>
+        /// <param name="typeNameProvider">The type name provider to use.<br/>Defaults to <see cref="Md5TypeNameProvider"/>.</param>
         /// <param name="noMatchingMethodHandler">The behavior to use if no matching method to proxy is found.<br/>Defaults to <see cref="ThrowExceptionNoMatchingMethodHandler"/>.</param>
         /// <param name="enumMappingBehavior">The behavior to use when mapping <see cref="Enum"/> arguments while matching methods to proxy.<br/>Defaults to <see cref="DefaultProxyManagerEnumMappingBehavior.ThrowAtRuntime"/>.</param>
         /// <param name="proxyObjectInterfaceMarking">Whether proxy types should implement any marker interfaces.<br/>Defaults to <see cref="ProxyObjectInterfaceMarking.Marker"/>.</param>
@@ -120,7 +147,7 @@ namespace Nanoray.Pintail
             ProxyObjectInterfaceMarking proxyObjectInterfaceMarking = ProxyObjectInterfaceMarking.Marker
         )
         {
-            this.TypeNameProvider = typeNameProvider ?? DefaultTypeNameProvider;
+            this.TypeNameProvider = typeNameProvider ?? Md5TypeNameProvider;
             this.NoMatchingMethodHandler = noMatchingMethodHandler ?? ThrowExceptionNoMatchingMethodHandler;
             this.EnumMappingBehavior = enumMappingBehavior;
             this.ProxyObjectInterfaceMarking = proxyObjectInterfaceMarking;

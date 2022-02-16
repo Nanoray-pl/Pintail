@@ -18,15 +18,6 @@ namespace Nanoray.Pintail
         }
 
         [return: NotNullIfNotNull("toProxy")]
-        public object? ObtainProxy(ProxyInfo<Context> proxyInfo, object? toProxy)
-        {
-            if (toProxy is null)
-                return null;
-            var factory = this.Manager.ObtainProxyFactory(proxyInfo);
-            return factory.ObtainProxy(this.Manager, toProxy);
-        }
-
-        [return: NotNullIfNotNull("toProxy")]
         public object? UnproxyOrObtainProxy(ProxyInfo<Context> proxyInfo, bool isReverse, object? toProxy)
         {
             if (toProxy is null)
@@ -37,7 +28,8 @@ namespace Nanoray.Pintail
             var unproxyFactory = this.Manager.GetProxyFactory(proxyToTargetInfo);
             if (unproxyFactory is not null && unproxyFactory.TryUnproxy(this.Manager, toProxy, out object? targetInstance))
                 return targetInstance;
-            return this.ObtainProxy(targetToProxyInfo, toProxy);
+            var factory = this.Manager.ObtainProxyFactory(targetToProxyInfo);
+            return factory.ObtainProxy(this.Manager, toProxy);
         }
 
         public void MapArrayContents(ProxyInfo<Context> proxyInfo, bool isReverse, Array inputArray, Array outputArray)

@@ -19,7 +19,6 @@ namespace Nanoray.Pintail
         private static readonly string TargetFieldName = "__Target";
         private static readonly string GlueFieldName = "__Glue";
         private static readonly string ProxyInfosFieldName = "__ProxyInfos";
-        private static readonly MethodInfo ObtainProxyMethod = typeof(DefaultProxyGlue<Context>).GetMethod(nameof(DefaultProxyGlue<Context>.ObtainProxy), new Type[] { typeof(ProxyInfo<Context>), typeof(object) })!;
         private static readonly MethodInfo UnproxyOrObtainProxyMethod = typeof(DefaultProxyGlue<Context>).GetMethod(nameof(DefaultProxyGlue<Context>.UnproxyOrObtainProxy), new Type[] { typeof(ProxyInfo<Context>), typeof(bool), typeof(object) })!;
         private static readonly MethodInfo MapArrayContentsMethod = typeof(DefaultProxyGlue<Context>).GetMethod(nameof(DefaultProxyGlue<Context>.MapArrayContents), new Type[] { typeof(ProxyInfo<Context>), typeof(bool), typeof(Array), typeof(Array) })!;
         private static readonly MethodInfo ProxyInfoListGetMethod = typeof(IList<ProxyInfo<Context>>).GetProperty("Item")!.GetGetMethod()!;
@@ -43,7 +42,8 @@ namespace Nanoray.Pintail
         {
             // define proxy type
             TypeBuilder proxyBuilder = manager.ModuleBuilder.DefineType(typeName, TypeAttributes.Public | TypeAttributes.Class);
-            proxyBuilder.AddInterfaceImplementation(this.ProxyInfo.Proxy.Type);
+            if (this.ProxyInfo.Proxy.Type.IsInterface) // may be false if proxying generic types, like KeyValuePair<Key, Value>
+                proxyBuilder.AddInterfaceImplementation(this.ProxyInfo.Proxy.Type);
 
             // create fields to store target instance and proxy factory
             FieldBuilder targetField = proxyBuilder.DefineField(TargetFieldName, this.ProxyInfo.Target.Type, FieldAttributes.Private | FieldAttributes.InitOnly);
@@ -313,8 +313,6 @@ namespace Nanoray.Pintail
 
             // create method body
             {
-                if (target.Name == "TryGetValue")
-                    Console.WriteLine("huhu");
                 ILGenerator il = methodBuilder.GetILGenerator();
                 LocalBuilder?[] proxyLocals = new LocalBuilder?[argTypes.Length];
                 LocalBuilder?[] targetLocals = new LocalBuilder?[argTypes.Length];

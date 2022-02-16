@@ -1,4 +1,5 @@
 using System;
+using System.Linq;
 using System.Reflection;
 using System.Reflection.Emit;
 using Nanoray.Pintail.Tests.Consumer;
@@ -162,16 +163,19 @@ namespace Nanoray.Pintail.Tests
             }
         }
 
-        //[Test]
-        //public void TestComplexType()
-        //{
-        //    var manager = this.CreateProxyManager();
-        //    var providerApi = new ProviderApi();
+        [Test]
+        public void TestComplexType()
+        {
+            var manager = this.CreateProxyManager();
+            var providerApi = new ProviderApi();
 
-        //    var consumerApi = manager.ObtainProxy<IConsumerApi>(providerApi)!;
-        //    var result = consumerApi.GetComplexType();
-        //    Assert.AreEqual(0, result.Count);
-        //}
+            var consumerApi = manager.ObtainProxy<IConsumerApi>(providerApi)!;
+            var result = consumerApi.GetComplexType();
+            Assert.AreEqual(1, result.Count);
+            Assert.AreEqual(Consumer.StateEnum.State0, result.Keys.ToList()[0]);
+            Assert.AreEqual(1, result[Consumer.StateEnum.State0].Count);
+            Assert.AreEqual("0", result[Consumer.StateEnum.State0].ToList()[0].Text);
+        }
 
         [Test]
         public void TestTryProxy()
