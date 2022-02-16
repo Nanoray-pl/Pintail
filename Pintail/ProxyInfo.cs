@@ -59,7 +59,7 @@ namespace Nanoray.Pintail
             => other is not null && this.Target.Equals(other.Target) && this.Proxy.Equals(other.Proxy);
 
         public override bool Equals(object? obj)
-            => obj is ProxyInfo<Context> info && ((ProxyInfo<Context>)this).Equals(info);
+            => obj is ProxyInfo<Context> info && this.Equals(info);
 
         public override int GetHashCode()
             => (this.Target, this.Proxy).GetHashCode();
@@ -102,10 +102,10 @@ namespace Nanoray.Pintail
             => $"TypeInfo{{context: {this.Context}, type: {this.Type.GetBestName()}}}";
 
         public bool Equals(TypeInfo<C>? other)
-            => other is not null && (typeof(C).GetInterfacesRecursively(true).Contains(typeof(IEquatable<C>)) ? ((IEquatable<C>)other).Equals(this) : (Equals(this.Context, other.Context) && Equals(this.Type, other.Type)));
+            => other is not null && other.Type == this.Type && Equals(other.Context, this.Context);
 
         public override bool Equals(object? obj)
-            => obj is TypeInfo<C> info && ((TypeInfo<C>)this).Equals(info);
+            => obj is TypeInfo<C> info && this.Equals(info);
 
         public override int GetHashCode()
             => (this.Context, this.Type).GetHashCode();
