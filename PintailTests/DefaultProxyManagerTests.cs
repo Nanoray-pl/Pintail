@@ -1,4 +1,5 @@
 using System;
+using System.Linq;
 using System.Reflection;
 using System.Reflection.Emit;
 using Nanoray.Pintail.Tests.Consumer;
@@ -48,17 +49,6 @@ namespace Nanoray.Pintail.Tests
         }
 
         [Test]
-        public void TestOutParameters()
-        {
-            var manager = this.CreateProxyManager();
-            var providerApi = new ProviderApi();
-
-            var consumerApi = manager.ObtainProxy<IConsumerApi>(providerApi)!;
-            consumerApi.GetOutResult("testing", out Consumer.IApiResult result);
-            Assert.AreEqual("testing", result.Text);
-        }
-
-        [Test]
         public void TestEnum()
         {
             var manager = this.CreateProxyManager();
@@ -103,6 +93,19 @@ namespace Nanoray.Pintail.Tests
         }
 
         [Test]
+        public void TestReturnJaggedArray()
+        {
+            var manager = this.CreateProxyManager();
+            var providerApi = new ProviderApi();
+
+            var consumerApi = manager.ObtainProxy<IConsumerApi>(providerApi)!;
+            var result = consumerApi.GetJaggedArray();
+            Assert.AreEqual(1, result.Length);
+            Assert.AreEqual(1, result[0].Length);
+            Assert.AreEqual("0", result[0][0].Text);
+        }
+
+        [Test]
         public void TestArrayParameter()
         {
             var manager = this.CreateProxyManager();
@@ -128,6 +131,17 @@ namespace Nanoray.Pintail.Tests
         }
 
         [Test]
+        public void TestOutParameters()
+        {
+            var manager = this.CreateProxyManager();
+            var providerApi = new ProviderApi();
+
+            var consumerApi = manager.ObtainProxy<IConsumerApi>(providerApi)!;
+            consumerApi.GetOutResult("testing", out Consumer.IApiResult result);
+            Assert.AreEqual("testing", result.Text);
+        }
+
+        [Test]
         public void TestInputOutputApi()
         {
             var manager = this.CreateProxyManager();
@@ -147,6 +161,20 @@ namespace Nanoray.Pintail.Tests
                 Assert.AreEqual(input.Text, output.Text);
                 Assert.IsFalse(ReferenceEquals(input, output));
             }
+        }
+
+        [Test]
+        public void TestComplexType()
+        {
+            var manager = this.CreateProxyManager();
+            var providerApi = new ProviderApi();
+
+            var consumerApi = manager.ObtainProxy<IConsumerApi>(providerApi)!;
+            var result = consumerApi.GetComplexType();
+            Assert.AreEqual(1, result.Count);
+            Assert.AreEqual(Consumer.StateEnum.State0, result.Keys.ToList()[0]);
+            Assert.AreEqual(1, result[Consumer.StateEnum.State0].Count);
+            Assert.AreEqual("0", result[Consumer.StateEnum.State0].ToList()[0].Text);
         }
 
         [Test]

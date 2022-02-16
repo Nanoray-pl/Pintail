@@ -18,52 +18,25 @@ namespace Nanoray.Pintail
         }
 
         [return: NotNullIfNotNull("toProxy")]
-        public object? ObtainProxy(ProxyInfo<Context> proxyInfo, object? toProxy)
+        public object? UnproxyOrObtainProxy(ProxyInfo<Context> proxyInfo, bool isReverse, object? toProxy)
         {
             if (toProxy is null)
                 return null;
-            var factory = this.Manager.ObtainProxyFactory(proxyInfo);
+            ProxyInfo<Context> targetToProxyInfo = isReverse ? proxyInfo.Reversed() : proxyInfo;
+            ProxyInfo<Context> proxyToTargetInfo = isReverse ? proxyInfo : proxyInfo.Reversed();
+
+            var unproxyFactory = this.Manager.GetProxyFactory(proxyToTargetInfo);
+            if (unproxyFactory is not null && unproxyFactory.TryUnproxy(this.Manager, toProxy, out object? targetInstance))
+                return targetInstance;
+            var factory = this.Manager.ObtainProxyFactory(targetToProxyInfo);
             return factory.ObtainProxy(this.Manager, toProxy);
         }
 
-        [return: NotNullIfNotNull("toProxy")]
-        public object? UnproxyOrObtainProxy(ProxyInfo<Context> proxyInfo, ProxyInfo<Context> unproxyInfo, object? toProxy)
+        public void MapArrayContents(ProxyInfo<Context> proxyInfo, bool isReverse, Array inputArray, Array outputArray)
         {
-            if (toProxy is null)
-                return null;
-            var unproxyFactory = this.Manager.GetProxyFactory(unproxyInfo);
-            if (unproxyFactory is not null && unproxyFactory.TryUnproxy(toProxy, out object? targetInstance))
-                return targetInstance;
-            return this.ObtainProxy(proxyInfo, toProxy);
-        }
-
-        public Output MapEnum<Input, Output>(Input input) where Input: Enum where Output: Enum
-        {
-            foreach (object outputValue in Enum.GetValues(typeof(Output)))
-            {
-                var output = (Output)outputValue;
-                if ((int)(object)output == (int)(object)input)
-                    return output;
-            }
-            throw new ArgumentException($"Cannot map {input} to type {typeof(Output).GetBestName()}.");
-        }
-
-        public Output[] MakeMappedArray<Input, Output>(ProxyInfo<Context> proxyInfo, ProxyInfo<Context> unproxyInfo, Input[] input)
-        {
-            var output = new Output[input.Length];
-            this.MapArray(proxyInfo, unproxyInfo, input, output);
-            return output;
-        }
-
-        public void MapArray<Input, Output>(ProxyInfo<Context> proxyInfo, ProxyInfo<Context> unproxyInfo, Input[] input, Output[] output)
-        {
-            if (!proxyInfo.Target.Type.IsAssignableFrom(typeof(Input)))
-                throw new ArgumentException("Mismatched array element type to proxy.");
-            if (!proxyInfo.Proxy.Type.IsAssignableFrom(typeof(Output)))
-                throw new ArgumentException("Mismatched array element type to proxy.");
-
-            for (int i = 0; i < input.Length; i++)
-                output[i] = (Output)this.UnproxyOrObtainProxy(proxyInfo, unproxyInfo, input[i])!;
+            ProxyInfo<Context> actualProxyInfo = isReverse ? proxyInfo.Reversed() : proxyInfo;
+            var arrayProxyFactory = this.Manager.ObtainProxyFactory(actualProxyInfo) as DefaultArrayProxyFactory<Context> ?? throw new ArgumentException($"Could not obtain DefaultArrayProxyFactory for {actualProxyInfo}.");
+            arrayProxyFactory.MapArrayContents(this.Manager, inputArray, outputArray);
         }
     }
 }

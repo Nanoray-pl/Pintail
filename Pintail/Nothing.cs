@@ -9,5 +9,8 @@ namespace Nanoray.Pintail
         /// The only possible value of the <see cref="Nothing"/> type.
         /// </summary>
         public static Nothing AtAll => new();
+
+        public override string ToString()
+            => "{}";
     }
 }

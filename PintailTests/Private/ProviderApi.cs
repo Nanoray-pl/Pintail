@@ -62,6 +62,9 @@ namespace Nanoray.Pintail.Tests.Provider
         public IApiResult[] GetArray()
             => new IApiResult[] { new ApiResult("0") };
 
+        public IApiResult[][] GetJaggedArray()
+            => new IApiResult[][] { new IApiResult[] { new ApiResult("0") } };
+
         public void ArrayMethod(IApiResult[] array)
         { }
 
@@ -80,5 +83,13 @@ namespace Nanoray.Pintail.Tests.Provider
 
         public IApiResult GetModifiedResult(IApiResult result)
             => new ApiResult(result.Text);
+
+        public IDictionary<StateEnum, ISet<IApiResult>> GetComplexType()
+        {
+            return new Dictionary<StateEnum, ISet<IApiResult>>
+            {
+                [StateEnum.State0] = new HashSet<IApiResult> { new ApiResult("0") }
+            };
+        }
     }
 }
