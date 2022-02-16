@@ -9,15 +9,15 @@ namespace Nanoray.Pintail
 
         internal DefaultArrayProxyFactory(ProxyInfo<Context> proxyInfo)
         {
+            if (!proxyInfo.Target.Type.IsArray)
+                throw new ArgumentException($"{proxyInfo.Target.Type.GetBestName()} is not an array.");
+            if (!proxyInfo.Proxy.Type.IsArray)
+                throw new ArgumentException($"{proxyInfo.Proxy.Type.GetBestName()} is not an array.");
             this.ProxyInfo = proxyInfo;
         }
 
         public object ObtainProxy(IProxyManager<Context> manager, object targetInstance)
         {
-            if (!this.ProxyInfo.Target.Type.IsArray)
-                throw new ArgumentException($"{this.ProxyInfo.Target.Type.GetBestName()} is not an array.");
-            if (!this.ProxyInfo.Proxy.Type.IsArray)
-                throw new ArgumentException($"{this.ProxyInfo.Proxy.Type.GetBestName()} is not an array.");
             if (targetInstance is not Array)
                 throw new ArgumentException($"{targetInstance} is not an array.");
             return this.MapArray(manager, (Array)targetInstance, this.ProxyInfo.Proxy.Type.GetElementType()!);
@@ -25,10 +25,6 @@ namespace Nanoray.Pintail
 
         public bool TryUnproxy(IProxyManager<Context> manager, object potentialProxyInstance, [NotNullWhen(true)] out object? targetInstance)
         {
-            if (!this.ProxyInfo.Target.Type.IsArray)
-                throw new ArgumentException($"{this.ProxyInfo.Target.Type.GetBestName()} is not an array.");
-            if (!this.ProxyInfo.Proxy.Type.IsArray)
-                throw new ArgumentException($"{this.ProxyInfo.Proxy.Type.GetBestName()} is not an array.");
             if (potentialProxyInstance is not Array)
                 throw new ArgumentException($"{potentialProxyInstance} is not an array.");
             targetInstance = this.MapArray(manager, (Array)potentialProxyInstance, this.ProxyInfo.Target.Type.GetElementType()!);

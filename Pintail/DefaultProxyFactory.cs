@@ -10,10 +10,6 @@ namespace Nanoray.Pintail
 {
     internal class DefaultProxyFactory<Context>: IProxyFactory<Context>
     {
-        private enum MethodTypeMatchingPart { ReturnType, Parameter }
-
-        private enum MatchingTypesResult { False, IfProxied, True }
-
         private enum PositionConversion { Proxy }
 
         private static readonly string TargetFieldName = "__Target";
@@ -32,6 +28,8 @@ namespace Nanoray.Pintail
 
         internal DefaultProxyFactory(ProxyInfo<Context> proxyInfo, DefaultProxyManagerNoMatchingMethodHandler<Context> noMatchingMethodHandler, DefaultProxyManagerEnumMappingBehavior enumMappingBehavior, ProxyObjectInterfaceMarking proxyObjectInterfaceMarking)
         {
+            if (!proxyInfo.Proxy.Type.IsInterface)
+                throw new ArgumentException($"{proxyInfo.Proxy.Type.GetBestName()} is not an interface.");
             this.ProxyInfo = proxyInfo;
             this.NoMatchingMethodHandler = noMatchingMethodHandler;
             this.EnumMappingBehavior = enumMappingBehavior;
@@ -42,8 +40,7 @@ namespace Nanoray.Pintail
         {
             // define proxy type
             TypeBuilder proxyBuilder = manager.ModuleBuilder.DefineType(typeName, TypeAttributes.Public | TypeAttributes.Class);
-            if (this.ProxyInfo.Proxy.Type.IsInterface) // may be false if proxying generic types, like KeyValuePair<Key, Value>
-                proxyBuilder.AddInterfaceImplementation(this.ProxyInfo.Proxy.Type);
+            proxyBuilder.AddInterfaceImplementation(this.ProxyInfo.Proxy.Type);
 
             // create fields to store target instance and proxy factory
             FieldBuilder targetField = proxyBuilder.DefineField(TargetFieldName, this.ProxyInfo.Target.Type, FieldAttributes.Private | FieldAttributes.InitOnly);
@@ -116,77 +113,6 @@ namespace Nanoray.Pintail
             var allTargetMethods = FindInterfaceMethods(this.ProxyInfo.Target.Type).ToHashSet();
             var allProxyMethods = FindInterfaceMethods(this.ProxyInfo.Proxy.Type).ToHashSet();
 
-            MatchingTypesResult AreTypesMatching(Type targetType, Type proxyType, MethodTypeMatchingPart part)
-            {
-                var typeA = part == MethodTypeMatchingPart.Parameter ? targetType : proxyType;
-                var typeB = part == MethodTypeMatchingPart.Parameter ? proxyType : targetType;
-
-                if (typeA.IsGenericMethodParameter != typeB.IsGenericMethodParameter)
-                    return MatchingTypesResult.False;
-                if (proxyType.IsEnum && targetType.IsEnum)
-                {
-                    if (proxyType == targetType)
-                        return MatchingTypesResult.True;
-                    var proxyEnumRawValues = proxyType.GetEnumerableEnumValues().Select(e => (int)(object)e).ToList();
-                    var targetEnumRawValues = targetType.GetEnumerableEnumValues().Select(e => (int)(object)e).ToList();
-                    switch (this.EnumMappingBehavior)
-                    {
-                        case DefaultProxyManagerEnumMappingBehavior.Strict:
-                            return proxyEnumRawValues.OrderBy(e => e).SequenceEqual(targetEnumRawValues.OrderBy(e => e)) ? MatchingTypesResult.IfProxied : MatchingTypesResult.False;
-                        case DefaultProxyManagerEnumMappingBehavior.AllowAdditive:
-                            return targetEnumRawValues.ToHashSet().Except(proxyEnumRawValues).Any() ? MatchingTypesResult.False : MatchingTypesResult.IfProxied;
-                        case DefaultProxyManagerEnumMappingBehavior.ThrowAtRuntime:
-                            return MatchingTypesResult.IfProxied;
-                    }
-                }
-                if (proxyType.IsArray && targetType.IsArray)
-                    return proxyType == targetType ? MatchingTypesResult.True : MatchingTypesResult.IfProxied;
-                if (typeA.IsGenericMethodParameter)
-                    return typeA.GenericParameterPosition == typeB.GenericParameterPosition ? MatchingTypesResult.True : MatchingTypesResult.False;
-
-                if (typeA.IsAssignableFrom(typeB))
-                    return MatchingTypesResult.True;
-
-                if (proxyType.GetNonRefType().IsInterface)
-                    return MatchingTypesResult.IfProxied;
-                if (targetType.GetNonRefType().IsInterface)
-                    return MatchingTypesResult.IfProxied;
-
-                var targetTypeGenericArguments = targetType.GetGenericArguments();
-                var proxyTypeGenericArguments = proxyType.GetGenericArguments();
-                if (targetTypeGenericArguments.Length != proxyTypeGenericArguments.Length || targetTypeGenericArguments.Length == 0)
-                    return MatchingTypesResult.False;
-
-                var genericTargetType = targetType.GetGenericTypeDefinition();
-                var genericProxyType = proxyType.GetGenericTypeDefinition();
-
-                var matchingTypesResult = MatchingTypesResult.True;
-                switch (AreTypesMatching(genericTargetType, genericProxyType, part))
-                {
-                    case MatchingTypesResult.True:
-                        break;
-                    case MatchingTypesResult.IfProxied:
-                        matchingTypesResult = MatchingTypesResult.IfProxied;
-                        break;
-                    case MatchingTypesResult.False:
-                        return MatchingTypesResult.False;
-                }
-                for (int i = 0; i < targetTypeGenericArguments.Length; i++)
-                {
-                    switch (AreTypesMatching(targetTypeGenericArguments[i], proxyTypeGenericArguments[i], part))
-                    {
-                        case MatchingTypesResult.True:
-                            break;
-                        case MatchingTypesResult.IfProxied:
-                            matchingTypesResult = MatchingTypesResult.IfProxied;
-                            break;
-                        case MatchingTypesResult.False:
-                            return MatchingTypesResult.False;
-                    }
-                }
-                return matchingTypesResult;
-            }
-
             // proxy methods
             IList<ProxyInfo<Context>> relatedProxyInfos = new List<ProxyInfo<Context>>();
             foreach (MethodInfo proxyMethod in allProxyMethods)
@@ -207,26 +133,26 @@ namespace Nanoray.Pintail
                         return null;
                     var positionConversions = new PositionConversion?[mParameters.Length + 1]; // 0 = return type; n + 1 = parameter position n
 
-                    switch (AreTypesMatching(targetMethod.ReturnType, proxyMethod.ReturnType, MethodTypeMatchingPart.ReturnType))
+                    switch (TypeUtilities.AreTypesMatching(targetMethod.ReturnType, proxyMethod.ReturnType, TypeUtilities.MethodTypeMatchingPart.ReturnType, this.EnumMappingBehavior))
                     {
-                        case MatchingTypesResult.False:
+                        case TypeUtilities.MatchingTypesResult.False:
                             return null;
-                        case MatchingTypesResult.True:
+                        case TypeUtilities.MatchingTypesResult.True:
                             break;
-                        case MatchingTypesResult.IfProxied:
+                        case TypeUtilities.MatchingTypesResult.IfProxied:
                             positionConversions[0] = PositionConversion.Proxy;
                             break;
                     }
 
                     for (int i = 0; i < mParameters.Length; i++)
                     {
-                        switch (AreTypesMatching(mParameters[i].ParameterType.GetNonRefType(), proxyMethodParameters[i].ParameterType.GetNonRefType(), MethodTypeMatchingPart.Parameter))
+                        switch (TypeUtilities.AreTypesMatching(mParameters[i].ParameterType.GetNonRefType(), proxyMethodParameters[i].ParameterType.GetNonRefType(), TypeUtilities.MethodTypeMatchingPart.Parameter, this.EnumMappingBehavior))
                         {
-                            case MatchingTypesResult.False:
+                            case TypeUtilities.MatchingTypesResult.False:
                                 return null;
-                            case MatchingTypesResult.True:
+                            case TypeUtilities.MatchingTypesResult.True:
                                 break;
-                            case MatchingTypesResult.IfProxied:
+                            case TypeUtilities.MatchingTypesResult.IfProxied:
                                 positionConversions[i + 1] = PositionConversion.Proxy;
                                 break;
                         }

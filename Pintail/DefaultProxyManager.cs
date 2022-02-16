@@ -203,7 +203,7 @@ namespace Nanoray.Pintail
                         factory = new DefaultArrayProxyFactory<Context>(proxyInfo);
                         this.Factories[proxyInfo] = factory;
                     }
-                    else
+                    else if (proxyInfo.Proxy.Type.IsInterface)
                     {
                         var newFactory = new DefaultProxyFactory<Context>(proxyInfo, this.Configuration.NoMatchingMethodHandler, this.Configuration.EnumMappingBehavior, this.Configuration.ProxyObjectInterfaceMarking);
                         factory = newFactory;
@@ -216,6 +216,21 @@ namespace Nanoray.Pintail
                         {
                             this.Factories.Remove(proxyInfo);
                             throw;
+                        }
+                    }
+                    else
+                    {
+                        var newFactory = new DefaultReconstructingProxyFactory<Context>(proxyInfo, this.Configuration.EnumMappingBehavior);
+                        factory = newFactory;
+                        this.Factories[proxyInfo] = factory;
+                        try
+                        {
+                            newFactory.Prepare();
+                        }
+                        catch (Exception e)
+                        {
+                            this.Factories.Remove(proxyInfo);
+                            throw new ArgumentException($"Unhandled proxy/conversion method for info: {proxyInfo}", e);
                         }
                     }
                 }
