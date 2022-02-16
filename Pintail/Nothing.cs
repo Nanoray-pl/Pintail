@@ -11,6 +11,6 @@ namespace Nanoray.Pintail
         public static Nothing AtAll => new();
 
         public override string ToString()
-            => "[]";
+            => "{}";
     }
 }

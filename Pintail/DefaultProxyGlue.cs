@@ -27,19 +27,23 @@ namespace Nanoray.Pintail
         }
 
         [return: NotNullIfNotNull("toProxy")]
-        public object? UnproxyOrObtainProxy(ProxyInfo<Context> proxyInfo, ProxyInfo<Context> unproxyInfo, object? toProxy)
+        public object? UnproxyOrObtainProxy(ProxyInfo<Context> proxyInfo, bool isReverse, object? toProxy)
         {
             if (toProxy is null)
                 return null;
-            var unproxyFactory = this.Manager.GetProxyFactory(unproxyInfo);
+            ProxyInfo<Context> targetToProxyInfo = isReverse ? proxyInfo.Reversed() : proxyInfo;
+            ProxyInfo<Context> proxyToTargetInfo = isReverse ? proxyInfo : proxyInfo.Reversed();
+
+            var unproxyFactory = this.Manager.GetProxyFactory(proxyToTargetInfo);
             if (unproxyFactory is not null && unproxyFactory.TryUnproxy(this.Manager, toProxy, out object? targetInstance))
                 return targetInstance;
-            return this.ObtainProxy(proxyInfo, toProxy);
+            return this.ObtainProxy(targetToProxyInfo, toProxy);
         }
 
-        public void MapArrayContents(ProxyInfo<Context> proxyInfo, Array inputArray, Array outputArray)
+        public void MapArrayContents(ProxyInfo<Context> proxyInfo, bool isReverse, Array inputArray, Array outputArray)
         {
-            var arrayProxyFactory = this.Manager.ObtainProxyFactory(proxyInfo) as DefaultArrayProxyFactory<Context> ?? throw new ArgumentException($"Could not obtain DefaultArrayProxyFactory for {proxyInfo}.");
+            ProxyInfo<Context> actualProxyInfo = isReverse ? proxyInfo.Reversed() : proxyInfo;
+            var arrayProxyFactory = this.Manager.ObtainProxyFactory(actualProxyInfo) as DefaultArrayProxyFactory<Context> ?? throw new ArgumentException($"Could not obtain DefaultArrayProxyFactory for {actualProxyInfo}.");
             arrayProxyFactory.MapArrayContents(this.Manager, inputArray, outputArray);
         }
     }

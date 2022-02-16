@@ -43,8 +43,17 @@ namespace Nanoray.Pintail
             );
         }
 
+        /// <summary>
+        /// Creates a copy of this <see cref="ProxyInfo{}"/> that is a reverse of its target and proxy types.
+        /// </summary>
+        /// <returns>A copy with reversed target and proxy types.</returns>
+        public ProxyInfo<Context> Reversed()
+        {
+            return this.Copy(targetType: this.Proxy.Type, proxyType: this.Target.Type);
+        }
+
         public override string ToString()
-            => $"ProxyInfo[target: {this.Target}, proxy: {this.Proxy}]";
+            => $"ProxyInfo{{target: {this.Target}, proxy: {this.Proxy}}}";
 
         public bool Equals(ProxyInfo<Context>? other)
             => other is not null && this.Target.Equals(other.Target) && this.Proxy.Equals(other.Proxy);
@@ -90,7 +99,7 @@ namespace Nanoray.Pintail
         }
 
         public override string ToString()
-            => $"TypeInfo[context: {this.Context}, type: {this.Type.GetBestName()}]";
+            => $"TypeInfo{{context: {this.Context}, type: {this.Type.GetBestName()}}}";
 
         public bool Equals(TypeInfo<C>? other)
             => other is not null && (typeof(C).GetInterfacesRecursively(true).Contains(typeof(IEquatable<C>)) ? ((IEquatable<C>)other).Equals(this) : (Equals(this.Context, other.Context) && Equals(this.Type, other.Type)));

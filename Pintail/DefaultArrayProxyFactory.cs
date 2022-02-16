@@ -20,7 +20,7 @@ namespace Nanoray.Pintail
                 throw new ArgumentException($"{this.ProxyInfo.Proxy.Type.GetBestName()} is not an array.");
             if (targetInstance is not Array)
                 throw new ArgumentException($"{targetInstance} is not an array.");
-            return this.MapArray(manager, (Array)targetInstance, this.ProxyInfo.Proxy.Type);
+            return this.MapArray(manager, (Array)targetInstance, this.ProxyInfo.Proxy.Type.GetElementType()!);
         }
 
         public bool TryUnproxy(IProxyManager<Context> manager, object potentialProxyInstance, [NotNullWhen(true)] out object? targetInstance)

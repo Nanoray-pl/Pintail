@@ -46,7 +46,7 @@ namespace Nanoray.Pintail.Tests.Consumer
         IApiResult GetSameResult(IApiResult result);
         IApiResult GetModifiedResult(IApiResult result);
 
-        //IDictionary<StateEnum, StateEnum> GetDictionary();
+        IDictionary<string, IApiResult> GetDictionary();
         IList<StateEnum[]> GetComplexType();
     }
 
