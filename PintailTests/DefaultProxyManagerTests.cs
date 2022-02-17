@@ -210,6 +210,17 @@ namespace Nanoray.Pintail.Tests
         }
 
         [Test]
+        public void TestGMCM()
+        {
+            var manager = this.CreateProxyManager();
+            var providerApi = new ProviderApi();
+            var consumerApi = manager.ObtainProxy<IConsumerApi>(providerApi)!;
+
+            consumerApi.RegisterSimpleOption(new Consumer.ApiResult(""), "optionName", "optionDesc", () => true, (b) => { });
+            consumerApi.RegisterSimpleOption(new Consumer.ApiResult(""), "optionName", "optionDesc", () => "value", (s) => { });
+        }
+
+        [Test]
         public void TestTryProxy()
         {
             var manager = this.CreateProxyManager();

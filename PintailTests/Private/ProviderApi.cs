@@ -108,5 +108,11 @@ namespace Nanoray.Pintail.Tests.Provider
 
         public void SetCustomOutDelegate(CustomGenericOutDelegate<StateEnum> @delegate)
             => this.CustomOutDelegate = @delegate;
+
+        public void RegisterSimpleOption(IApiResult result, string optionName, string optionDesc, Func<bool> optionGet, Action<bool> optionSet)
+        { }
+
+        public void RegisterSimpleOption(IApiResult result, string optionName, string optionDesc, Func<string> optionGet, Action<string> optionSet)
+        { }
     }
 }

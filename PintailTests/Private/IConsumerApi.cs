@@ -55,6 +55,9 @@ namespace Nanoray.Pintail.Tests.Consumer
 
         CustomGenericOutDelegate<StateEnum> GetCustomOutDelegate();
         void SetCustomOutDelegate(CustomGenericOutDelegate<StateEnum> @delegate);
+
+        void RegisterSimpleOption(IApiResult result, string optionName, string optionDesc, Func<bool> optionGet, Action<bool> optionSet);
+        void RegisterSimpleOption(IApiResult result, string optionName, string optionDesc, Func<string> optionGet, Action<string> optionSet);
     }
 
     public interface IInvalidConsumerApi

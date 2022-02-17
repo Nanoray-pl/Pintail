@@ -53,20 +53,23 @@ namespace Nanoray.Pintail
 
             var matchingTypesResult = MatchingTypesResult.True;
 
-            if (!targetType.IsGenericTypeDefinition && !proxyType.IsGenericTypeDefinition)
+            if (!(proxyType.IsAssignableTo(typeof(Delegate)) && targetType.IsAssignableTo(typeof(Delegate))))
             {
-                var genericTargetType = targetType.GetGenericTypeDefinition();
-                var genericProxyType = proxyType.GetGenericTypeDefinition();
-                switch (AreTypesMatching(genericTargetType, genericProxyType, part, enumMappingBehavior))
+                if (!targetType.IsGenericTypeDefinition && !proxyType.IsGenericTypeDefinition)
                 {
-                    case MatchingTypesResult.True:
-                        break;
-                    case MatchingTypesResult.IfProxied:
-                        matchingTypesResult = (MatchingTypesResult)Math.Min((int)matchingTypesResult, (int)MatchingTypesResult.IfProxied);
-                        break;
-                    case MatchingTypesResult.False:
-                        matchingTypesResult = (MatchingTypesResult)Math.Min((int)matchingTypesResult, (int)MatchingTypesResult.False);
-                        break;
+                    var genericTargetType = targetType.GetGenericTypeDefinition();
+                    var genericProxyType = proxyType.GetGenericTypeDefinition();
+                    switch (AreTypesMatching(genericTargetType, genericProxyType, part, enumMappingBehavior))
+                    {
+                        case MatchingTypesResult.True:
+                            break;
+                        case MatchingTypesResult.IfProxied:
+                            matchingTypesResult = (MatchingTypesResult)Math.Min((int)matchingTypesResult, (int)MatchingTypesResult.IfProxied);
+                            break;
+                        case MatchingTypesResult.False:
+                            matchingTypesResult = (MatchingTypesResult)Math.Min((int)matchingTypesResult, (int)MatchingTypesResult.False);
+                            break;
+                    }
                 }
             }
             for (int i = 0; i < targetTypeGenericArguments.Length; i++)
@@ -83,9 +86,6 @@ namespace Nanoray.Pintail
                         break;
                 }
             }
-
-            if (proxyType.IsAssignableTo(typeof(Delegate)) && targetType.IsAssignableTo(typeof(Delegate)))
-                return (MatchingTypesResult)Math.Max((int)matchingTypesResult, (int)MatchingTypesResult.IfProxied);
             return matchingTypesResult;
         }
 
