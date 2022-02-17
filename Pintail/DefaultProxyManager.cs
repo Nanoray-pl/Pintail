@@ -203,7 +203,7 @@ namespace Nanoray.Pintail
                         factory = new DefaultArrayProxyFactory<Context>(proxyInfo);
                         this.Factories[proxyInfo] = factory;
                     }
-                    else if (proxyInfo.Proxy.Type.IsInterface)
+                    else if (proxyInfo.Proxy.Type.IsInterface || (proxyInfo.Proxy.Type.IsAssignableTo(typeof(Delegate)) && proxyInfo.Target.Type.IsAssignableTo(typeof(Delegate))))
                     {
                         var newFactory = new DefaultProxyFactory<Context>(proxyInfo, this.Configuration.NoMatchingMethodHandler, this.Configuration.EnumMappingBehavior, this.Configuration.ProxyObjectInterfaceMarking);
                         factory = newFactory;

@@ -3,6 +3,8 @@ using System.Collections.Generic;
 
 namespace Nanoray.Pintail.Tests.Provider
 {
+    public delegate void CustomGenericOutDelegate<T>(out T param);
+
     public enum StateEnum
     {
         State0, State1, State2
@@ -33,6 +35,9 @@ namespace Nanoray.Pintail.Tests.Provider
 
     public class ProviderApi: IProviderApiDefaultMethods
     {
+        private Func<IApiResult, IApiResult> Mapper = (r) => r;
+        private CustomGenericOutDelegate<StateEnum> CustomOutDelegate = (out StateEnum p) => p = StateEnum.State0;
+
         public void VoidMethod() { }
 
         public int IntMethod(int num)
@@ -91,5 +96,17 @@ namespace Nanoray.Pintail.Tests.Provider
                 [StateEnum.State0] = new HashSet<IApiResult> { new ApiResult("0") }
             };
         }
+
+        public Func<IApiResult, IApiResult> GetMapper()
+            => this.Mapper;
+
+        public void SetMapper(Func<IApiResult, IApiResult> mapper)
+            => this.Mapper = mapper;
+
+        public CustomGenericOutDelegate<StateEnum> GetCustomOutDelegate()
+            => this.CustomOutDelegate;
+
+        public void SetCustomOutDelegate(CustomGenericOutDelegate<StateEnum> @delegate)
+            => this.CustomOutDelegate = @delegate;
     }
 }

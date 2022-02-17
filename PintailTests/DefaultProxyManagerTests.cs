@@ -178,6 +178,38 @@ namespace Nanoray.Pintail.Tests
         }
 
         [Test]
+        public void TestSystemDelegates()
+        {
+            var manager = this.CreateProxyManager();
+            var providerApi = new ProviderApi();
+            var consumerApi = manager.ObtainProxy<IConsumerApi>(providerApi)!;
+
+            var result1 = new Consumer.ApiResult("asdf");
+            var result2 = consumerApi.GetMapper()(result1);
+            Assert.AreEqual(result1.Text, result2.Text);
+            Assert.AreEqual(result1, result2);
+
+            consumerApi.SetMapper((r) => new Consumer.ApiResult($"{r.Text}{r.Text}"));
+            var result3 = consumerApi.GetMapper()(result2);
+            Assert.AreEqual($"{result2.Text}{result2.Text}", result3.Text);
+            Assert.AreNotEqual(result2, result3);
+        }
+
+        [Test]
+        public void TestCustomGenericOutDelegate()
+        {
+            var manager = this.CreateProxyManager();
+            var providerApi = new ProviderApi();
+            var consumerApi = manager.ObtainProxy<IConsumerApi>(providerApi)!;
+
+            consumerApi.GetCustomOutDelegate()(out Consumer.StateEnum result1);
+            Assert.AreEqual(Consumer.StateEnum.State0, result1);
+            consumerApi.SetCustomOutDelegate((out Consumer.StateEnum p) => p = Consumer.StateEnum.State2);
+            consumerApi.GetCustomOutDelegate()(out Consumer.StateEnum result2);
+            Assert.AreEqual(Consumer.StateEnum.State2, result2);
+        }
+
+        [Test]
         public void TestTryProxy()
         {
             var manager = this.CreateProxyManager();

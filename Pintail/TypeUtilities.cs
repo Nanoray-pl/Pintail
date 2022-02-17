@@ -1,5 +1,6 @@
 using System;
 using System.Linq;
+using System.Reflection;
 
 namespace Nanoray.Pintail
 {
@@ -7,6 +8,7 @@ namespace Nanoray.Pintail
     {
         internal enum MethodTypeMatchingPart { ReturnType, Parameter }
         internal enum MatchingTypesResult { False, IfProxied, True }
+        internal enum PositionConversion { Proxy }
 
         internal static MatchingTypesResult AreTypesMatching(Type targetType, Type proxyType, MethodTypeMatchingPart part, DefaultProxyManagerEnumMappingBehavior enumMappingBehavior)
         {
@@ -49,19 +51,23 @@ namespace Nanoray.Pintail
             if (targetTypeGenericArguments.Length != proxyTypeGenericArguments.Length || targetTypeGenericArguments.Length == 0)
                 return MatchingTypesResult.False;
 
-            var genericTargetType = targetType.GetGenericTypeDefinition();
-            var genericProxyType = proxyType.GetGenericTypeDefinition();
-
             var matchingTypesResult = MatchingTypesResult.True;
-            switch (AreTypesMatching(genericTargetType, genericProxyType, part, enumMappingBehavior))
+
+            if (!targetType.IsGenericTypeDefinition && !proxyType.IsGenericTypeDefinition)
             {
-                case MatchingTypesResult.True:
-                    break;
-                case MatchingTypesResult.IfProxied:
-                    matchingTypesResult = MatchingTypesResult.IfProxied;
-                    break;
-                case MatchingTypesResult.False:
-                    return MatchingTypesResult.False;
+                var genericTargetType = targetType.GetGenericTypeDefinition();
+                var genericProxyType = proxyType.GetGenericTypeDefinition();
+                switch (AreTypesMatching(genericTargetType, genericProxyType, part, enumMappingBehavior))
+                {
+                    case MatchingTypesResult.True:
+                        break;
+                    case MatchingTypesResult.IfProxied:
+                        matchingTypesResult = (MatchingTypesResult)Math.Min((int)matchingTypesResult, (int)MatchingTypesResult.IfProxied);
+                        break;
+                    case MatchingTypesResult.False:
+                        matchingTypesResult = (MatchingTypesResult)Math.Min((int)matchingTypesResult, (int)MatchingTypesResult.False);
+                        break;
+                }
             }
             for (int i = 0; i < targetTypeGenericArguments.Length; i++)
             {
@@ -70,13 +76,61 @@ namespace Nanoray.Pintail
                     case MatchingTypesResult.True:
                         break;
                     case MatchingTypesResult.IfProxied:
-                        matchingTypesResult = MatchingTypesResult.IfProxied;
+                        matchingTypesResult = (MatchingTypesResult)Math.Min((int)matchingTypesResult, (int)MatchingTypesResult.IfProxied);
                         break;
                     case MatchingTypesResult.False:
-                        return MatchingTypesResult.False;
+                        matchingTypesResult = (MatchingTypesResult)Math.Min((int)matchingTypesResult, (int)MatchingTypesResult.False);
+                        break;
                 }
             }
+
+            if (proxyType.IsAssignableTo(typeof(Delegate)) && targetType.IsAssignableTo(typeof(Delegate)))
+                return (MatchingTypesResult)Math.Max((int)matchingTypesResult, (int)MatchingTypesResult.IfProxied);
             return matchingTypesResult;
+        }
+
+        internal static PositionConversion?[]? MatchProxyMethod(MethodInfo targetMethod, MethodInfo proxyMethod, DefaultProxyManagerEnumMappingBehavior enumMappingBehavior)
+        {
+            // checking if `targetMethod` matches `proxyMethod`
+            var proxyMethodParameters = proxyMethod.GetParameters();
+            var proxyMethodGenericArguments = proxyMethod.GetGenericArguments();
+
+            if (targetMethod.Name != proxyMethod.Name)
+                return null;
+            if (targetMethod.GetGenericArguments().Length != proxyMethodGenericArguments!.Length)
+                return null;
+            var mParameters = targetMethod.GetParameters();
+            if (mParameters.Length != proxyMethodParameters!.Length)
+                return null;
+            var positionConversions = new PositionConversion?[mParameters.Length + 1]; // 0 = return type; n + 1 = parameter position n
+
+            switch (AreTypesMatching(targetMethod.ReturnType, proxyMethod.ReturnType, MethodTypeMatchingPart.ReturnType, enumMappingBehavior))
+            {
+                case MatchingTypesResult.False:
+                    return null;
+                case MatchingTypesResult.True:
+                    break;
+                case MatchingTypesResult.IfProxied:
+                    positionConversions[0] = PositionConversion.Proxy;
+                    break;
+            }
+
+            for (int i = 0; i < mParameters.Length; i++)
+            {
+                switch (AreTypesMatching(mParameters[i].ParameterType.GetNonRefType(), proxyMethodParameters[i].ParameterType.GetNonRefType(), MethodTypeMatchingPart.Parameter, enumMappingBehavior))
+                {
+                    case MatchingTypesResult.False:
+                        return null;
+                    case MatchingTypesResult.True:
+                        break;
+                    case MatchingTypesResult.IfProxied:
+                        positionConversions[i + 1] = PositionConversion.Proxy;
+                        break;
+                }
+            }
+
+            // method matched
+            return positionConversions;
         }
     }
 }
