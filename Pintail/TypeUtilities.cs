@@ -96,26 +96,26 @@ namespace Nanoray.Pintail
                 return null;
             var positionConversions = new PositionConversion?[mParameters.Length + 1]; // 0 = return type; n + 1 = parameter position n
 
-            switch (TypeUtilities.AreTypesMatching(targetMethod.ReturnType, proxyMethod.ReturnType, TypeUtilities.MethodTypeMatchingPart.ReturnType, enumMappingBehavior))
+            switch (AreTypesMatching(targetMethod.ReturnType, proxyMethod.ReturnType, MethodTypeMatchingPart.ReturnType, enumMappingBehavior))
             {
-                case TypeUtilities.MatchingTypesResult.False:
+                case MatchingTypesResult.False:
                     return null;
-                case TypeUtilities.MatchingTypesResult.True:
+                case MatchingTypesResult.True:
                     break;
-                case TypeUtilities.MatchingTypesResult.IfProxied:
+                case MatchingTypesResult.IfProxied:
                     positionConversions[0] = PositionConversion.Proxy;
                     break;
             }
 
             for (int i = 0; i < mParameters.Length; i++)
             {
-                switch (TypeUtilities.AreTypesMatching(mParameters[i].ParameterType.GetNonRefType(), proxyMethodParameters[i].ParameterType.GetNonRefType(), TypeUtilities.MethodTypeMatchingPart.Parameter, enumMappingBehavior))
+                switch (AreTypesMatching(mParameters[i].ParameterType.GetNonRefType(), proxyMethodParameters[i].ParameterType.GetNonRefType(), MethodTypeMatchingPart.Parameter, enumMappingBehavior))
                 {
-                    case TypeUtilities.MatchingTypesResult.False:
+                    case MatchingTypesResult.False:
                         return null;
-                    case TypeUtilities.MatchingTypesResult.True:
+                    case MatchingTypesResult.True:
                         break;
-                    case TypeUtilities.MatchingTypesResult.IfProxied:
+                    case MatchingTypesResult.IfProxied:
                         positionConversions[i + 1] = PositionConversion.Proxy;
                         break;
                 }
