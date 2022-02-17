@@ -51,19 +51,23 @@ namespace Nanoray.Pintail
             if (targetTypeGenericArguments.Length != proxyTypeGenericArguments.Length || targetTypeGenericArguments.Length == 0)
                 return MatchingTypesResult.False;
 
-            var genericTargetType = targetType.GetGenericTypeDefinition();
-            var genericProxyType = proxyType.GetGenericTypeDefinition();
-
             var matchingTypesResult = MatchingTypesResult.True;
-            switch (AreTypesMatching(genericTargetType, genericProxyType, part, enumMappingBehavior))
+
+            if (!targetType.IsGenericTypeDefinition && !proxyType.IsGenericTypeDefinition)
             {
-                case MatchingTypesResult.True:
-                    break;
-                case MatchingTypesResult.IfProxied:
-                    matchingTypesResult = MatchingTypesResult.IfProxied;
-                    break;
-                case MatchingTypesResult.False:
-                    return MatchingTypesResult.False;
+                var genericTargetType = targetType.GetGenericTypeDefinition();
+                var genericProxyType = proxyType.GetGenericTypeDefinition();
+                switch (AreTypesMatching(genericTargetType, genericProxyType, part, enumMappingBehavior))
+                {
+                    case MatchingTypesResult.True:
+                        break;
+                    case MatchingTypesResult.IfProxied:
+                        matchingTypesResult = (MatchingTypesResult)Math.Min((int)matchingTypesResult, (int)MatchingTypesResult.IfProxied);
+                        break;
+                    case MatchingTypesResult.False:
+                        matchingTypesResult = (MatchingTypesResult)Math.Min((int)matchingTypesResult, (int)MatchingTypesResult.False);
+                        break;
+                }
             }
             for (int i = 0; i < targetTypeGenericArguments.Length; i++)
             {
@@ -72,12 +76,16 @@ namespace Nanoray.Pintail
                     case MatchingTypesResult.True:
                         break;
                     case MatchingTypesResult.IfProxied:
-                        matchingTypesResult = MatchingTypesResult.IfProxied;
+                        matchingTypesResult = (MatchingTypesResult)Math.Min((int)matchingTypesResult, (int)MatchingTypesResult.IfProxied);
                         break;
                     case MatchingTypesResult.False:
-                        return MatchingTypesResult.False;
+                        matchingTypesResult = (MatchingTypesResult)Math.Min((int)matchingTypesResult, (int)MatchingTypesResult.False);
+                        break;
                 }
             }
+
+            if (proxyType.IsAssignableTo(typeof(Delegate)) && targetType.IsAssignableTo(typeof(Delegate)))
+                return (MatchingTypesResult)Math.Max((int)matchingTypesResult, (int)MatchingTypesResult.IfProxied);
             return matchingTypesResult;
         }
 

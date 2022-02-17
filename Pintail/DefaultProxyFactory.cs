@@ -125,13 +125,16 @@ namespace Nanoray.Pintail
             var allTargetMethods = FindInterfaceMethods(this.ProxyInfo.Target.Type).ToHashSet();
             var allProxyMethods = FindInterfaceMethods(this.ProxyInfo.Proxy.Type).ToHashSet();
 
+            if (this.ProxyInfo.Proxy.Type.IsAssignableTo(typeof(Delegate)))
+            {
+                allTargetMethods.RemoveWhere(m => m.Name != "Invoke");
+                allProxyMethods.RemoveWhere(m => m.Name != "Invoke");
+            }
+
             // proxy methods
             IList<ProxyInfo<Context>> relatedProxyInfos = new List<ProxyInfo<Context>>();
             foreach (MethodInfo proxyMethod in allProxyMethods)
             {
-                var proxyMethodParameters = proxyMethod.GetParameters();
-                var proxyMethodGenericArguments = proxyMethod.GetGenericArguments();
-
                 foreach (MethodInfo targetMethod in allTargetMethods)
                 {
                     var positionConversions = TypeUtilities.MatchProxyMethod(targetMethod, proxyMethod, this.EnumMappingBehavior);
