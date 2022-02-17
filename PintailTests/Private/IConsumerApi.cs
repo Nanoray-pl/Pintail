@@ -47,6 +47,9 @@ namespace Nanoray.Pintail.Tests.Consumer
         IApiResult GetModifiedResult(IApiResult result);
 
         IDictionary<StateEnum, ISet<IApiResult>> GetComplexType();
+
+        Func<IApiResult, IApiResult> GetMapper();
+        void SetMapper(Func<IApiResult, IApiResult> mapper);
     }
 
     public interface IInvalidConsumerApi

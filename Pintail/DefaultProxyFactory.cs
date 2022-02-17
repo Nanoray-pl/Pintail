@@ -10,8 +10,6 @@ namespace Nanoray.Pintail
 {
     internal class DefaultProxyFactory<Context>: IProxyFactory<Context>
     {
-        private enum PositionConversion { Proxy }
-
         private static readonly string TargetFieldName = "__Target";
         private static readonly string GlueFieldName = "__Glue";
         private static readonly string ProxyInfosFieldName = "__ProxyInfos";
@@ -28,8 +26,21 @@ namespace Nanoray.Pintail
 
         internal DefaultProxyFactory(ProxyInfo<Context> proxyInfo, DefaultProxyManagerNoMatchingMethodHandler<Context> noMatchingMethodHandler, DefaultProxyManagerEnumMappingBehavior enumMappingBehavior, ProxyObjectInterfaceMarking proxyObjectInterfaceMarking)
         {
-            if (!proxyInfo.Proxy.Type.IsInterface)
-                throw new ArgumentException($"{proxyInfo.Proxy.Type.GetBestName()} is not an interface.");
+            bool isProxyDelegate = proxyInfo.Proxy.Type.IsAssignableTo(typeof(Delegate));
+            bool isTargetDelegate = proxyInfo.Target.Type.IsAssignableTo(typeof(Delegate));
+            if (isProxyDelegate || isTargetDelegate)
+            {
+                if (!isProxyDelegate)
+                    throw new ArgumentException($"{proxyInfo.Proxy.Type.GetBestName()} is not a delegate type.");
+                if (!isTargetDelegate)
+                    throw new ArgumentException($"{proxyInfo.Target.Type.GetBestName()} is not a delegate type.");
+            }
+            else
+            {
+                if (!proxyInfo.Proxy.Type.IsInterface)
+                    throw new ArgumentException($"{proxyInfo.Proxy.Type.GetBestName()} is not an interface.");
+            }
+
             this.ProxyInfo = proxyInfo;
             this.NoMatchingMethodHandler = noMatchingMethodHandler;
             this.EnumMappingBehavior = enumMappingBehavior;
@@ -40,7 +51,8 @@ namespace Nanoray.Pintail
         {
             // define proxy type
             TypeBuilder proxyBuilder = manager.ModuleBuilder.DefineType(typeName, TypeAttributes.Public | TypeAttributes.Class);
-            proxyBuilder.AddInterfaceImplementation(this.ProxyInfo.Proxy.Type);
+            if (this.ProxyInfo.Proxy.Type.IsInterface) // false for delegates
+                proxyBuilder.AddInterfaceImplementation(this.ProxyInfo.Proxy.Type);
 
             // create fields to store target instance and proxy factory
             FieldBuilder targetField = proxyBuilder.DefineField(TargetFieldName, this.ProxyInfo.Target.Type, FieldAttributes.Private | FieldAttributes.InitOnly);
@@ -120,51 +132,9 @@ namespace Nanoray.Pintail
                 var proxyMethodParameters = proxyMethod.GetParameters();
                 var proxyMethodGenericArguments = proxyMethod.GetGenericArguments();
 
-                PositionConversion?[]? MatchProxyMethod(MethodInfo targetMethod)
-                {
-                    // checking if `targetMethod` matches `proxyMethod`
-
-                    if (targetMethod.Name != proxyMethod.Name)
-                        return null;
-                    if (targetMethod.GetGenericArguments().Length != proxyMethodGenericArguments!.Length)
-                        return null;
-                    var mParameters = targetMethod.GetParameters();
-                    if (mParameters.Length != proxyMethodParameters!.Length)
-                        return null;
-                    var positionConversions = new PositionConversion?[mParameters.Length + 1]; // 0 = return type; n + 1 = parameter position n
-
-                    switch (TypeUtilities.AreTypesMatching(targetMethod.ReturnType, proxyMethod.ReturnType, TypeUtilities.MethodTypeMatchingPart.ReturnType, this.EnumMappingBehavior))
-                    {
-                        case TypeUtilities.MatchingTypesResult.False:
-                            return null;
-                        case TypeUtilities.MatchingTypesResult.True:
-                            break;
-                        case TypeUtilities.MatchingTypesResult.IfProxied:
-                            positionConversions[0] = PositionConversion.Proxy;
-                            break;
-                    }
-
-                    for (int i = 0; i < mParameters.Length; i++)
-                    {
-                        switch (TypeUtilities.AreTypesMatching(mParameters[i].ParameterType.GetNonRefType(), proxyMethodParameters[i].ParameterType.GetNonRefType(), TypeUtilities.MethodTypeMatchingPart.Parameter, this.EnumMappingBehavior))
-                        {
-                            case TypeUtilities.MatchingTypesResult.False:
-                                return null;
-                            case TypeUtilities.MatchingTypesResult.True:
-                                break;
-                            case TypeUtilities.MatchingTypesResult.IfProxied:
-                                positionConversions[i + 1] = PositionConversion.Proxy;
-                                break;
-                        }
-                    }
-
-                    // method matched
-                    return positionConversions;
-                }
-
                 foreach (MethodInfo targetMethod in allTargetMethods)
                 {
-                    var positionConversions = MatchProxyMethod(targetMethod);
+                    var positionConversions = TypeUtilities.MatchProxyMethod(targetMethod, proxyMethod, this.EnumMappingBehavior);
                     if (positionConversions is null)
                         continue;
                     this.ProxyMethod(manager, proxyBuilder, proxyMethod, targetMethod, targetField, glueField, proxyInfosField, positionConversions, relatedProxyInfos);
@@ -181,7 +151,7 @@ namespace Nanoray.Pintail
             actualProxyInfosField.SetValue(null, relatedProxyInfos);
         }
 
-        private void ProxyMethod(DefaultProxyManager<Context> manager, TypeBuilder proxyBuilder, MethodInfo proxy, MethodInfo target, FieldBuilder instanceField, FieldBuilder glueField, FieldBuilder proxyInfosField, PositionConversion?[] positionConversions, IList<ProxyInfo<Context>> relatedProxyInfos)
+        private void ProxyMethod(DefaultProxyManager<Context> manager, TypeBuilder proxyBuilder, MethodInfo proxy, MethodInfo target, FieldBuilder instanceField, FieldBuilder glueField, FieldBuilder proxyInfosField, TypeUtilities.PositionConversion?[] positionConversions, IList<ProxyInfo<Context>> relatedProxyInfos)
         {
             MethodBuilder methodBuilder = proxyBuilder.DefineMethod(proxy.Name, MethodAttributes.Public | MethodAttributes.Final | MethodAttributes.Virtual);
 
@@ -205,7 +175,7 @@ namespace Nanoray.Pintail
 
             switch (positionConversions[0])
             {
-                case PositionConversion.Proxy:
+                case TypeUtilities.PositionConversion.Proxy:
                     var targetToArgFactory = manager.ObtainProxyFactory(this.ProxyInfo.Copy(targetType: target.ReturnType.GetNonRefType(), proxyType: proxy.ReturnType.GetNonRefType()));
                     returnValueTargetToArgProxyInfoIndex = relatedProxyInfos.Count;
                     relatedProxyInfos.Add(targetToArgFactory.ProxyInfo);
@@ -218,7 +188,7 @@ namespace Nanoray.Pintail
             {
                 switch (positionConversions[i + 1])
                 {
-                    case PositionConversion.Proxy:
+                    case TypeUtilities.PositionConversion.Proxy:
                         var targetType = targetParameters[i].ParameterType;
                         var argType = argTypes[i];
 
@@ -243,7 +213,7 @@ namespace Nanoray.Pintail
                 LocalBuilder?[] proxyLocals = new LocalBuilder?[argTypes.Length];
                 LocalBuilder?[] targetLocals = new LocalBuilder?[argTypes.Length];
 
-                void ConvertIfNeededAndStore(LocalBuilder inputLocal, LocalBuilder outputLocal, int? proxyInfoIndex, bool isReverse, PositionConversion? positionConversion)
+                void ConvertIfNeededAndStore(LocalBuilder inputLocal, LocalBuilder outputLocal, int? proxyInfoIndex, bool isReverse, TypeUtilities.PositionConversion? positionConversion)
                 {
                     if (proxyInfoIndex is null)
                     {
@@ -292,7 +262,7 @@ namespace Nanoray.Pintail
                 {
                     switch (positionConversions[i + 1])
                     {
-                        case PositionConversion.Proxy:
+                        case TypeUtilities.PositionConversion.Proxy:
                             if (argTypes[i].IsByRef)
                             {
                                 proxyLocals[i] = il.DeclareLocal(argTypes[i].GetNonRefType());
@@ -337,7 +307,7 @@ namespace Nanoray.Pintail
                 {
                     switch (positionConversions[i + 1])
                     {
-                        case PositionConversion.Proxy:
+                        case TypeUtilities.PositionConversion.Proxy:
                             if (argTypes[i].IsByRef)
                             {
                                 ConvertIfNeededAndStore(targetLocals[i]!, proxyLocals[i]!, parameterTargetToArgProxyInfoIndexes[i], isReverse: false, positionConversions[i + 1]);
@@ -390,8 +360,21 @@ namespace Nanoray.Pintail
                 if (constructor is null)
                     throw new InvalidOperationException($"Couldn't find the constructor for generated proxy type '{this.ProxyInfo.Proxy.Type.Name}'."); // should never happen
                 proxyInstance = constructor.Invoke(new[] { targetInstance, new DefaultProxyGlue<Context>(manager) });
-                this.ProxyCache.Add(targetInstance, proxyInstance);
-                return proxyInstance;
+
+                if (this.ProxyInfo.Proxy.Type.IsInterface)
+                {
+                    this.ProxyCache.Add(targetInstance, proxyInstance);
+                    return proxyInstance;
+                }
+                else // has to be a delegate
+                {
+                    MethodInfo? invokeMethod = this.BuiltProxyType?.GetMethod("Invoke");
+                    if (invokeMethod is null)
+                        throw new InvalidOperationException($"Couldn't find the Invoke method for generated proxy delegate type '{this.ProxyInfo.Proxy.Type.Name}'."); // should never happen
+                    var @delegate = Delegate.CreateDelegate(this.ProxyInfo.Proxy.Type, proxyInstance, invokeMethod);
+                    this.ProxyCache.Add(targetInstance, @delegate);
+                    return @delegate;
+                }
             }
         }
 

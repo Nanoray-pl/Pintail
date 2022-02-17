@@ -33,6 +33,8 @@ namespace Nanoray.Pintail.Tests.Provider
 
     public class ProviderApi: IProviderApiDefaultMethods
     {
+        private Func<IApiResult, IApiResult> Mapper = (r) => r;
+
         public void VoidMethod() { }
 
         public int IntMethod(int num)
@@ -91,5 +93,11 @@ namespace Nanoray.Pintail.Tests.Provider
                 [StateEnum.State0] = new HashSet<IApiResult> { new ApiResult("0") }
             };
         }
+
+        public Func<IApiResult, IApiResult> GetMapper()
+            => this.Mapper;
+
+        public void SetMapper(Func<IApiResult, IApiResult> mapper)
+            => this.Mapper = mapper;
     }
 }
