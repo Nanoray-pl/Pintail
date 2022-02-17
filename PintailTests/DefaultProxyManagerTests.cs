@@ -196,6 +196,20 @@ namespace Nanoray.Pintail.Tests
         }
 
         [Test]
+        public void TestCustomGenericOutDelegate()
+        {
+            var manager = this.CreateProxyManager();
+            var providerApi = new ProviderApi();
+            var consumerApi = manager.ObtainProxy<IConsumerApi>(providerApi)!;
+
+            consumerApi.GetCustomOutDelegate()(out Consumer.StateEnum result1);
+            Assert.AreEqual(Consumer.StateEnum.State0, result1);
+            consumerApi.SetCustomOutDelegate((out Consumer.StateEnum p) => p = Consumer.StateEnum.State2);
+            consumerApi.GetCustomOutDelegate()(out Consumer.StateEnum result2);
+            Assert.AreEqual(Consumer.StateEnum.State2, result2);
+        }
+
+        [Test]
         public void TestTryProxy()
         {
             var manager = this.CreateProxyManager();

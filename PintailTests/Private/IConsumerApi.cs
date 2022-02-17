@@ -3,6 +3,8 @@ using System.Collections.Generic;
 
 namespace Nanoray.Pintail.Tests.Consumer
 {
+    public delegate void CustomGenericOutDelegate<T>(out T param);
+
     public enum StateEnum
     {
         State0, State1, State2, StateNonExisting
@@ -50,6 +52,9 @@ namespace Nanoray.Pintail.Tests.Consumer
 
         Func<IApiResult, IApiResult> GetMapper();
         void SetMapper(Func<IApiResult, IApiResult> mapper);
+
+        CustomGenericOutDelegate<StateEnum> GetCustomOutDelegate();
+        void SetCustomOutDelegate(CustomGenericOutDelegate<StateEnum> @delegate);
     }
 
     public interface IInvalidConsumerApi
