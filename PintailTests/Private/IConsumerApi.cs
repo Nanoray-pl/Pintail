@@ -41,6 +41,7 @@ namespace Nanoray.Pintail.Tests.Consumer
 
         IApiResult[] GetArray();
         IApiResult[][] GetJaggedArray();
+        IApiResult[,] Get2DArray();
         void ArrayMethod(IApiResult[] array);
         IList<IApiResult> GetList();
 

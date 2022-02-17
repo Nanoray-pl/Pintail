@@ -106,6 +106,20 @@ namespace Nanoray.Pintail.Tests
         }
 
         [Test]
+        public void TestReturn2DArray()
+        {
+            var manager = this.CreateProxyManager();
+            var providerApi = new ProviderApi();
+
+            var consumerApi = manager.ObtainProxy<IConsumerApi>(providerApi)!;
+            var result = consumerApi.Get2DArray();
+            Assert.AreEqual(1, result.GetLength(0));
+            Assert.AreEqual(2, result.GetLength(1));
+            Assert.AreEqual("0, 0", result[0, 0].Text);
+            Assert.AreEqual("0, 1", result[0, 1].Text);
+        }
+
+        [Test]
         public void TestArrayParameter()
         {
             var manager = this.CreateProxyManager();

@@ -33,35 +33,62 @@ namespace Nanoray.Pintail
 
         private Array MapArray(IProxyManager<Context> manager, Array inputArray, Type outputType)
         {
-            var outputArray = Array.CreateInstance(outputType, inputArray.Length);
+            int[] lengths = new int[inputArray.Rank];
+            for (int i = 0; i < lengths.Length; i++)
+                lengths[i] = inputArray.GetLength(i);
+            var outputArray = Array.CreateInstance(outputType, lengths);
             this.MapArrayContents(manager, inputArray, outputArray);
             return outputArray;
         }
 
         internal void MapArrayContents(IProxyManager<Context> manager, Array inputArray, Array outputArray)
         {
-            if (inputArray.Length != outputArray.Length)
-                throw new ArgumentException("Arrays have different lengths.");
+            if (inputArray.Rank != outputArray.Rank)
+                throw new ArgumentException("Arrays have different dimension counts.");
+            for (int i = 0; i < inputArray.Rank; i++)
+                if (inputArray.GetLength(i) != outputArray.GetLength(i))
+                    throw new ArgumentException("Arrays have different lengths.");
             var proxyInfo = this.ProxyInfo.Copy(targetType: inputArray.GetType().GetElementType()!, proxyType: outputArray.GetType().GetElementType()!);
             var unproxyInfo = this.ProxyInfo.Copy(targetType: outputArray.GetType().GetElementType()!, proxyType: inputArray.GetType().GetElementType()!);
-            for (int i = 0; i < inputArray.Length; i++)
-            {
-                object? outputValue = inputArray.GetValue(i);
-                if (outputValue is null)
-                {
-                    outputArray.SetValue(null, i);
-                    continue;
-                }
 
-                var unproxyFactory = manager.GetProxyFactory(unproxyInfo);
-                if (unproxyFactory is not null && unproxyFactory.TryUnproxy(manager, outputValue, out object? targetInstance))
+            void Map(int[] position)
+            {
+                int dimension = 0;
+                while (dimension < position.Length && position[dimension] != -1)
+                    dimension++;
+
+                if (dimension == position.Length)
                 {
-                    outputArray.SetValue(targetInstance, i);
-                    continue;
+                    object? outputValue = inputArray.GetValue(position);
+                    if (outputValue is null)
+                    {
+                        outputArray.SetValue(null, position);
+                        return;
+                    }
+
+                    var unproxyFactory = manager.GetProxyFactory(unproxyInfo);
+                    if (unproxyFactory is not null && unproxyFactory.TryUnproxy(manager, outputValue, out object? targetInstance))
+                    {
+                        outputArray.SetValue(targetInstance, position);
+                        return;
+                    }
+                    var proxyFactory = manager.ObtainProxyFactory(proxyInfo);
+                    outputArray.SetValue(proxyFactory.ObtainProxy(manager, outputValue), position);
                 }
-                var proxyFactory = manager.ObtainProxyFactory(proxyInfo);
-                outputArray.SetValue(proxyFactory.ObtainProxy(manager, outputValue), i);
+                else
+                {
+                    for (int i = 0; i < inputArray.GetLength(dimension); i++)
+                    {
+                        position[dimension] = i;
+                        Map(position);
+                    }
+                }
             }
+
+            int[] position = new int[inputArray.Rank];
+            for (int i = 0; i < position.Length; i++)
+                position[i] = -1;
+            Map(position);
         }
     }
 }
