@@ -120,16 +120,46 @@ namespace Nanoray.Pintail.Tests
         }
 
         [Test]
-        public void TestArrayParameter()
+        public void TestMatchingArrayParameter()
         {
             var manager = this.CreateProxyManager();
             var providerApi = new ProviderApi();
 
             var consumerApi = manager.ObtainProxy<IConsumerApi>(providerApi)!;
-            var input = new Consumer.ApiResult[] { new Consumer.ApiResult("1") };
+            var input = new Consumer.IApiResult[] { new Consumer.ApiResult("0"), new Consumer.ApiResult("1") };
             consumerApi.ArrayMethod(input);
-            Assert.AreEqual(1, input.Length);
-            Assert.AreEqual("1", input[0].Text);
+            Assert.AreEqual(2, input.Length);
+            Assert.AreEqual("modified", input[0].Text);
+            Assert.AreEqual("1", input[1].Text);
+        }
+
+        [Test]
+        public void TestMismatchedArrayParameterAndThrow()
+        {
+            var manager = this.CreateProxyManager(new(
+                mismatchedArrayMappingBehavior: DefaultProxyManagerMismatchedArrayMappingBehavior.Throw
+            ));
+            var providerApi = new ProviderApi();
+
+            var consumerApi = manager.ObtainProxy<IConsumerApi>(providerApi)!;
+            var input = new Consumer.ApiResult[] { new Consumer.ApiResult("0"), new Consumer.ApiResult("1") };
+            Assert.Throws<ArgumentException>(() => consumerApi.ArrayMethod(input));
+        }
+
+        [Test]
+        public void TestMismatchedArrayParameterAndAllowAndDontMapBack()
+        {
+            var manager = this.CreateProxyManager(new(
+                mismatchedArrayMappingBehavior: DefaultProxyManagerMismatchedArrayMappingBehavior.AllowAndDontMapBack
+            ));
+            var providerApi = new ProviderApi();
+
+            var consumerApi = manager.ObtainProxy<IConsumerApi>(providerApi)!;
+            var input = new Consumer.ApiResult[] { new Consumer.ApiResult("0"), new Consumer.ApiResult("1") };
+            consumerApi.ArrayMethod(input);
+            Assert.AreEqual(2, input.Length);
+            Assert.AreEqual("0", input[0].Text);
+            Assert.AreEqual("1", input[1].Text);
         }
 
         [Test]

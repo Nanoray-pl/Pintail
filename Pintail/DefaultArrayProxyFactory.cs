@@ -6,37 +6,40 @@ namespace Nanoray.Pintail
     internal class DefaultArrayProxyFactory<Context>: IProxyFactory<Context>
     {
         public ProxyInfo<Context> ProxyInfo { get; private set; }
+        private readonly DefaultProxyManagerMismatchedArrayMappingBehavior MismatchedArrayMappingBehavior;
 
-        internal DefaultArrayProxyFactory(ProxyInfo<Context> proxyInfo)
+        internal DefaultArrayProxyFactory(ProxyInfo<Context> proxyInfo, DefaultProxyManagerMismatchedArrayMappingBehavior mismatchedArrayMappingBehavior)
         {
             if (!proxyInfo.Target.Type.IsArray)
                 throw new ArgumentException($"{proxyInfo.Target.Type.GetBestName()} is not an array.");
             if (!proxyInfo.Proxy.Type.IsArray)
                 throw new ArgumentException($"{proxyInfo.Proxy.Type.GetBestName()} is not an array.");
             this.ProxyInfo = proxyInfo;
+            this.MismatchedArrayMappingBehavior = mismatchedArrayMappingBehavior;
         }
 
         public object ObtainProxy(IProxyManager<Context> manager, object targetInstance)
         {
             if (targetInstance is not Array)
                 throw new ArgumentException($"{targetInstance} is not an array.");
-            return this.MapArray(manager, (Array)targetInstance, this.ProxyInfo.Proxy.Type.GetElementType()!);
+            return this.MapArray(manager, (Array)targetInstance);
         }
 
         public bool TryUnproxy(IProxyManager<Context> manager, object potentialProxyInstance, [NotNullWhen(true)] out object? targetInstance)
         {
             if (potentialProxyInstance is not Array)
                 throw new ArgumentException($"{potentialProxyInstance} is not an array.");
-            targetInstance = this.MapArray(manager, (Array)potentialProxyInstance, this.ProxyInfo.Target.Type.GetElementType()!);
+            targetInstance = this.MapArray(manager, (Array)potentialProxyInstance);
             return true;
         }
 
-        private Array MapArray(IProxyManager<Context> manager, Array inputArray, Type outputType)
+        private Array MapArray(IProxyManager<Context> manager, Array inputArray)
         {
             int[] lengths = new int[inputArray.Rank];
             for (int i = 0; i < lengths.Length; i++)
                 lengths[i] = inputArray.GetLength(i);
-            var outputArray = Array.CreateInstance(outputType, lengths);
+            var proxyInfo = this.ProxyInfo.Target.Type.IsAssignableFrom(inputArray.GetType()) ? this.ProxyInfo : this.ProxyInfo.Reversed();
+            var outputArray = Array.CreateInstance(proxyInfo.Proxy.Type.GetElementType()!, lengths);
             this.MapArrayContents(manager, inputArray, outputArray);
             return outputArray;
         }
@@ -48,8 +51,23 @@ namespace Nanoray.Pintail
             for (int i = 0; i < inputArray.Rank; i++)
                 if (inputArray.GetLength(i) != outputArray.GetLength(i))
                     throw new ArgumentException("Arrays have different lengths.");
-            var proxyInfo = this.ProxyInfo.Copy(targetType: inputArray.GetType().GetElementType()!, proxyType: outputArray.GetType().GetElementType()!);
-            var unproxyInfo = this.ProxyInfo.Copy(targetType: outputArray.GetType().GetElementType()!, proxyType: inputArray.GetType().GetElementType()!);
+
+            var elementProxyInfo = this.ProxyInfo.Target.Type.IsAssignableFrom(inputArray.GetType()) ? this.ProxyInfo : this.ProxyInfo.Reversed();
+            var elementUnproxyInfo = this.ProxyInfo.Target.Type.IsAssignableFrom(inputArray.GetType()) ? this.ProxyInfo.Reversed() : this.ProxyInfo;
+            elementProxyInfo = elementProxyInfo.Copy(targetType: elementProxyInfo.Target.Type.GetElementType()!, proxyType: elementProxyInfo.Proxy.Type.GetElementType()!);
+            elementUnproxyInfo = elementUnproxyInfo.Copy(targetType: elementUnproxyInfo.Target.Type.GetElementType()!, proxyType: elementUnproxyInfo.Proxy.Type.GetElementType()!);
+
+            Type outputElementType = outputArray.GetType().GetElementType()!;
+            if (outputElementType != elementProxyInfo.Proxy.Type)
+            {
+                switch (this.MismatchedArrayMappingBehavior)
+                {
+                    case DefaultProxyManagerMismatchedArrayMappingBehavior.Throw:
+                        throw new ArgumentException($"Array uses more concrete type {outputElementType.GetBestName()} than expected {elementProxyInfo.Proxy.Type.GetBestName()}, cannot map.");
+                    case DefaultProxyManagerMismatchedArrayMappingBehavior.AllowAndDontMapBack:
+                        return;
+                }
+            }
 
             void Map(int[] position)
             {
@@ -66,14 +84,15 @@ namespace Nanoray.Pintail
                         return;
                     }
 
-                    var unproxyFactory = manager.GetProxyFactory(unproxyInfo);
+                    var unproxyFactory = manager.GetProxyFactory(elementUnproxyInfo);
                     if (unproxyFactory is not null && unproxyFactory.TryUnproxy(manager, outputValue, out object? targetInstance))
                     {
                         outputArray.SetValue(targetInstance, position);
                         return;
                     }
-                    var proxyFactory = manager.ObtainProxyFactory(proxyInfo);
-                    outputArray.SetValue(proxyFactory.ObtainProxy(manager, outputValue), position);
+                    var proxyFactory = manager.ObtainProxyFactory(elementProxyInfo);
+                    object proxyInstance = proxyFactory.ObtainProxy(manager, outputValue);
+                    outputArray.SetValue(proxyInstance, position);
                 }
                 else
                 {

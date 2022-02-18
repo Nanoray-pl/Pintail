@@ -79,7 +79,7 @@ namespace Nanoray.Pintail.Tests.Provider
         }
 
         public void ArrayMethod(IApiResult[] array)
-        { }
+            => array[0] = new ApiResult("modified");
 
         public IList<IApiResult> GetList()
         {

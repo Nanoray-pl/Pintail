@@ -42,6 +42,22 @@ namespace Nanoray.Pintail
     }
 
     /// <summary>
+    /// Defines the behavior to use when mapping mismatched <see cref="Array"/> elements back and forth.
+    /// </summary>
+    public enum DefaultProxyManagerMismatchedArrayMappingBehavior
+    {
+        /// <summary>
+        /// Throw <see cref="ArgumentException"/> when passing in an array that cannot exactly be proxied back.
+        /// </summary>
+        Throw,
+
+        /// <summary>
+        /// Allow mismatched array types; do not map array elements back.
+        /// </summary>
+        AllowAndDontMapBack
+    }
+
+    /// <summary>
     /// Defines a configuration for <see cref="DefaultProxyManager{}"/>.
     /// </summary>
     /// <typeparam name="Context">The context type used to describe the current proxy process. Use <see cref="Nothing"/> if not needed.</typeparam>
@@ -129,6 +145,11 @@ namespace Nanoray.Pintail
         public readonly DefaultProxyManagerEnumMappingBehavior EnumMappingBehavior;
 
         /// <summary>
+        /// The behavior to use when mapping mismatched <see cref="Array"/> elements back and forth.
+        /// </summary>
+        public readonly DefaultProxyManagerMismatchedArrayMappingBehavior MismatchedArrayMappingBehavior;
+
+        /// <summary>
         /// Whether proxy types should implement any marker interfaces.
         /// </summary>
         public readonly ProxyObjectInterfaceMarking ProxyObjectInterfaceMarking;
@@ -139,17 +160,20 @@ namespace Nanoray.Pintail
         /// <param name="typeNameProvider">The type name provider to use.<br/>Defaults to <see cref="Md5TypeNameProvider"/>.</param>
         /// <param name="noMatchingMethodHandler">The behavior to use if no matching method to proxy is found.<br/>Defaults to <see cref="ThrowExceptionNoMatchingMethodHandler"/>.</param>
         /// <param name="enumMappingBehavior">The behavior to use when mapping <see cref="Enum"/> arguments while matching methods to proxy.<br/>Defaults to <see cref="DefaultProxyManagerEnumMappingBehavior.ThrowAtRuntime"/>.</param>
+        /// <param name="mismatchedArrayMappingBehavior">The behavior to use when mapping mismatched <see cref="Array"/> elements back and forth.<br/>Defaults to <see cref="DefaultProxyManagerMismatchedArrayMappingBehavior.Throw"/>.</param>
         /// <param name="proxyObjectInterfaceMarking">Whether proxy types should implement any marker interfaces.<br/>Defaults to <see cref="ProxyObjectInterfaceMarking.Marker"/>.</param>
         public DefaultProxyManagerConfiguration(
             DefaultProxyManagerTypeNameProvider<Context>? typeNameProvider = null,
             DefaultProxyManagerNoMatchingMethodHandler<Context>? noMatchingMethodHandler = null,
             DefaultProxyManagerEnumMappingBehavior enumMappingBehavior = DefaultProxyManagerEnumMappingBehavior.ThrowAtRuntime,
+            DefaultProxyManagerMismatchedArrayMappingBehavior mismatchedArrayMappingBehavior = DefaultProxyManagerMismatchedArrayMappingBehavior.Throw,
             ProxyObjectInterfaceMarking proxyObjectInterfaceMarking = ProxyObjectInterfaceMarking.Marker
         )
         {
             this.TypeNameProvider = typeNameProvider ?? Md5TypeNameProvider;
             this.NoMatchingMethodHandler = noMatchingMethodHandler ?? ThrowExceptionNoMatchingMethodHandler;
             this.EnumMappingBehavior = enumMappingBehavior;
+            this.MismatchedArrayMappingBehavior = mismatchedArrayMappingBehavior;
             this.ProxyObjectInterfaceMarking = proxyObjectInterfaceMarking;
         }
     }
@@ -200,7 +224,7 @@ namespace Nanoray.Pintail
                     }
                     else if (proxyInfo.Target.Type.IsArray && proxyInfo.Proxy.Type.IsArray)
                     {
-                        factory = new DefaultArrayProxyFactory<Context>(proxyInfo);
+                        factory = new DefaultArrayProxyFactory<Context>(proxyInfo, this.Configuration.MismatchedArrayMappingBehavior);
                         this.Factories[proxyInfo] = factory;
                     }
                     else if (proxyInfo.Proxy.Type.IsInterface || (proxyInfo.Proxy.Type.IsAssignableTo(typeof(Delegate)) && proxyInfo.Target.Type.IsAssignableTo(typeof(Delegate))))
