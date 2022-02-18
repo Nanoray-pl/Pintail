@@ -82,6 +82,7 @@ namespace Nanoray.Pintail
                         position[dimension] = i;
                         Map(position);
                     }
+                    position[dimension] = -1;
                 }
             }
 
