@@ -16,7 +16,11 @@
 		<Description>.NET type proxying / duck typing library, focusing on working between multiple assemblies without hiding this fact from them.</Description>
 		<Copyright>Nanoray</Copyright>
 		<PackageLicenseFile>LICENSE</PackageLicenseFile>
+		<GenerateDocumentationFile>True</GenerateDocumentationFile>
 	</PropertyGroup>
+    <PropertyGroup>
+      <GenerateDocumentationFile>True</GenerateDocumentationFile>
+    </PropertyGroup>
 	<ItemGroup>
 	  <None Include="..\.editorconfig" Link=".editorconfig" />
 	  <None Include="..\README.md">
