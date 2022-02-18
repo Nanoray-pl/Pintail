@@ -70,8 +70,16 @@ namespace Nanoray.Pintail.Tests.Provider
         public IApiResult[][] GetJaggedArray()
             => new IApiResult[][] { new IApiResult[] { new ApiResult("0") } };
 
+        public IApiResult[,] Get2DArray()
+        {
+            var result = new IApiResult[1, 2];
+            result[0, 0] = new ApiResult("0, 0");
+            result[0, 1] = new ApiResult("0, 1");
+            return result;
+        }
+
         public void ArrayMethod(IApiResult[] array)
-        { }
+            => array[0] = new ApiResult("modified");
 
         public IList<IApiResult> GetList()
         {
