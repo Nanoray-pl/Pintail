@@ -13,18 +13,22 @@ namespace Nanoray.Pintail
         private static readonly string TargetFieldName = "__Target";
         private static readonly string GlueFieldName = "__Glue";
         private static readonly string ProxyInfosFieldName = "__ProxyInfos";
-        private static readonly MethodInfo UnproxyOrObtainProxyMethod = typeof(DefaultProxyGlue<Context>).GetMethod(nameof(DefaultProxyGlue<Context>.UnproxyOrObtainProxy), new Type[] { typeof(ProxyInfo<Context>), typeof(bool), typeof(object) })!;
-        private static readonly MethodInfo MapArrayContentsMethod = typeof(DefaultProxyGlue<Context>).GetMethod(nameof(DefaultProxyGlue<Context>.MapArrayContents), new Type[] { typeof(ProxyInfo<Context>), typeof(bool), typeof(Array), typeof(Array) })!;
+        private static readonly MethodInfo UnproxyOrObtainProxyMethod = typeof(DefaultProxyGlue<Context>).GetMethod(nameof(DefaultProxyGlue<Context>.UnproxyOrObtainProxy))!;
+        private static readonly MethodInfo MapArrayContentsMethod = typeof(DefaultProxyGlue<Context>).GetMethod(nameof(DefaultProxyGlue<Context>.MapArrayContents))!;
         private static readonly MethodInfo ProxyInfoListGetMethod = typeof(IList<ProxyInfo<Context>>).GetProperty("Item")!.GetGetMethod()!;
+        private static readonly ConstructorInfo StringTypeDictionaryConstructor = typeof(Dictionary<string, Type>).GetConstructor(Array.Empty<Type>())!;
+        private static readonly MethodInfo StringTypeDictionarySetItemMethod = typeof(IDictionary<string, Type>).GetMethod("set_Item")!;
+        private static readonly MethodInfo GetTypeFromHandleMethod = typeof(Type).GetMethod(nameof(Type.GetTypeFromHandle))!;
 
         public ProxyInfo<Context> ProxyInfo { get; private set; }
         private readonly DefaultProxyManagerNoMatchingMethodHandler<Context> NoMatchingMethodHandler;
+        private readonly DefaultProxyManagerProxyPrepareBehavior ProxyPrepareBehavior;
         private readonly DefaultProxyManagerEnumMappingBehavior EnumMappingBehavior;
         private readonly ProxyObjectInterfaceMarking ProxyObjectInterfaceMarking;
         private readonly ConditionalWeakTable<object, object> ProxyCache = new();
         private Type? BuiltProxyType;
 
-        internal DefaultProxyFactory(ProxyInfo<Context> proxyInfo, DefaultProxyManagerNoMatchingMethodHandler<Context> noMatchingMethodHandler, DefaultProxyManagerEnumMappingBehavior enumMappingBehavior, ProxyObjectInterfaceMarking proxyObjectInterfaceMarking)
+        internal DefaultProxyFactory(ProxyInfo<Context> proxyInfo, DefaultProxyManagerNoMatchingMethodHandler<Context> noMatchingMethodHandler, DefaultProxyManagerProxyPrepareBehavior proxyPrepareBehavior, DefaultProxyManagerEnumMappingBehavior enumMappingBehavior, ProxyObjectInterfaceMarking proxyObjectInterfaceMarking)
         {
             bool isProxyDelegate = proxyInfo.Proxy.Type.IsAssignableTo(typeof(Delegate));
             bool isTargetDelegate = proxyInfo.Target.Type.IsAssignableTo(typeof(Delegate));
@@ -43,6 +47,7 @@ namespace Nanoray.Pintail
 
             this.ProxyInfo = proxyInfo;
             this.NoMatchingMethodHandler = noMatchingMethodHandler;
+            this.ProxyPrepareBehavior = proxyPrepareBehavior;
             this.EnumMappingBehavior = enumMappingBehavior;
             this.ProxyObjectInterfaceMarking = proxyObjectInterfaceMarking;
         }
@@ -179,9 +184,18 @@ namespace Nanoray.Pintail
             switch (positionConversions[0])
             {
                 case TypeUtilities.PositionConversion.Proxy:
-                    var targetToArgFactory = manager.ObtainProxyFactory(this.ProxyInfo.Copy(targetType: target.ReturnType.GetNonRefType(), proxyType: proxy.ReturnType.GetNonRefType()));
                     returnValueTargetToArgProxyInfoIndex = relatedProxyInfos.Count;
-                    relatedProxyInfos.Add(targetToArgFactory.ProxyInfo);
+                    relatedProxyInfos.Add(this.ProxyInfo.Copy(targetType: target.ReturnType.GetNonRefType(), proxyType: proxy.ReturnType.GetNonRefType()));
+                    switch (this.ProxyPrepareBehavior)
+                    {
+                        case DefaultProxyManagerProxyPrepareBehavior.Eager:
+                            var proxyInfo = relatedProxyInfos.Last();
+                            if (!proxyInfo.Proxy.Type.ContainsGenericParameters && !proxyInfo.Target.Type.ContainsGenericParameters)
+                                manager.ObtainProxyFactory(relatedProxyInfos.Last());
+                            break;
+                        case DefaultProxyManagerProxyPrepareBehavior.Lazy:
+                            break;
+                    }
                     break;
                 case null:
                     break;
@@ -195,9 +209,18 @@ namespace Nanoray.Pintail
                         var targetType = targetParameters[i].ParameterType;
                         var argType = argTypes[i];
 
-                        var targetToArgFactory = manager.ObtainProxyFactory(this.ProxyInfo.Copy(targetType: targetType.GetNonRefType(), proxyType: argType.GetNonRefType()));
                         parameterTargetToArgProxyInfoIndexes[i] = relatedProxyInfos.Count;
-                        relatedProxyInfos.Add(targetToArgFactory.ProxyInfo);
+                        relatedProxyInfos.Add(this.ProxyInfo.Copy(targetType: targetType.GetNonRefType(), proxyType: argType.GetNonRefType()));
+                        switch (this.ProxyPrepareBehavior)
+                        {
+                            case DefaultProxyManagerProxyPrepareBehavior.Eager:
+                                var proxyInfo = relatedProxyInfos.Last();
+                                if (!proxyInfo.Proxy.Type.ContainsGenericParameters && !proxyInfo.Target.Type.ContainsGenericParameters)
+                                    manager.ObtainProxyFactory(relatedProxyInfos.Last());
+                                break;
+                            case DefaultProxyManagerProxyPrepareBehavior.Lazy:
+                                break;
+                        }
                         break;
                     case null:
                         break;
@@ -209,6 +232,12 @@ namespace Nanoray.Pintail
             methodBuilder.SetParameters(argTypes);
             for (int i = 0; i < argTypes.Length; i++)
                 methodBuilder.DefineParameter(i, targetParameters[i].Attributes, targetParameters[i].Name);
+
+            Type[] typeGenericArguments = target.DeclaringType?.GetGenericArguments() ?? Array.Empty<Type>();
+            Type[] methodGenericArguments = target.GetGenericArguments();
+            Type[] allTargetGenericArguments = typeGenericArguments.Union(methodGenericArguments).ToArray();
+
+            Type[] allProxyGenericArguments = proxyGenericArguments;
 
             // create method body
             {
@@ -235,6 +264,28 @@ namespace Nanoray.Pintail
 
                     il.Emit(OpCodes.Ldarg_0);
                     il.Emit(OpCodes.Ldfld, glueField);
+
+                    // load target generic arguments
+                    il.Emit(OpCodes.Newobj, StringTypeDictionaryConstructor);
+                    foreach (Type type in allTargetGenericArguments)
+                    {
+                        il.Emit(OpCodes.Dup);
+                        il.Emit(OpCodes.Ldstr, type.Name);
+                        il.Emit(OpCodes.Ldtoken, type);
+                        il.Emit(OpCodes.Call, GetTypeFromHandleMethod);
+                        il.Emit(OpCodes.Callvirt, StringTypeDictionarySetItemMethod);
+                    }
+
+                    // load proxy generic arguments
+                    il.Emit(OpCodes.Newobj, StringTypeDictionaryConstructor);
+                    foreach (Type type in allProxyGenericArguments)
+                    {
+                        il.Emit(OpCodes.Dup);
+                        il.Emit(OpCodes.Ldstr, type.Name);
+                        il.Emit(OpCodes.Ldtoken, type);
+                        il.Emit(OpCodes.Call, GetTypeFromHandleMethod);
+                        il.Emit(OpCodes.Callvirt, StringTypeDictionarySetItemMethod);
+                    }
 
                     // load proxy ProxyInfo
                     il.Emit(OpCodes.Ldsfld, proxyInfosField);

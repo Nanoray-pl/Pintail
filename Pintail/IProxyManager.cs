@@ -4,27 +4,30 @@ using System.Diagnostics.CodeAnalysis;
 namespace Nanoray.Pintail
 {
     /// <summary>
-    /// Represents a type responsible for creating and returning <see cref="IProxyFactory{}"/> instances.
+    /// Represents a type responsible for creating and returning <see cref="IProxyFactory{Context}"/> instances.
     /// </summary>
     /// <typeparam name="Context">The context type used to describe the current proxy process. Use <see cref="Nothing"/> if not needed.</typeparam>
     public interface IProxyManager<Context>
     {
         /// <summary>
-        /// Returns an existing <see cref="IProxyFactory{}"/> instance for the given proxy info.
+        /// Returns an existing <see cref="IProxyFactory{Context}"/> instance for the given proxy info.
         /// </summary>
-        /// <param name="proxyInfo">Proxy info describing the <see cref="IProxyFactory{}"/> to return.</param>
-        /// <returns>An existing <see cref="IProxyFactory{}"/> instance for the given proxy info, or `null` if one does not exist.</returns>
+        /// <param name="proxyInfo">Proxy info describing the <see cref="IProxyFactory{Context}"/> to return.</param>
+        /// <returns>An existing <see cref="IProxyFactory{Context}"/> instance for the given proxy info, or `null` if one does not exist.</returns>
         IProxyFactory<Context>? GetProxyFactory(ProxyInfo<Context> proxyInfo);
 
         /// <summary>
-        /// Returns an existing <see cref="IProxyFactory{}"/> instance for the given proxy info or creates and returns a new one.
+        /// Returns an existing <see cref="IProxyFactory{Context}"/> instance for the given proxy info or creates and returns a new one.
         /// </summary>
-        /// <param name="proxyInfo">Proxy info describing the <see cref="IProxyFactory{}"/> to return.</param>
-        /// <returns>A <see cref="IProxyFactory{}"/> instance for the given proxy info.</returns>
+        /// <param name="proxyInfo">Proxy info describing the <see cref="IProxyFactory{Context}"/> to return.</param>
+        /// <returns>A <see cref="IProxyFactory{Context}"/> instance for the given proxy info.</returns>
         IProxyFactory<Context> ObtainProxyFactory(ProxyInfo<Context> proxyInfo);
 	}
 
-    public static class ProxyManagerExtensions
+    /// <summary>
+    /// Declares some extensions to make it easier to use <see cref="IProxyManager{Context}"/>.
+    /// </summary>
+    public static class IProxyManagerExtensions
     {
         /// <summary>
         /// Returns a proxy instance for a given instance.
@@ -91,6 +94,9 @@ namespace Nanoray.Pintail
         }
     }
 
+    /// <summary>
+    /// Declares some extensions to make it easier to use <see cref="IProxyManager{Context}"/> with a <see cref="Nothing"/> `Context`.
+    /// </summary>
     public static class NothingProxyManagerExtensions
     {
         /// <summary>

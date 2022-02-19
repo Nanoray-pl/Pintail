@@ -10,6 +10,7 @@ namespace Nanoray.Pintail
         /// </summary>
         public static Nothing AtAll => new();
 
+        /// <inheritdoc/>
         public override string ToString()
             => "{}";
     }

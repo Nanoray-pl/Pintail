@@ -254,17 +254,6 @@ namespace Nanoray.Pintail.Tests
         }
 
         [Test]
-        public void TestGMCM()
-        {
-            var manager = this.CreateProxyManager();
-            var providerApi = new ProviderApi();
-            var consumerApi = manager.ObtainProxy<IConsumerApi>(providerApi)!;
-
-            consumerApi.RegisterSimpleOption(new Consumer.ApiResult(""), "optionName", "optionDesc", () => true, (b) => { });
-            consumerApi.RegisterSimpleOption(new Consumer.ApiResult(""), "optionName", "optionDesc", () => "value", (s) => { });
-        }
-
-        [Test]
         public void TestTryProxy()
         {
             var manager = this.CreateProxyManager();
@@ -318,6 +307,28 @@ namespace Nanoray.Pintail.Tests
             Assert.IsTrue(consumerApi is IProxyObject);
             Assert.IsTrue(consumerApi is IProxyObject.IWithProxyTargetInstanceProperty);
             Assert.IsTrue(ReferenceEquals(providerApi, ((IProxyObject.IWithProxyTargetInstanceProperty)consumerApi).ProxyTargetInstance));
+        }
+
+        [Test]
+        public void TestGMCM()
+        {
+            var manager = this.CreateProxyManager();
+            var providerApi = new ProviderApi();
+            var consumerApi = manager.ObtainProxy<IConsumerApi>(providerApi)!;
+
+            consumerApi.RegisterSimpleOption(new Consumer.ApiResult(""), "optionName", "optionDesc", () => true, (b) => { });
+            consumerApi.RegisterSimpleOption(new Consumer.ApiResult(""), "optionName", "optionDesc", () => "value", (s) => { });
+        }
+
+        [Test]
+        public void TestComplexGenericMethod()
+        {
+            var manager = this.CreateProxyManager();
+            var providerApi = new ProviderApi();
+            var consumerApi = manager.ObtainProxy<IConsumerApi>(providerApi)!;
+
+            var result = consumerApi.ComplexGenericMethod<string>("");
+            Assert.AreEqual(0, result.Count);
         }
     }
 }
