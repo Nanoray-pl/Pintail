@@ -168,7 +168,16 @@ namespace Nanoray.Pintail
             string[] genericArgNames = proxyGenericArguments.Select(a => a.Name).ToArray();
             GenericTypeParameterBuilder[] genericTypeParameterBuilders = proxyGenericArguments.Length == 0 ? Array.Empty<GenericTypeParameterBuilder>() : methodBuilder.DefineGenericParameters(genericArgNames);
             for (int i = 0; i < proxyGenericArguments.Length; i++)
+            {
                 genericTypeParameterBuilders[i].SetGenericParameterAttributes(proxyGenericArguments[i].GenericParameterAttributes);
+                Type[] constraints = proxyGenericArguments[i].GetGenericParameterConstraints();
+                Type? baseConstraint = constraints.Where(t => !t.IsInterface).FirstOrDefault();
+                Type[] interfaceConstraints = constraints.Where(t => t.IsInterface).ToArray();
+                if (baseConstraint is not null)
+                    genericTypeParameterBuilders[i].SetBaseTypeConstraint(baseConstraint);
+                if (interfaceConstraints.Length != 0)
+                    genericTypeParameterBuilders[i].SetInterfaceConstraints(interfaceConstraints);
+            }
 
             // set up parameters
             var targetParameters = target.GetParameters();
@@ -247,6 +256,26 @@ namespace Nanoray.Pintail
 
                 void ConvertIfNeededAndStore(LocalBuilder inputLocal, LocalBuilder outputLocal, int? proxyInfoIndex, bool isReverse, TypeUtilities.PositionConversion? positionConversion)
                 {
+                    bool IsValueType(Type type)
+                    {
+                        if (type.IsValueType || type == typeof(Enum) || (type is not GenericTypeParameterBuilder && type.IsEnum))
+                            return true;
+                        if (!type.IsGenericParameter)
+                            return false;
+                        foreach (var genericArgument in proxyGenericArguments)
+                        {
+                            if (genericArgument.Name == type.Name)
+                            {
+                                foreach (var constraint in genericArgument.GetGenericParameterConstraints())
+                                {
+                                    if (constraint.IsValueType || constraint == typeof(Enum) || constraint.IsEnum)
+                                        return true;
+                                }
+                            }
+                        }
+                        return false;
+                    }
+
                     if (proxyInfoIndex is null)
                     {
                         il.Emit(OpCodes.Ldloc, inputLocal);
@@ -295,11 +324,11 @@ namespace Nanoray.Pintail
 
                     // load instance to proxy and call method
                     il.Emit(OpCodes.Ldloc, inputLocal);
-                    if (inputLocal.LocalType.IsValueType)
+                    if (IsValueType(inputLocal.LocalType))
                         il.Emit(OpCodes.Box, inputLocal.LocalType);
                     il.Emit(OpCodes.Call, UnproxyOrObtainProxyMethod);
 
-                    if (outputLocal.LocalType.IsValueType)
+                    if (IsValueType(outputLocal.LocalType))
                         il.Emit(OpCodes.Unbox_Any, outputLocal.LocalType);
                     il.Emit(OpCodes.Stloc, outputLocal);
 
