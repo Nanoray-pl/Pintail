@@ -59,6 +59,8 @@ namespace Nanoray.Pintail.Tests.Consumer
 
         void RegisterSimpleOption(IApiResult result, string optionName, string optionDesc, Func<bool> optionGet, Action<bool> optionSet);
         void RegisterSimpleOption(IApiResult result, string optionName, string optionDesc, Func<string> optionGet, Action<string> optionSet);
+
+        IList<T> ComplexGenericMethod<T>(string key);
     }
 
     public interface IInvalidConsumerApi

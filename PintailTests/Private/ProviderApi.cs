@@ -122,5 +122,8 @@ namespace Nanoray.Pintail.Tests.Provider
 
         public void RegisterSimpleOption(IApiResult result, string optionName, string optionDesc, Func<string> optionGet, Action<string> optionSet)
         { }
+
+        public IList<T> ComplexGenericMethod<T>(string key)
+            => new List<T>();
     }
 }

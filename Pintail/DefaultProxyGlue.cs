@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
 
 namespace Nanoray.Pintail
@@ -18,12 +19,24 @@ namespace Nanoray.Pintail
         }
 
         [return: NotNullIfNotNull("toProxy")]
-        public object? UnproxyOrObtainProxy(ProxyInfo<Context> proxyInfo, bool isReverse, object? toProxy)
+#pragma warning disable CS1591
+        public object? UnproxyOrObtainProxy(IDictionary<string, Type> targetGenericArguments, IDictionary<string, Type> proxyGenericArguments, ProxyInfo<Context> proxyInfo, bool isReverse, object? toProxy)
+#pragma warning restore CS1591
         {
             if (toProxy is null)
                 return null;
+
             ProxyInfo<Context> targetToProxyInfo = isReverse ? proxyInfo.Reversed() : proxyInfo;
             ProxyInfo<Context> proxyToTargetInfo = isReverse ? proxyInfo : proxyInfo.Reversed();
+
+            targetToProxyInfo = targetToProxyInfo.Copy(
+                targetType: targetToProxyInfo.Target.Type.ReplacingGenericArguments(targetGenericArguments),
+                proxyType: targetToProxyInfo.Proxy.Type.ReplacingGenericArguments(proxyGenericArguments)
+            );
+            proxyToTargetInfo = proxyToTargetInfo.Copy(
+                targetType: proxyToTargetInfo.Target.Type.ReplacingGenericArguments(targetGenericArguments),
+                proxyType: proxyToTargetInfo.Proxy.Type.ReplacingGenericArguments(proxyGenericArguments)
+            );
 
             var unproxyFactory = this.Manager.GetProxyFactory(proxyToTargetInfo);
             if (unproxyFactory is not null && unproxyFactory.TryUnproxy(this.Manager, toProxy, out object? targetInstance))
@@ -32,7 +45,9 @@ namespace Nanoray.Pintail
             return factory.ObtainProxy(this.Manager, toProxy);
         }
 
+#pragma warning disable CS1591
         public void MapArrayContents(ProxyInfo<Context> proxyInfo, bool isReverse, Array inputArray, Array outputArray)
+#pragma warning restore CS1591
         {
             ProxyInfo<Context> actualProxyInfo = isReverse ? proxyInfo.Reversed() : proxyInfo;
             var arrayProxyFactory = this.Manager.ObtainProxyFactory(actualProxyInfo) as DefaultArrayProxyFactory<Context> ?? throw new ArgumentException($"Could not obtain DefaultArrayProxyFactory for {actualProxyInfo}.");

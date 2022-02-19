@@ -52,5 +52,16 @@ namespace Nanoray.Pintail
         {
             return typeof(EnumType).GetEnumerableEnumValues().Select(e => (EnumType)e);
         }
+
+        internal static Type ReplacingGenericArguments(this Type self, IDictionary<string, Type> realGenericArguments)
+        {
+            if (!self.ContainsGenericParameters)
+                return self;
+            if (self.IsGenericParameter && self.FullName is null && realGenericArguments.TryGetValue(self.Name, out Type? replacementType) && replacementType is not null)
+                return replacementType;
+
+            Type[] genericArguments = self.GenericTypeArguments.Select(t => t.ReplacingGenericArguments(realGenericArguments)).ToArray();
+            return genericArguments.Length == 0 ? self : self.GetGenericTypeDefinition().MakeGenericType(genericArguments);
+        }
     }
 }
