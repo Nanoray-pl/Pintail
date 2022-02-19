@@ -22,12 +22,13 @@ namespace Nanoray.Pintail
 
         public ProxyInfo<Context> ProxyInfo { get; private set; }
         private readonly DefaultProxyManagerNoMatchingMethodHandler<Context> NoMatchingMethodHandler;
+        private readonly DefaultProxyManagerProxyPrepareBehavior ProxyPrepareBehavior;
         private readonly DefaultProxyManagerEnumMappingBehavior EnumMappingBehavior;
         private readonly ProxyObjectInterfaceMarking ProxyObjectInterfaceMarking;
         private readonly ConditionalWeakTable<object, object> ProxyCache = new();
         private Type? BuiltProxyType;
 
-        internal DefaultProxyFactory(ProxyInfo<Context> proxyInfo, DefaultProxyManagerNoMatchingMethodHandler<Context> noMatchingMethodHandler, DefaultProxyManagerEnumMappingBehavior enumMappingBehavior, ProxyObjectInterfaceMarking proxyObjectInterfaceMarking)
+        internal DefaultProxyFactory(ProxyInfo<Context> proxyInfo, DefaultProxyManagerNoMatchingMethodHandler<Context> noMatchingMethodHandler, DefaultProxyManagerProxyPrepareBehavior proxyPrepareBehavior, DefaultProxyManagerEnumMappingBehavior enumMappingBehavior, ProxyObjectInterfaceMarking proxyObjectInterfaceMarking)
         {
             bool isProxyDelegate = proxyInfo.Proxy.Type.IsAssignableTo(typeof(Delegate));
             bool isTargetDelegate = proxyInfo.Target.Type.IsAssignableTo(typeof(Delegate));
@@ -46,6 +47,7 @@ namespace Nanoray.Pintail
 
             this.ProxyInfo = proxyInfo;
             this.NoMatchingMethodHandler = noMatchingMethodHandler;
+            this.ProxyPrepareBehavior = proxyPrepareBehavior;
             this.EnumMappingBehavior = enumMappingBehavior;
             this.ProxyObjectInterfaceMarking = proxyObjectInterfaceMarking;
         }
@@ -184,6 +186,16 @@ namespace Nanoray.Pintail
                 case TypeUtilities.PositionConversion.Proxy:
                     returnValueTargetToArgProxyInfoIndex = relatedProxyInfos.Count;
                     relatedProxyInfos.Add(this.ProxyInfo.Copy(targetType: target.ReturnType.GetNonRefType(), proxyType: proxy.ReturnType.GetNonRefType()));
+                    switch (this.ProxyPrepareBehavior)
+                    {
+                        case DefaultProxyManagerProxyPrepareBehavior.Eager:
+                            var proxyInfo = relatedProxyInfos.Last();
+                            if (!proxyInfo.Proxy.Type.ContainsGenericParameters && !proxyInfo.Target.Type.ContainsGenericParameters)
+                                manager.ObtainProxyFactory(relatedProxyInfos.Last());
+                            break;
+                        case DefaultProxyManagerProxyPrepareBehavior.Lazy:
+                            break;
+                    }
                     break;
                 case null:
                     break;
@@ -199,6 +211,16 @@ namespace Nanoray.Pintail
 
                         parameterTargetToArgProxyInfoIndexes[i] = relatedProxyInfos.Count;
                         relatedProxyInfos.Add(this.ProxyInfo.Copy(targetType: targetType.GetNonRefType(), proxyType: argType.GetNonRefType()));
+                        switch (this.ProxyPrepareBehavior)
+                        {
+                            case DefaultProxyManagerProxyPrepareBehavior.Eager:
+                                var proxyInfo = relatedProxyInfos.Last();
+                                if (!proxyInfo.Proxy.Type.ContainsGenericParameters && !proxyInfo.Target.Type.ContainsGenericParameters)
+                                    manager.ObtainProxyFactory(relatedProxyInfos.Last());
+                                break;
+                            case DefaultProxyManagerProxyPrepareBehavior.Lazy:
+                                break;
+                        }
                         break;
                     case null:
                         break;
