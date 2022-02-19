@@ -125,5 +125,18 @@ namespace Nanoray.Pintail.Tests.Provider
 
         public IList<T> ComplexGenericMethod<T>(string key)
             => new List<T>();
+
+        public EnumType? EnumConstrainedGenericMethod<EnumType>(string name) where EnumType : notnull, Enum
+        {
+            foreach (object enumValue in Enum.GetValues(typeof(EnumType)))
+            {
+                if (Enum.GetName(typeof(EnumType), enumValue) == name)
+                    return (EnumType)enumValue;
+            }
+            return default;
+        }
+
+        public T ConstructorConstrainedGenericMethod<T>() where T: new()
+            => new();
     }
 }

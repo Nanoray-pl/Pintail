@@ -330,5 +330,27 @@ namespace Nanoray.Pintail.Tests
             var result = consumerApi.ComplexGenericMethod<string>("");
             Assert.AreEqual(0, result.Count);
         }
+
+        [Test]
+        public void TestEnumConstrainedGenericMethod()
+        {
+            var manager = this.CreateProxyManager();
+            var providerApi = new ProviderApi();
+            var consumerApi = manager.ObtainProxy<IConsumerApi>(providerApi)!;
+
+            var result = consumerApi.EnumConstrainedGenericMethod<DefaultProxyManagerEnumMappingBehavior>("Strict");
+            Assert.AreEqual(DefaultProxyManagerEnumMappingBehavior.Strict, result);
+        }
+
+        [Test]
+        public void TestConstructorConstrainedGenericMethod()
+        {
+            var manager = this.CreateProxyManager();
+            var providerApi = new ProviderApi();
+            var consumerApi = manager.ObtainProxy<IConsumerApi>(providerApi)!;
+
+            var result = consumerApi.ConstructorConstrainedGenericMethod<System.Collections.Generic.List<string>>();
+            Assert.AreEqual(0, result.Count);
+        }
     }
 }

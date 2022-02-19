@@ -61,6 +61,9 @@ namespace Nanoray.Pintail.Tests.Consumer
         void RegisterSimpleOption(IApiResult result, string optionName, string optionDesc, Func<string> optionGet, Action<string> optionSet);
 
         IList<T> ComplexGenericMethod<T>(string key);
+
+        EnumType? EnumConstrainedGenericMethod<EnumType>(string name) where EnumType: notnull, Enum;
+        T ConstructorConstrainedGenericMethod<T>() where T: new();
     }
 
     public interface IInvalidConsumerApi

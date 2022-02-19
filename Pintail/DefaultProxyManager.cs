@@ -242,7 +242,12 @@ namespace Nanoray.Pintail
 			{
                 if (!this.Factories.TryGetValue(proxyInfo, out IProxyFactory<Context>? factory))
                 {
-                    if (proxyInfo.Target.Type.IsEnum && proxyInfo.Proxy.Type.IsEnum)
+                    if (proxyInfo.Target.Type == proxyInfo.Proxy.Type)
+                    {
+                        factory = new NoOpProxyFactory<Context>(proxyInfo);
+                        this.Factories[proxyInfo] = factory;
+                    }
+                    else if (proxyInfo.Target.Type.IsEnum && proxyInfo.Proxy.Type.IsEnum)
                     {
                         factory = new DefaultEnumProxyFactory<Context>(proxyInfo);
                         this.Factories[proxyInfo] = factory;

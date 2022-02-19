@@ -21,6 +21,8 @@ namespace Nanoray.Pintail
             {
                 if (proxyType == targetType)
                     return MatchingTypesResult.True;
+                if (proxyType.IsGenericParameter && targetType.IsGenericParameter)
+                    return MatchingTypesResult.IfProxied;
                 var proxyEnumRawValues = proxyType.GetEnumerableEnumValues().Select(e => (int)(object)e).ToList();
                 var targetEnumRawValues = targetType.GetEnumerableEnumValues().Select(e => (int)(object)e).ToList();
                 switch (enumMappingBehavior)
