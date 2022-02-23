@@ -4,14 +4,14 @@ using System.Linq;
 
 namespace Nanoray.Pintail
 {
-    internal class DefaultReconstructingProxyFactory<Context>: IProxyFactory<Context>
+    internal class ReconstructingProxyFactory<Context>: IProxyFactory<Context>
     {
         public ProxyInfo<Context> ProxyInfo { get; private set; }
-        private readonly DefaultProxyManagerEnumMappingBehavior EnumMappingBehavior;
+        private readonly ProxyManagerEnumMappingBehavior EnumMappingBehavior;
         private Func<IProxyManager<Context>, object, object> ProxyFactory = null!;
         private Func<IProxyManager<Context>, object, object> UnproxyFactory = null!;
 
-        internal DefaultReconstructingProxyFactory(ProxyInfo<Context> proxyInfo, DefaultProxyManagerEnumMappingBehavior enumMappingBehavior)
+        internal ReconstructingProxyFactory(ProxyInfo<Context> proxyInfo, ProxyManagerEnumMappingBehavior enumMappingBehavior)
         {
             this.ProxyInfo = proxyInfo;
             this.EnumMappingBehavior = enumMappingBehavior;

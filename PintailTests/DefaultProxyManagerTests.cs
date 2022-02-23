@@ -13,11 +13,11 @@ namespace Nanoray.Pintail.Tests
 	{
         private static int nextModuleIndex = 0;
 
-        private DefaultProxyManager<Nothing> CreateProxyManager(DefaultProxyManagerConfiguration<Nothing>? configuration = null)
+        private ProxyManager<Nothing> CreateProxyManager(ProxyManagerConfiguration<Nothing>? configuration = null)
         {
             var assemblyBuilder = AssemblyBuilder.DefineDynamicAssembly(new AssemblyName($"Proxies_{nextModuleIndex++}, Version={this.GetType().Assembly.GetName().Version}, Culture=neutral"), AssemblyBuilderAccess.Run);
             var moduleBuilder = assemblyBuilder.DefineDynamicModule($"Proxies_{nextModuleIndex++}");
-            var manager = new DefaultProxyManager<Nothing>(moduleBuilder, configuration);
+            var manager = new ProxyManager<Nothing>(moduleBuilder, configuration);
             return manager;
         }
 
@@ -137,7 +137,7 @@ namespace Nanoray.Pintail.Tests
         public void TestMismatchedArrayParameterAndThrow()
         {
             var manager = this.CreateProxyManager(new(
-                mismatchedArrayMappingBehavior: DefaultProxyManagerMismatchedArrayMappingBehavior.Throw
+                mismatchedArrayMappingBehavior: ProxyManagerMismatchedArrayMappingBehavior.Throw
             ));
             var providerApi = new ProviderApi();
 
@@ -150,7 +150,7 @@ namespace Nanoray.Pintail.Tests
         public void TestMismatchedArrayParameterAndAllowAndDontMapBack()
         {
             var manager = this.CreateProxyManager(new(
-                mismatchedArrayMappingBehavior: DefaultProxyManagerMismatchedArrayMappingBehavior.AllowAndDontMapBack
+                mismatchedArrayMappingBehavior: ProxyManagerMismatchedArrayMappingBehavior.AllowAndDontMapBack
             ));
             var providerApi = new ProviderApi();
 
@@ -266,7 +266,7 @@ namespace Nanoray.Pintail.Tests
         public void TestNonExistentApiMethodByThrowingOnPrepare()
         {
             var manager = this.CreateProxyManager(new(
-                noMatchingMethodHandler: DefaultProxyManagerConfiguration<Nothing>.ThrowExceptionNoMatchingMethodHandler
+                noMatchingMethodHandler: ProxyManagerConfiguration<Nothing>.ThrowExceptionNoMatchingMethodHandler
             ));
             var providerApi = new ProviderApi();
             Assert.Throws<ArgumentException>(() => manager.ObtainProxy<IInvalidConsumerApi>(providerApi));
@@ -276,7 +276,7 @@ namespace Nanoray.Pintail.Tests
         public void TestNonExistentApiMethodByThrowingImplementation()
         {
             var manager = this.CreateProxyManager(new(
-                noMatchingMethodHandler: DefaultProxyManagerConfiguration<Nothing>.ThrowingImplementationNoMatchingMethodHandler
+                noMatchingMethodHandler: ProxyManagerConfiguration<Nothing>.ThrowingImplementationNoMatchingMethodHandler
             ));
             var providerApi = new ProviderApi();
             IInvalidConsumerApi consumerApi = null!;
@@ -338,8 +338,8 @@ namespace Nanoray.Pintail.Tests
             var providerApi = new ProviderApi();
             var consumerApi = manager.ObtainProxy<IConsumerApi>(providerApi)!;
 
-            var result = consumerApi.EnumConstrainedGenericMethod<DefaultProxyManagerEnumMappingBehavior>("Strict");
-            Assert.AreEqual(DefaultProxyManagerEnumMappingBehavior.Strict, result);
+            var result = consumerApi.EnumConstrainedGenericMethod<ProxyManagerEnumMappingBehavior>("Strict");
+            Assert.AreEqual(ProxyManagerEnumMappingBehavior.Strict, result);
         }
 
         [Test]

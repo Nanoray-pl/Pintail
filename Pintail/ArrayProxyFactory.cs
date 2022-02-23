@@ -3,12 +3,12 @@ using System.Diagnostics.CodeAnalysis;
 
 namespace Nanoray.Pintail
 {
-    internal class DefaultArrayProxyFactory<Context>: IProxyFactory<Context>
+    internal class ArrayProxyFactory<Context>: IProxyFactory<Context>
     {
         public ProxyInfo<Context> ProxyInfo { get; private set; }
-        private readonly DefaultProxyManagerMismatchedArrayMappingBehavior MismatchedArrayMappingBehavior;
+        private readonly ProxyManagerMismatchedArrayMappingBehavior MismatchedArrayMappingBehavior;
 
-        internal DefaultArrayProxyFactory(ProxyInfo<Context> proxyInfo, DefaultProxyManagerMismatchedArrayMappingBehavior mismatchedArrayMappingBehavior)
+        internal ArrayProxyFactory(ProxyInfo<Context> proxyInfo, ProxyManagerMismatchedArrayMappingBehavior mismatchedArrayMappingBehavior)
         {
             if (!proxyInfo.Target.Type.IsArray)
                 throw new ArgumentException($"{proxyInfo.Target.Type.GetBestName()} is not an array.");
@@ -62,9 +62,9 @@ namespace Nanoray.Pintail
             {
                 switch (this.MismatchedArrayMappingBehavior)
                 {
-                    case DefaultProxyManagerMismatchedArrayMappingBehavior.Throw:
+                    case ProxyManagerMismatchedArrayMappingBehavior.Throw:
                         throw new ArgumentException($"Array uses more concrete type {outputElementType.GetBestName()} than expected {elementProxyInfo.Proxy.Type.GetBestName()}, cannot map.");
-                    case DefaultProxyManagerMismatchedArrayMappingBehavior.AllowAndDontMapBack:
+                    case ProxyManagerMismatchedArrayMappingBehavior.AllowAndDontMapBack:
                         return;
                 }
             }

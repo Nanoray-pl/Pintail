@@ -9,11 +9,11 @@ namespace Nanoray.Pintail
     /// </summary>
     /// <remarks>This type is not meant to be used directly, but due to the nature of the proxy objects it has to be `public`.</remarks>
     /// <typeparam name="Context"></typeparam>
-    public sealed class DefaultProxyGlue<Context>
+    public sealed class ProxyGlue<Context>
     {
         private readonly IProxyManager<Context> Manager;
 
-        internal DefaultProxyGlue(IProxyManager<Context> manager)
+        internal ProxyGlue(IProxyManager<Context> manager)
         {
             this.Manager = manager;
         }
@@ -50,7 +50,7 @@ namespace Nanoray.Pintail
 #pragma warning restore CS1591
         {
             ProxyInfo<Context> actualProxyInfo = isReverse ? proxyInfo.Reversed() : proxyInfo;
-            var arrayProxyFactory = this.Manager.ObtainProxyFactory(actualProxyInfo) as DefaultArrayProxyFactory<Context> ?? throw new ArgumentException($"Could not obtain DefaultArrayProxyFactory for {actualProxyInfo}.");
+            var arrayProxyFactory = this.Manager.ObtainProxyFactory(actualProxyInfo) as ArrayProxyFactory<Context> ?? throw new ArgumentException($"Could not obtain DefaultArrayProxyFactory for {actualProxyInfo}.");
             arrayProxyFactory.MapArrayContents(this.Manager, inputArray, outputArray);
         }
     }

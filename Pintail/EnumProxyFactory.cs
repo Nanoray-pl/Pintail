@@ -3,11 +3,11 @@ using System.Diagnostics.CodeAnalysis;
 
 namespace Nanoray.Pintail
 {
-    internal class DefaultEnumProxyFactory<Context>: IProxyFactory<Context>
+    internal class EnumProxyFactory<Context>: IProxyFactory<Context>
     {
         public ProxyInfo<Context> ProxyInfo { get; private set; }
 
-        internal DefaultEnumProxyFactory(ProxyInfo<Context> proxyInfo)
+        internal EnumProxyFactory(ProxyInfo<Context> proxyInfo)
         {
             if (!proxyInfo.Target.Type.IsEnum)
                 throw new ArgumentException($"{proxyInfo.Target.Type.GetBestName()} is not an enum.");

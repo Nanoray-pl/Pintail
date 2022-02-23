@@ -10,7 +10,7 @@ namespace Nanoray.Pintail
         internal enum MatchingTypesResult { False, IfProxied, True }
         internal enum PositionConversion { Proxy }
 
-        internal static MatchingTypesResult AreTypesMatching(Type targetType, Type proxyType, MethodTypeMatchingPart part, DefaultProxyManagerEnumMappingBehavior enumMappingBehavior)
+        internal static MatchingTypesResult AreTypesMatching(Type targetType, Type proxyType, MethodTypeMatchingPart part, ProxyManagerEnumMappingBehavior enumMappingBehavior)
         {
             var typeA = part == MethodTypeMatchingPart.Parameter ? targetType : proxyType;
             var typeB = part == MethodTypeMatchingPart.Parameter ? proxyType : targetType;
@@ -27,11 +27,11 @@ namespace Nanoray.Pintail
                 var targetEnumRawValues = targetType.GetEnumerableEnumValues().Select(e => (int)(object)e).ToList();
                 switch (enumMappingBehavior)
                 {
-                    case DefaultProxyManagerEnumMappingBehavior.Strict:
+                    case ProxyManagerEnumMappingBehavior.Strict:
                         return proxyEnumRawValues.OrderBy(e => e).SequenceEqual(targetEnumRawValues.OrderBy(e => e)) ? MatchingTypesResult.IfProxied : MatchingTypesResult.False;
-                    case DefaultProxyManagerEnumMappingBehavior.AllowAdditive:
+                    case ProxyManagerEnumMappingBehavior.AllowAdditive:
                         return targetEnumRawValues.ToHashSet().Except(proxyEnumRawValues).Any() ? MatchingTypesResult.False : MatchingTypesResult.IfProxied;
-                    case DefaultProxyManagerEnumMappingBehavior.ThrowAtRuntime:
+                    case ProxyManagerEnumMappingBehavior.ThrowAtRuntime:
                         return MatchingTypesResult.IfProxied;
                 }
             }
@@ -91,7 +91,7 @@ namespace Nanoray.Pintail
             return matchingTypesResult;
         }
 
-        internal static PositionConversion?[]? MatchProxyMethod(MethodInfo targetMethod, MethodInfo proxyMethod, DefaultProxyManagerEnumMappingBehavior enumMappingBehavior)
+        internal static PositionConversion?[]? MatchProxyMethod(MethodInfo targetMethod, MethodInfo proxyMethod, ProxyManagerEnumMappingBehavior enumMappingBehavior)
         {
             // checking if `targetMethod` matches `proxyMethod`
             var proxyMethodParameters = proxyMethod.GetParameters();

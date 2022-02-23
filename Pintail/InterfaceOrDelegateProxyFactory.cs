@@ -8,27 +8,27 @@ using System.Runtime.CompilerServices;
 
 namespace Nanoray.Pintail
 {
-    internal class DefaultProxyFactory<Context>: IProxyFactory<Context>
+    internal class InterfaceOrDelegateProxyFactory<Context>: IProxyFactory<Context>
     {
         private static readonly string TargetFieldName = "__Target";
         private static readonly string GlueFieldName = "__Glue";
         private static readonly string ProxyInfosFieldName = "__ProxyInfos";
-        private static readonly MethodInfo UnproxyOrObtainProxyMethod = typeof(DefaultProxyGlue<Context>).GetMethod(nameof(DefaultProxyGlue<Context>.UnproxyOrObtainProxy))!;
-        private static readonly MethodInfo MapArrayContentsMethod = typeof(DefaultProxyGlue<Context>).GetMethod(nameof(DefaultProxyGlue<Context>.MapArrayContents))!;
+        private static readonly MethodInfo UnproxyOrObtainProxyMethod = typeof(ProxyGlue<Context>).GetMethod(nameof(ProxyGlue<Context>.UnproxyOrObtainProxy))!;
+        private static readonly MethodInfo MapArrayContentsMethod = typeof(ProxyGlue<Context>).GetMethod(nameof(ProxyGlue<Context>.MapArrayContents))!;
         private static readonly MethodInfo ProxyInfoListGetMethod = typeof(IList<ProxyInfo<Context>>).GetProperty("Item")!.GetGetMethod()!;
         private static readonly ConstructorInfo StringTypeDictionaryConstructor = typeof(Dictionary<string, Type>).GetConstructor(Array.Empty<Type>())!;
         private static readonly MethodInfo StringTypeDictionarySetItemMethod = typeof(IDictionary<string, Type>).GetMethod("set_Item")!;
         private static readonly MethodInfo GetTypeFromHandleMethod = typeof(Type).GetMethod(nameof(Type.GetTypeFromHandle))!;
 
         public ProxyInfo<Context> ProxyInfo { get; private set; }
-        private readonly DefaultProxyManagerNoMatchingMethodHandler<Context> NoMatchingMethodHandler;
-        private readonly DefaultProxyManagerProxyPrepareBehavior ProxyPrepareBehavior;
-        private readonly DefaultProxyManagerEnumMappingBehavior EnumMappingBehavior;
+        private readonly ProxyManagerNoMatchingMethodHandler<Context> NoMatchingMethodHandler;
+        private readonly ProxyManagerProxyPrepareBehavior ProxyPrepareBehavior;
+        private readonly ProxyManagerEnumMappingBehavior EnumMappingBehavior;
         private readonly ProxyObjectInterfaceMarking ProxyObjectInterfaceMarking;
         private readonly ConditionalWeakTable<object, object> ProxyCache = new();
         private Type? BuiltProxyType;
 
-        internal DefaultProxyFactory(ProxyInfo<Context> proxyInfo, DefaultProxyManagerNoMatchingMethodHandler<Context> noMatchingMethodHandler, DefaultProxyManagerProxyPrepareBehavior proxyPrepareBehavior, DefaultProxyManagerEnumMappingBehavior enumMappingBehavior, ProxyObjectInterfaceMarking proxyObjectInterfaceMarking)
+        internal InterfaceOrDelegateProxyFactory(ProxyInfo<Context> proxyInfo, ProxyManagerNoMatchingMethodHandler<Context> noMatchingMethodHandler, ProxyManagerProxyPrepareBehavior proxyPrepareBehavior, ProxyManagerEnumMappingBehavior enumMappingBehavior, ProxyObjectInterfaceMarking proxyObjectInterfaceMarking)
         {
             bool isProxyDelegate = proxyInfo.Proxy.Type.IsAssignableTo(typeof(Delegate));
             bool isTargetDelegate = proxyInfo.Target.Type.IsAssignableTo(typeof(Delegate));
@@ -52,7 +52,7 @@ namespace Nanoray.Pintail
             this.ProxyObjectInterfaceMarking = proxyObjectInterfaceMarking;
         }
 
-        internal void Prepare(DefaultProxyManager<Context> manager, string typeName)
+        internal void Prepare(ProxyManager<Context> manager, string typeName)
         {
             // define proxy type
             TypeBuilder proxyBuilder = manager.ModuleBuilder.DefineType(typeName, TypeAttributes.Public | TypeAttributes.Class);
@@ -61,12 +61,12 @@ namespace Nanoray.Pintail
 
             // create fields to store target instance and proxy factory
             FieldBuilder targetField = proxyBuilder.DefineField(TargetFieldName, this.ProxyInfo.Target.Type, FieldAttributes.Private | FieldAttributes.InitOnly);
-            FieldBuilder glueField = proxyBuilder.DefineField(GlueFieldName, typeof(DefaultProxyGlue<Context>), FieldAttributes.Private | FieldAttributes.InitOnly);
+            FieldBuilder glueField = proxyBuilder.DefineField(GlueFieldName, typeof(ProxyGlue<Context>), FieldAttributes.Private | FieldAttributes.InitOnly);
             FieldBuilder proxyInfosField = proxyBuilder.DefineField(ProxyInfosFieldName, typeof(IList<ProxyInfo<Context>>), FieldAttributes.Private | FieldAttributes.Static);
 
             // create constructor which accepts target instance + factory, and sets fields
             {
-                ConstructorBuilder constructor = proxyBuilder.DefineConstructor(MethodAttributes.Public, CallingConventions.Standard | CallingConventions.HasThis, new[] { this.ProxyInfo.Target.Type, typeof(DefaultProxyGlue<Context>) });
+                ConstructorBuilder constructor = proxyBuilder.DefineConstructor(MethodAttributes.Public, CallingConventions.Standard | CallingConventions.HasThis, new[] { this.ProxyInfo.Target.Type, typeof(ProxyGlue<Context>) });
                 ILGenerator il = constructor.GetILGenerator();
 
                 // call base constructor
@@ -159,7 +159,7 @@ namespace Nanoray.Pintail
             actualProxyInfosField.SetValue(null, relatedProxyInfos);
         }
 
-        private void ProxyMethod(DefaultProxyManager<Context> manager, TypeBuilder proxyBuilder, MethodInfo proxy, MethodInfo target, FieldBuilder instanceField, FieldBuilder glueField, FieldBuilder proxyInfosField, TypeUtilities.PositionConversion?[] positionConversions, IList<ProxyInfo<Context>> relatedProxyInfos)
+        private void ProxyMethod(ProxyManager<Context> manager, TypeBuilder proxyBuilder, MethodInfo proxy, MethodInfo target, FieldBuilder instanceField, FieldBuilder glueField, FieldBuilder proxyInfosField, TypeUtilities.PositionConversion?[] positionConversions, IList<ProxyInfo<Context>> relatedProxyInfos)
         {
             MethodBuilder methodBuilder = proxyBuilder.DefineMethod(proxy.Name, MethodAttributes.Public | MethodAttributes.Final | MethodAttributes.Virtual);
 
@@ -197,12 +197,12 @@ namespace Nanoray.Pintail
                     relatedProxyInfos.Add(this.ProxyInfo.Copy(targetType: target.ReturnType.GetNonRefType(), proxyType: proxy.ReturnType.GetNonRefType()));
                     switch (this.ProxyPrepareBehavior)
                     {
-                        case DefaultProxyManagerProxyPrepareBehavior.Eager:
+                        case ProxyManagerProxyPrepareBehavior.Eager:
                             var proxyInfo = relatedProxyInfos.Last();
                             if (!proxyInfo.Proxy.Type.ContainsGenericParameters && !proxyInfo.Target.Type.ContainsGenericParameters)
                                 manager.ObtainProxyFactory(relatedProxyInfos.Last());
                             break;
-                        case DefaultProxyManagerProxyPrepareBehavior.Lazy:
+                        case ProxyManagerProxyPrepareBehavior.Lazy:
                             break;
                     }
                     break;
@@ -222,12 +222,12 @@ namespace Nanoray.Pintail
                         relatedProxyInfos.Add(this.ProxyInfo.Copy(targetType: targetType.GetNonRefType(), proxyType: argType.GetNonRefType()));
                         switch (this.ProxyPrepareBehavior)
                         {
-                            case DefaultProxyManagerProxyPrepareBehavior.Eager:
+                            case ProxyManagerProxyPrepareBehavior.Eager:
                                 var proxyInfo = relatedProxyInfos.Last();
                                 if (!proxyInfo.Proxy.Type.ContainsGenericParameters && !proxyInfo.Target.Type.ContainsGenericParameters)
                                     manager.ObtainProxyFactory(relatedProxyInfos.Last());
                                 break;
-                            case DefaultProxyManagerProxyPrepareBehavior.Lazy:
+                            case ProxyManagerProxyPrepareBehavior.Lazy:
                                 break;
                         }
                         break;
@@ -439,10 +439,10 @@ namespace Nanoray.Pintail
                 if (this.ProxyCache.TryGetValue(targetInstance, out object? proxyInstance))
                     return proxyInstance;
 
-                ConstructorInfo? constructor = this.BuiltProxyType?.GetConstructor(new[] { this.ProxyInfo.Target.Type, typeof(DefaultProxyGlue<Context>) });
+                ConstructorInfo? constructor = this.BuiltProxyType?.GetConstructor(new[] { this.ProxyInfo.Target.Type, typeof(ProxyGlue<Context>) });
                 if (constructor is null)
                     throw new InvalidOperationException($"Couldn't find the constructor for generated proxy type '{this.ProxyInfo.Proxy.Type.Name}'."); // should never happen
-                proxyInstance = constructor.Invoke(new[] { targetInstance, new DefaultProxyGlue<Context>(manager) });
+                proxyInstance = constructor.Invoke(new[] { targetInstance, new ProxyGlue<Context>(manager) });
 
                 if (this.ProxyInfo.Proxy.Type.IsInterface)
                 {
