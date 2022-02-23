@@ -5,7 +5,7 @@ namespace Nanoray.Pintail
     /// <summary>
     /// A type to be used in generic declarations, when no specific type is required.
     /// </summary>
-    public struct Nothing: IEquatable<Nothing>
+    public readonly struct Nothing: IEquatable<Nothing>
     {
         /// <summary>
         /// The only possible value of the <see cref="Nothing"/> type.

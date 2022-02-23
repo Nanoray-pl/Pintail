@@ -6,7 +6,7 @@ namespace Nanoray.Pintail
     /// Describes the specific proxy conversion.
     /// </summary>
     /// <typeparam name="Context">The context type used to describe the current proxy process. Use <see cref="Nothing"/> if not needed.</typeparam>
-    public class ProxyInfo<Context>: IEquatable<ProxyInfo<Context>>
+    public readonly struct ProxyInfo<Context>: IEquatable<ProxyInfo<Context>>
     {
         /// <summary>
         /// The context of the target instance.
@@ -64,8 +64,8 @@ namespace Nanoray.Pintail
             => $"ProxyInfo{{target: {this.Target}, proxy: {this.Proxy}}}";
 
         /// <inheritdoc/>
-        public bool Equals(ProxyInfo<Context>? other)
-            => other is not null && this.Target.Equals(other.Target) && this.Proxy.Equals(other.Proxy);
+        public bool Equals(ProxyInfo<Context> other)
+            => this.Target.Equals(other.Target) && this.Proxy.Equals(other.Proxy);
 
         /// <inheritdoc/>
         public override bool Equals(object? obj)
@@ -88,7 +88,7 @@ namespace Nanoray.Pintail
     /// Describes one side of a specified proxy conversion.
     /// </summary>
     /// <typeparam name="C">The context type used to describe the current proxy process. Use <see cref="Nothing"/> if not needed.</typeparam>
-    public class TypeInfo<C>: IEquatable<TypeInfo<C>>
+    public readonly struct TypeInfo<C>: IEquatable<TypeInfo<C>>
     {
         /// <summary>
         /// The context type used to describe the current proxy process.
@@ -123,8 +123,8 @@ namespace Nanoray.Pintail
             => $"TypeInfo{{context: {this.Context}, type: {this.Type.GetBestName()}}}";
 
         /// <inheritdoc/>
-        public bool Equals(TypeInfo<C>? other)
-            => other is not null && other.Type == this.Type && Equals(other.Context, this.Context);
+        public bool Equals(TypeInfo<C> other)
+            => other.Type == this.Type && Equals(other.Context, this.Context);
 
         /// <inheritdoc/>
         public override bool Equals(object? obj)
