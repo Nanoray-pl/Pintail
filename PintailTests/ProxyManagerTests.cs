@@ -9,7 +9,7 @@ using NUnit.Framework;
 namespace Nanoray.Pintail.Tests
 {
     [TestFixture]
-    public class DefaultProxyManagerTests
+    public class ProxyManagerTests
 	{
         private static int nextModuleIndex = 0;
 

@@ -52,6 +52,13 @@ namespace Nanoray.Pintail
             return this.Copy(targetType: this.Proxy.Type, proxyType: this.Target.Type);
         }
 
+        /// <summary>
+        /// Get a name suitable for use as part of a proxy type name.
+        /// </summary>
+        /// <param name="typeNameProvider">A delegate providing type names.</param>
+        public string GetNameSuitableForProxyTypeName(Func<Type, string> typeNameProvider)
+            => $"From<{this.Proxy.GetNameSuitableForProxyTypeName(typeNameProvider)}>_To<{this.Target.GetNameSuitableForProxyTypeName(typeNameProvider)}>";
+
         /// <inheritdoc/>
         public override string ToString()
             => $"ProxyInfo{{target: {this.Target}, proxy: {this.Proxy}}}";
@@ -103,6 +110,13 @@ namespace Nanoray.Pintail
             this.Context = context;
             this.Type = type;
         }
+
+        /// <summary>
+        /// Get a name suitable for use as part of a proxy type name.
+        /// </summary>
+        /// <param name="typeNameProvider">A delegate providing type names.</param>
+        public string GetNameSuitableForProxyTypeName(Func<Type, string> typeNameProvider)
+            => typeof(C) == typeof(Nothing) ? typeNameProvider(this.Type) : $"<{this.Context}>_<{typeNameProvider(this.Type)}>";
 
         /// <inheritdoc/>
         public override string ToString()

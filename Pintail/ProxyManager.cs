@@ -97,19 +97,19 @@ namespace Nanoray.Pintail
         /// A <see cref="ProxyManagerTypeNameProvider{Context}"/> implementation using full type names.
         /// </summary>
         public static readonly ProxyManagerTypeNameProvider<Context> FullNameTypeNameProvider = (moduleBuilder, proxyInfo)
-            => $"{moduleBuilder.Assembly.GetName().Name}.From<<{proxyInfo.Proxy.Context}>_<{proxyInfo.Proxy.Type.GetBestName()}>>_To<<{proxyInfo.Target.Context}>_<{proxyInfo.Target.Type.GetBestName()}>>";
+            => $"{moduleBuilder.Assembly.GetName().Name}.{proxyInfo.GetNameSuitableForProxyTypeName(type => type.GetBestName())}";
 
         /// <summary>
         /// A <see cref="ProxyManagerTypeNameProvider{Context}"/> implementation using short type names.
         /// </summary>
         public static readonly ProxyManagerTypeNameProvider<Context> ShortNameTypeNameProvider = (moduleBuilder, proxyInfo)
-            => $"{moduleBuilder.Assembly.GetName().Name}.From<<{proxyInfo.Proxy.Context}>_<{proxyInfo.Proxy.Type.Name}>>_To<<{proxyInfo.Target.Context}>_<{proxyInfo.Target.Type.Name}>>";
+            => $"{moduleBuilder.Assembly.GetName().Name}.{proxyInfo.GetNameSuitableForProxyTypeName(type => type.Name)}";
 
         /// <summary>
         /// A <see cref="ProxyManagerTypeNameProvider{Context}"/> implementation using MD5 hashes.
         /// </summary>
         public static readonly ProxyManagerTypeNameProvider<Context> Md5TypeNameProvider = (moduleBuilder, proxyInfo)
-            => $"{moduleBuilder.Assembly.GetName().Name}.From<<{proxyInfo.Proxy.Context}>_<{GetMd5String(proxyInfo.Proxy.Type.GetBestName())}>>_To<<{proxyInfo.Target.Context}>_<{GetMd5String(proxyInfo.Target.Type.GetBestName())}>>";
+            => $"{moduleBuilder.Assembly.GetName().Name}.{proxyInfo.GetNameSuitableForProxyTypeName(type => GetMd5String(type.GetBestName()))}";
 
         /// <summary>
         /// The default <see cref="ProxyManagerNoMatchingMethodHandler{Context}"/> implementation.<br/>
