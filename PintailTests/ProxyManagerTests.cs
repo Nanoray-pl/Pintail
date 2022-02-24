@@ -11,12 +11,10 @@ namespace Nanoray.Pintail.Tests
     [TestFixture]
     public class ProxyManagerTests
 	{
-        private static int nextModuleIndex = 0;
-
         private ProxyManager<Nothing> CreateProxyManager(ProxyManagerConfiguration<Nothing>? configuration = null)
         {
-            var assemblyBuilder = AssemblyBuilder.DefineDynamicAssembly(new AssemblyName($"Proxies_{nextModuleIndex++}, Version={this.GetType().Assembly.GetName().Version}, Culture=neutral"), AssemblyBuilderAccess.Run);
-            var moduleBuilder = assemblyBuilder.DefineDynamicModule($"Proxies_{nextModuleIndex++}");
+            var assemblyBuilder = AssemblyBuilder.DefineDynamicAssembly(new AssemblyName($"Nanoray.Pintail.Proxies, Version={this.GetType().Assembly.GetName().Version}, Culture=neutral"), AssemblyBuilderAccess.Run);
+            var moduleBuilder = assemblyBuilder.DefineDynamicModule($"Proxies");
             var manager = new ProxyManager<Nothing>(moduleBuilder, configuration);
             return manager;
         }
