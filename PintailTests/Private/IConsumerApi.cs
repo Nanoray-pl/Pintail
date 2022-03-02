@@ -64,6 +64,12 @@ namespace Nanoray.Pintail.Tests.Consumer
 
         EnumType? EnumConstrainedGenericMethod<EnumType>(string name) where EnumType: notnull, Enum;
         T ConstructorConstrainedGenericMethod<T>() where T: new();
+
+        void FireStringEvent(string value);
+        event Action<string>? StringEvent;
+
+        void FireApiResultEvent(IApiResult value);
+        event Action<IApiResult>? ApiResultEvent;
     }
 
     public interface IInvalidConsumerApi

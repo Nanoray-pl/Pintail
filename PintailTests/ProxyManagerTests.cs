@@ -350,5 +350,38 @@ namespace Nanoray.Pintail.Tests
             var result = consumerApi.ConstructorConstrainedGenericMethod<System.Collections.Generic.List<string>>();
             Assert.AreEqual(0, result.Count);
         }
+
+        [Test]
+        public void TestStringEvent()
+        {
+            var manager = this.CreateProxyManager();
+            var providerApi = new ProviderApi();
+            var consumerApi = manager.ObtainProxy<IConsumerApi>(providerApi)!;
+
+            string? output = null;
+            consumerApi.StringEvent += (s) => output = s;
+            Assert.IsNull(output);
+
+            consumerApi.FireStringEvent("test");
+            Assert.AreEqual("test", output);
+        }
+
+        [Test]
+        public void TestApiResultEvent()
+        {
+            var manager = this.CreateProxyManager();
+            var providerApi = new ProviderApi();
+            var consumerApi = manager.ObtainProxy<IConsumerApi>(providerApi)!;
+
+            Consumer.IApiResult? output = null;
+            consumerApi.ApiResultEvent += (v) => output = v;
+            Assert.IsNull(output);
+
+            Consumer.IApiResult input = new Consumer.ApiResult("test");
+            consumerApi.FireApiResultEvent(input);
+            Assert.IsNotNull(output);
+            Assert.AreSame(input, output);
+            Assert.AreEqual("test", output!.Text);
+        }
     }
 }

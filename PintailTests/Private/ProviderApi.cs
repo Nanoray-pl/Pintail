@@ -138,5 +138,15 @@ namespace Nanoray.Pintail.Tests.Provider
 
         public T ConstructorConstrainedGenericMethod<T>() where T: new()
             => new();
+
+        public void FireStringEvent(string value)
+            => StringEvent?.Invoke(value);
+
+        public event Action<string>? StringEvent;
+
+        public void FireApiResultEvent(IApiResult value)
+            => ApiResultEvent?.Invoke(value);
+
+        public event Action<IApiResult>? ApiResultEvent;
     }
 }
