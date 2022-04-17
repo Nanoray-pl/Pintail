@@ -2,6 +2,7 @@ using System;
 using System.Linq;
 using System.Reflection;
 using System.Reflection.Emit;
+using System.Text;
 using Nanoray.Pintail.Tests.Consumer;
 using Nanoray.Pintail.Tests.Provider;
 using NUnit.Framework;
@@ -32,6 +33,20 @@ namespace Nanoray.Pintail.Tests
             Assert.AreEqual(42, consumerApi.IntProperty);
             Assert.AreEqual("asdf", consumerApi["asdf"]);
             Assert.AreEqual(5, consumerApi.MapperMethod("word.", (t) => t.Length));
+        }
+
+        [Test]
+        public void TestOutNonProxyApi()
+        {
+            var manager = this.CreateProxyManager();
+            var providerApi = new ProviderApi();
+
+            var consumerApi = manager.ObtainProxy<IConsumerApi>(providerApi)!;
+            consumerApi.OutIntMethod(out int num);
+            Assert.AreEqual(1, num);
+            consumerApi.OutObjectMethod(out object obj);
+            Assert.IsNotNull(obj);
+            Assert.AreEqual(obj.GetType(), typeof(StringBuilder));
         }
 
         [Test]

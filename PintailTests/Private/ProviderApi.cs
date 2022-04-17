@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Text;
 
 namespace Nanoray.Pintail.Tests.Provider
 {
@@ -42,6 +43,16 @@ namespace Nanoray.Pintail.Tests.Provider
 
         public int IntMethod(int num)
             => num;
+
+        public void OutIntMethod(out int num)
+        {
+            num = 1;
+        }
+
+        public void OutObjectMethod(out object obj)
+        {
+            obj = new StringBuilder();
+        }
 
         public int IntProperty
             => 42;

@@ -374,10 +374,7 @@ namespace Nanoray.Pintail
                             }
                             break;
                         case null:
-                            if (argTypes[i].IsByRef)
-                                il.Emit(OpCodes.Ldarga, i + 1);
-                            else
-                                il.Emit(OpCodes.Ldarg, i + 1);
+                            il.Emit(OpCodes.Ldarg, i + 1);
                             break;
                     }
                 }

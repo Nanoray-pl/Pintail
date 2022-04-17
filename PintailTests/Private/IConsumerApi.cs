@@ -29,6 +29,8 @@ namespace Nanoray.Pintail.Tests.Consumer
     {
         void VoidMethod();
         int IntMethod(int num);
+        void OutIntMethod(out int num);
+        void OutObjectMethod(out object obj);
         int DefaultMethod(int num);
         int IntProperty { get; }
         string this[string key] { get; }
