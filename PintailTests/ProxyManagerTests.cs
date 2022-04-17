@@ -44,9 +44,25 @@ namespace Nanoray.Pintail.Tests
             var consumerApi = manager.ObtainProxy<IConsumerApi>(providerApi)!;
             consumerApi.OutIntMethod(out int num);
             Assert.AreEqual(1, num);
-            consumerApi.OutObjectMethod(out object obj);
+            consumerApi.OutObjectMethod(out object? obj);
             Assert.IsNotNull(obj);
-            Assert.AreEqual(obj.GetType(), typeof(StringBuilder));
+            Assert.AreEqual(obj!.GetType(), typeof(StringBuilder));
+        }
+
+        [Test]
+        public void TestRefNonProxyApi()
+        {
+            var manager = this.CreateProxyManager();
+            var providerApi = new ProviderApi();
+
+            int num = 0;
+            object? obj = null;
+            var consumerApi = manager.ObtainProxy<IConsumerApi>(providerApi)!;
+            consumerApi.RefIntMethod(ref num);
+            Assert.AreEqual(1, num);
+            consumerApi.RefObjectMethod(ref obj);
+            Assert.IsNotNull(obj);
+            Assert.AreEqual(obj!.GetType(), typeof(StringBuilder));
         }
 
         [Test]

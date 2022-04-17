@@ -49,7 +49,17 @@ namespace Nanoray.Pintail.Tests.Provider
             num = 1;
         }
 
-        public void OutObjectMethod(out object obj)
+        public void OutObjectMethod(out object? obj)
+        {
+            obj = new StringBuilder();
+        }
+
+        public void RefIntMethod(ref int num)
+        {
+            num = 1;
+        }
+
+        public void RefObjectMethod(ref object? obj)
         {
             obj = new StringBuilder();
         }
