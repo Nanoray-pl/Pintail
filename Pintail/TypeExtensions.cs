@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Text;
 
 namespace Nanoray.Pintail
 {
@@ -21,9 +22,35 @@ namespace Nanoray.Pintail
             return type.GetInterfacesRecursivelyAsEnumerable(includingSelf).ToHashSet();
         }
 
-        internal static string GetBestName(this Type type)
+        internal static string GetQualifiedName(this Type type)
         {
-            return type.FullName ?? type.Name;
+            string? fullName = type.AssemblyQualifiedName;
+            if (fullName is not null)
+                return fullName;
+            return BuildTypeName(type, type => $"[{type.GetQualifiedName()}]");
+        }
+
+        internal static string GetShortName(this Type type)
+        {
+            return BuildTypeName(type, GetShortName);
+        }
+
+        private static string BuildTypeName(Type type, Func<Type, string> nameProvider)
+        {
+            StringBuilder sb = new(type.Name);
+            Type[] genericArguments = type.GetGenericArguments();
+            if (genericArguments.Length != 0)
+            {
+                sb.Append('[');
+                for (int i = 0; i < genericArguments.Length; i++)
+                {
+                    if (i != 0)
+                        sb.Append(", ");
+                    sb.Append(nameProvider(genericArguments[i]));
+                }
+                sb.Append(']');
+            }
+            return sb.ToString();
         }
 
         private static IEnumerable<Type> GetInterfacesRecursivelyAsEnumerable(this Type type, bool includingSelf)
@@ -43,7 +70,7 @@ namespace Nanoray.Pintail
         internal static IEnumerable<Enum> GetEnumerableEnumValues(this Type type)
         {
             if (!type.IsEnum)
-                throw new ArgumentException($"{type.GetBestName()} is not an enum.");
+                throw new ArgumentException($"{type.GetShortName()} is not an enum.");
             foreach (object value in Enum.GetValues(type))
                 yield return (Enum)value;
         }

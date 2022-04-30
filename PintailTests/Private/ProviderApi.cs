@@ -34,6 +34,21 @@ namespace Nanoray.Pintail.Tests.Provider
             => this.IntMethod(num * num);
     }
 
+    public class ProviderApi<T>
+    {
+        private T? Value;
+
+        public void SetValue(T? value)
+        {
+            this.Value = value;
+        }
+
+        public T? GetValue()
+        {
+            return this.Value;
+        }
+    }
+
     public class ProviderApi: IProviderApiDefaultMethods
     {
         private Func<IApiResult, IApiResult> Mapper = (r) => r;

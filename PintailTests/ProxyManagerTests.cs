@@ -414,5 +414,27 @@ namespace Nanoray.Pintail.Tests
             Assert.AreSame(input, output);
             Assert.AreEqual("test", output!.Text);
         }
+
+        [Test]
+        public void TestGenericInterfaceMultipleProxies()
+        {
+            var manager = this.CreateProxyManager();
+            var stringProviderApi = new ProviderApi<string>();
+            var intProviderApi = new ProviderApi<int>();
+            var objectProviderApi = new ProviderApi<object>();
+
+            var stringConsumerApi = manager.ObtainProxy<IConsumerApi<string>>(stringProviderApi)!;
+            stringConsumerApi.SetValue("asdf");
+            Assert.AreEqual("asdf", stringConsumerApi.GetValue());
+
+            var intConsumerApi = manager.ObtainProxy<IConsumerApi<int>>(intProviderApi)!;
+            intConsumerApi.SetValue(13);
+            Assert.AreEqual(13, intConsumerApi.GetValue());
+
+            var objectConsumerApi = manager.ObtainProxy<IConsumerApi<object>>(objectProviderApi)!;
+            var @object = new StringBuilder();
+            objectConsumerApi.SetValue(@object);
+            Assert.AreSame(@object, objectConsumerApi.GetValue());
+        }
     }
 }

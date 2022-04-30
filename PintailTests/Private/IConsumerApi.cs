@@ -25,6 +25,12 @@ namespace Nanoray.Pintail.Tests.Consumer
         }
     }
 
+    public interface IConsumerApi<T>
+    {
+        void SetValue(T? value);
+        T? GetValue();
+    }
+
     public interface IConsumerApi
     {
         void VoidMethod();

@@ -94,14 +94,15 @@ namespace Nanoray.Pintail
         }
 
         /// <summary>
-        /// A <see cref="ProxyManagerTypeNameProvider{Context}"/> implementation using full type names.
+        /// A <see cref="ProxyManagerTypeNameProvider{Context}"/> implementation using full (qualified) type names.
         /// </summary>
         public static readonly ProxyManagerTypeNameProvider<Context> FullNameTypeNameProvider = (moduleBuilder, proxyInfo)
-            => $"{moduleBuilder.Assembly.GetName().Name}.{proxyInfo.GetNameSuitableForProxyTypeName(type => type.GetBestName())}";
+            => $"{moduleBuilder.Assembly.GetName().Name}.{proxyInfo.GetNameSuitableForProxyTypeName(type => type.GetQualifiedName())}";
 
         /// <summary>
         /// A <see cref="ProxyManagerTypeNameProvider{Context}"/> implementation using short type names.
         /// </summary>
+        [Obsolete("This type name provider is not recommended, due to potential proxy type name conflicts.")]
         public static readonly ProxyManagerTypeNameProvider<Context> ShortNameTypeNameProvider = (moduleBuilder, proxyInfo)
             => $"{moduleBuilder.Assembly.GetName().Name}.{proxyInfo.GetNameSuitableForProxyTypeName(type => type.Name)}";
 
@@ -109,14 +110,43 @@ namespace Nanoray.Pintail
         /// A <see cref="ProxyManagerTypeNameProvider{Context}"/> implementation using MD5 hashes.
         /// </summary>
         public static readonly ProxyManagerTypeNameProvider<Context> Md5TypeNameProvider = (moduleBuilder, proxyInfo)
-            => $"{moduleBuilder.Assembly.GetName().Name}.{proxyInfo.GetNameSuitableForProxyTypeName(type => GetMd5String(type.GetBestName()))}";
+            => $"{moduleBuilder.Assembly.GetName().Name}.{proxyInfo.GetNameSuitableForProxyTypeName(type => GetMd5String(type.GetQualifiedName()))}";
+
+        /// <summary>
+        /// A <see cref="ProxyManagerTypeNameProvider{Context}"/> implementation using short type names with appended generated IDs to avoid conflicts.
+        /// </summary>
+        public static readonly Lazy<ProxyManagerTypeNameProvider<Context>> ShortNameIDGeneratingTypeNameProvider = new(() =>
+        {
+            IDictionary<string, string> qualifiedToShortName = new Dictionary<string, string>();
+            IDictionary<string, int> shortNameCounts = new Dictionary<string, int>();
+
+            return (moduleBuilder, proxyInfo) =>
+            {
+                lock (qualifiedToShortName)
+                {
+                    string qualifiedName = proxyInfo.GetNameSuitableForProxyTypeName(type => type.GetQualifiedName());
+                    if (qualifiedToShortName.TryGetValue(qualifiedName, out string? shortName))
+                        return shortName;
+
+                    shortName = proxyInfo.GetNameSuitableForProxyTypeName(type => type.GetShortName());
+                    if (!shortNameCounts.TryGetValue(shortName, out int shortNameCount))
+                        shortNameCount = 0;
+
+                    shortNameCount++;
+                    shortNameCounts[shortName] = shortNameCount;
+                    shortName = $"{shortName}_{shortNameCount}";
+                    qualifiedToShortName[qualifiedName] = shortName;
+                    return shortName;
+                }
+            };
+        });
 
         /// <summary>
         /// The default <see cref="ProxyManagerNoMatchingMethodHandler{Context}"/> implementation.<br/>
         /// If a method cannot be implemented, <see cref="ArgumentException"/> will be thrown right away.
         /// </summary>
         public static readonly ProxyManagerNoMatchingMethodHandler<Context> ThrowExceptionNoMatchingMethodHandler = (proxyBuilder, proxyInfo, _, _, _, proxyMethod)
-            => throw new ArgumentException($"The {proxyInfo.Proxy.Type.GetBestName()} interface defines method {proxyMethod.Name} which doesn't exist in the API.");
+            => throw new ArgumentException($"The {proxyInfo.Proxy.Type.GetShortName()} interface defines method {proxyMethod.Name} which doesn't exist in the API.");
 
         /// <summary>
         /// If a method cannot be implemented, a blank implementation will be created instead, which will throw <see cref="NotImplementedException"/> when called.
@@ -141,7 +171,7 @@ namespace Nanoray.Pintail
             methodBuilder.SetParameters(argTypes);
 
             ILGenerator il = methodBuilder.GetILGenerator();
-            il.Emit(OpCodes.Ldstr, $"The {proxyInfo.Proxy.Type.GetBestName()} interface defines method {proxyMethod.Name} which doesn't exist in the API.");
+            il.Emit(OpCodes.Ldstr, $"The {proxyInfo.Proxy.Type.GetShortName()} interface defines method {proxyMethod.Name} which doesn't exist in the API.");
             il.Emit(OpCodes.Newobj, typeof(NotImplementedException).GetConstructor(new Type[] { typeof(string) })!);
             il.Emit(OpCodes.Throw);
         };
@@ -179,7 +209,7 @@ namespace Nanoray.Pintail
         /// <summary>
         /// Creates a new configuration for <see cref="ProxyManager{Context}"/>.
         /// </summary>
-        /// <param name="typeNameProvider">The type name provider to use.<br/>Defaults to <see cref="Md5TypeNameProvider"/>.</param>
+        /// <param name="typeNameProvider">The type name provider to use.<br/>Defaults to <see cref="ShortNameIDGeneratingTypeNameProvider"/>.</param>
         /// <param name="noMatchingMethodHandler">The behavior to use if no matching method to proxy is found.<br/>Defaults to <see cref="ThrowExceptionNoMatchingMethodHandler"/>.</param>
         /// <param name="proxyPrepareBehavior">When exactly proxy factories for interfaces and delegates should be created and prepared.<br/>Defaults to <see cref="ProxyManagerProxyPrepareBehavior.Lazy"/>.</param>
         /// <param name="enumMappingBehavior">The behavior to use when mapping <see cref="Enum"/> arguments while matching methods to proxy.<br/>Defaults to <see cref="ProxyManagerEnumMappingBehavior.ThrowAtRuntime"/>.</param>
@@ -194,7 +224,7 @@ namespace Nanoray.Pintail
             ProxyObjectInterfaceMarking proxyObjectInterfaceMarking = ProxyObjectInterfaceMarking.Marker
         )
         {
-            this.TypeNameProvider = typeNameProvider ?? Md5TypeNameProvider;
+            this.TypeNameProvider = typeNameProvider ?? ShortNameIDGeneratingTypeNameProvider.Value;
             this.NoMatchingMethodHandler = noMatchingMethodHandler ?? ThrowExceptionNoMatchingMethodHandler;
             this.ProxyPrepareBehavior = proxyPrepareBehavior;
             this.EnumMappingBehavior = enumMappingBehavior;

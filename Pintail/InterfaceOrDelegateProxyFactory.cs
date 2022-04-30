@@ -35,14 +35,14 @@ namespace Nanoray.Pintail
             if (isProxyDelegate || isTargetDelegate)
             {
                 if (!isProxyDelegate)
-                    throw new ArgumentException($"{proxyInfo.Proxy.Type.GetBestName()} is not a delegate type.");
+                    throw new ArgumentException($"{proxyInfo.Proxy.Type.GetShortName()} is not a delegate type.");
                 if (!isTargetDelegate)
-                    throw new ArgumentException($"{proxyInfo.Target.Type.GetBestName()} is not a delegate type.");
+                    throw new ArgumentException($"{proxyInfo.Target.Type.GetShortName()} is not a delegate type.");
             }
             else
             {
                 if (!proxyInfo.Proxy.Type.IsInterface)
-                    throw new ArgumentException($"{proxyInfo.Proxy.Type.GetBestName()} is not an interface.");
+                    throw new ArgumentException($"{proxyInfo.Proxy.Type.GetShortName()} is not an interface.");
             }
 
             this.ProxyInfo = proxyInfo;

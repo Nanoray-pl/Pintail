@@ -120,7 +120,7 @@ namespace Nanoray.Pintail
 
         /// <inheritdoc/>
         public override string ToString()
-            => $"TypeInfo{{context: {this.Context}, type: {this.Type.GetBestName()}}}";
+            => $"TypeInfo{{context: {this.Context}, type: {this.Type.GetQualifiedName()}}}";
 
         /// <inheritdoc/>
         public bool Equals(TypeInfo<C> other)

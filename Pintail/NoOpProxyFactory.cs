@@ -10,7 +10,7 @@ namespace Nanoray.Pintail
         internal NoOpProxyFactory(ProxyInfo<Context> proxyInfo)
         {
             if (proxyInfo.Target.Type != proxyInfo.Proxy.Type)
-                throw new ArgumentException($"{proxyInfo.Target.Type.GetBestName()} and {proxyInfo.Proxy.Type.GetBestName()} should be the same type.");
+                throw new ArgumentException($"{proxyInfo.Target.Type.GetShortName()} and {proxyInfo.Proxy.Type.GetShortName()} should be the same type.");
             this.ProxyInfo = proxyInfo;
         }
 

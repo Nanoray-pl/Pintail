@@ -10,9 +10,9 @@ namespace Nanoray.Pintail
         internal EnumProxyFactory(ProxyInfo<Context> proxyInfo)
         {
             if (!proxyInfo.Target.Type.IsEnum)
-                throw new ArgumentException($"{proxyInfo.Target.Type.GetBestName()} is not an enum.");
+                throw new ArgumentException($"{proxyInfo.Target.Type.GetShortName()} is not an enum.");
             if (!proxyInfo.Proxy.Type.IsEnum)
-                throw new ArgumentException($"{proxyInfo.Proxy.Type.GetBestName()} is not an enum.");
+                throw new ArgumentException($"{proxyInfo.Proxy.Type.GetShortName()} is not an enum.");
             this.ProxyInfo = proxyInfo;
         }
 
@@ -34,7 +34,7 @@ namespace Nanoray.Pintail
                 if ((int)outputValue == (int)input)
                     return outputValue;
             }
-            throw new ArgumentException($"Cannot map {input} to type {outputType.GetBestName()}.");
+            throw new ArgumentException($"Cannot map {input} to type {outputType.GetShortName()}.");
         }
     }
 }
