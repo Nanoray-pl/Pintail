@@ -456,5 +456,45 @@ namespace Nanoray.Pintail.Tests
             objectConsumerApi.SetValue(@object);
             Assert.AreSame(@object, objectConsumerApi.GetValue());
         }
+
+        [Test]
+        public void TestOverloadedMethods()
+        {
+            var manager = this.CreateProxyManager();
+            var providerApi = new ProviderApi();
+            var consumerApi = manager.ObtainProxy<IConsumerApi>(providerApi)!;
+
+            Type baseType = consumerApi.MethodWithOverload(new object());
+            Assert.AreSame(baseType, typeof(object));
+
+            Type valueType = consumerApi.MethodWithOverload(1);
+            Assert.AreEqual(valueType, typeof(int));
+
+            Type referenceType = consumerApi.MethodWithOverload(new StringBuilder());
+            Assert.AreEqual(referenceType, typeof(StringBuilder));
+
+            Type enumType = consumerApi.MethodWithOverload(DayOfWeek.Sunday);
+            Assert.AreEqual(enumType, typeof(DayOfWeek));
+
+            Type outTestType = consumerApi.MethodWithOverload(out int test);
+            Assert.AreEqual(outTestType, typeof(int));
+            Assert.AreEqual(test, 5);
+
+            string intTest = consumerApi.MethodWithOverload(5.0);
+            Assert.AreEqual(intTest, "5");
+
+            ProxiedInput proxiedInput = new("HIIIIII!");
+            ProxiedInput2 proxiedInput2 = new("BYEEEEE!");
+
+            string proxied = consumerApi.MethodWithOverload(proxiedInput);
+            Assert.AreEqual(proxied, "proxy");
+
+            string callback = consumerApi.MethodWithOverload(() => proxiedInput);
+            Assert.AreEqual(callback,proxiedInput.teststring);
+
+            string othercallback = consumerApi.MethodWithOverload(() => proxiedInput2);
+            Assert.AreEqual(othercallback, proxiedInput2.otherteststring);
+
+        }
     }
 }

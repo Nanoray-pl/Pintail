@@ -1,7 +1,10 @@
 using System;
 using System.Collections.Generic;
+<<<<<<< HEAD
 using System.Reflection;
 using System.Reflection.Emit;
+=======
+>>>>>>> 032e0c1 (Tests)
 using System.Text;
 
 namespace Nanoray.Pintail.Tests.Consumer
@@ -126,7 +129,6 @@ namespace Nanoray.Pintail.Tests.Consumer
         public string MethodWithOverload(Func<IProxiedInput2> callback);
 
         public string MethodWithArrayOverload(LocalVariableInfo[] locals);
-
         public string MethodWithArrayOverload(LocalBuilder[] locals); // LocalBuilder inherits from LocalVariableInfo.
     }
 
