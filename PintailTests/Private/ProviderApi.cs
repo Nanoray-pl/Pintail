@@ -1,7 +1,5 @@
 using System;
 using System.Collections.Generic;
-using System.Reflection;
-using System.Reflection.Emit;
 using System.Text;
 
 namespace Nanoray.Pintail.Tests.Provider
@@ -13,7 +11,7 @@ namespace Nanoray.Pintail.Tests.Provider
         State0, State1, State2
     }
 
-    public enum UIntEnum: uint
+    public enum UIntEnum : uint
     {
         State0 = 0,
         State1 = 1,
@@ -25,7 +23,7 @@ namespace Nanoray.Pintail.Tests.Provider
         string Text { get; }
     }
 
-    public class ApiResult: IApiResult
+    public class ApiResult : IApiResult
     {
         public string Text { get; private set; }
 
@@ -43,7 +41,7 @@ namespace Nanoray.Pintail.Tests.Provider
             => this.IntMethod(num * num);
     }
 
-    public class ProviderApi<T>
+    public class SimpleProviderApi<T>
     {
         private T? Value;
 
@@ -58,10 +56,10 @@ namespace Nanoray.Pintail.Tests.Provider
         }
     }
 
-    public class ProviderApi: IProviderApiDefaultMethods
+    public class SimpleProviderApi : IProviderApiDefaultMethods
     {
-        private Func<IApiResult, IApiResult> Mapper = (r) => r;
-        private CustomGenericOutDelegate<StateEnum> CustomOutDelegate = (out StateEnum p) => p = StateEnum.State0;
+        protected Func<IApiResult, IApiResult> Mapper = (r) => r;
+        protected CustomGenericOutDelegate<StateEnum> CustomOutDelegate = (out StateEnum p) => p = StateEnum.State0;
 
         public void VoidMethod() { }
 
@@ -100,6 +98,10 @@ namespace Nanoray.Pintail.Tests.Provider
         //public string? IsAssignableTest(object? anyObj)
         //    => anyObj?.ToString();
 
+    }
+
+    public class ComplexProviderApi: SimpleProviderApi
+    {
         public StateEnum GetStateEnum()
             => StateEnum.State1;
 

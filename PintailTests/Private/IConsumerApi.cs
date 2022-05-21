@@ -1,8 +1,5 @@
 using System;
 using System.Collections.Generic;
-using System.Reflection;
-using System.Reflection.Emit;
-using System.Text;
 
 namespace Nanoray.Pintail.Tests.Consumer
 {
@@ -56,13 +53,13 @@ namespace Nanoray.Pintail.Tests.Consumer
         }
     }
 
-    public interface IConsumerApi<T>
+    public interface ISimpleConsumerApi<T>
     {
         void SetValue(T? value);
         T? GetValue();
     }
 
-    public interface IConsumerApi
+    public interface ISimpleConsumerApi
     {
         void VoidMethod();
         int IntMethod(int num);
@@ -75,7 +72,10 @@ namespace Nanoray.Pintail.Tests.Consumer
         string this[string key] { get; }
         R MapperMethod<T, R>(T t, Func<T, R> mapper);
         //object? IsAssignableTest(string? anyObj);
+    }
 
+    public interface IComplexConsumerApi: ISimpleConsumerApi
+    {
         StateEnum GetStateEnum();
         void GetOutStateEnum(out StateEnum state);
         StateEnum GetSameEnumState(StateEnum state);

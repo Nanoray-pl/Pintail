@@ -16,7 +16,7 @@ namespace Nanoray.Pintail.Tests.Provider
         public string otherteststring { get; set; }
     }
 
-    public class ProviderApiWithOverloads
+    public class SimpleProviderApiWithOverloads
     {
         // base object.
         public Type MethodWithOverload(object value)
@@ -45,6 +45,10 @@ namespace Nanoray.Pintail.Tests.Provider
         public string MethodWithOverload(double value)
             => value.ToString();
 
+    }
+
+    public class ComplexProviderApiWithOverloads: SimpleProviderApiWithOverloads
+    {
         public string MethodWithOverload(IProxiedInput proxy)
             => "proxy";
 
