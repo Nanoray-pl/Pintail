@@ -302,6 +302,26 @@ namespace Nanoray.Pintail.Tests
         }
 
         [Test]
+        public void TestNotMatchingEnumShouldThrow()
+        {
+            var manager = this.CreateProxyManager(new(
+                noMatchingMethodHandler: ProxyManagerConfiguration<Nothing>.ThrowExceptionNoMatchingMethodHandler
+                ));
+            var invalidProviderApi = new InvalidNotMatchingEnumBackingField();
+            Assert.Throws<ArgumentException>(() => manager.ObtainProxy<IInvalidNotMatchingEnumBackingField>(invalidProviderApi));
+        }
+
+        [Test]
+        public void TestNotMatchingArrayShouldThrow()
+        {
+            var manager = this.CreateProxyManager(new(
+                noMatchingMethodHandler: ProxyManagerConfiguration<Nothing>.ThrowExceptionNoMatchingMethodHandler
+                ));
+            var invalidProviderApi = new InvalidNotMatchingArrayInput();
+            Assert.Throws<ArgumentException>(() => manager.ObtainProxy<IInvalidNotMatchingArrayInput>(invalidProviderApi));
+        }
+
+        [Test]
         public void TestNonExistentApiMethodByThrowingImplementation()
         {
             var manager = this.CreateProxyManager(new(

@@ -1,5 +1,8 @@
 using System;
 using System.Collections.Generic;
+using System.Reflection;
+using System.Reflection.Emit;
+using System.Text;
 
 namespace Nanoray.Pintail.Tests.Consumer
 {
@@ -22,6 +25,34 @@ namespace Nanoray.Pintail.Tests.Consumer
         public ApiResult(string text)
         {
             this.Text = text;
+        }
+    }
+
+    public interface IProxiedInput
+    {
+        public string teststring { get; set;}
+    }
+
+    public interface IProxiedInput2
+    {
+        public string otherteststring { get; set;}
+    }
+
+    public class ProxiedInput : IProxiedInput
+    {
+        public string teststring { get; set;}
+        public ProxiedInput(string teststring)
+        {
+            this.teststring = teststring;
+        }
+    }
+
+    public class ProxiedInput2: IProxiedInput2
+    {
+        public string otherteststring { get; set; }
+        public ProxiedInput2(string otherteststring)
+        {
+            this.otherteststring = otherteststring;
         }
     }
 
@@ -80,10 +111,37 @@ namespace Nanoray.Pintail.Tests.Consumer
 
         void FireApiResultEvent(IApiResult value);
         event Action<IApiResult>? ApiResultEvent;
+
+
+        public Type MethodWithOverload(object value);
+        public Type MethodWithOverload(int value);
+        public Type MethodWithOverload(StringBuilder value);
+        public Type MethodWithOverload(DayOfWeek value);
+
+        public Type MethodWithOverload(out int value);
+
+        public string MethodWithOverload(double value);
+        public string MethodWithOverload(IProxiedInput proxy);
+        public string MethodWithOverload(Func<IProxiedInput> callback);
+        public string MethodWithOverload(Func<IProxiedInput2> callback);
+
+        public string MethodWithArrayOverload(LocalVariableInfo[] locals);
+
+        public string MethodWithArrayOverload(LocalBuilder[] locals); // LocalBuilder inherits from LocalVariableInfo.
     }
 
     public interface IInvalidConsumerApi
     {
-        void NonExistentApiMethod();
+        public void NonExistentApiMethod();
+    }
+
+    public interface IInvalidNotMatchingArrayInput
+    {
+        public void NotMatchingArrayInput(int[] input);
+    }
+
+    public interface IInvalidNotMatchingEnumBackingField
+    {
+        public void NotMatchingEnumBackingType(StateEnum @enum);
     }
 }
