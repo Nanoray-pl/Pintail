@@ -1,10 +1,7 @@
 using System;
 using System.Collections.Generic;
-<<<<<<< HEAD
 using System.Reflection;
 using System.Reflection.Emit;
-=======
->>>>>>> 032e0c1 (Tests)
 using System.Text;
 
 namespace Nanoray.Pintail.Tests.Consumer
@@ -132,10 +129,12 @@ namespace Nanoray.Pintail.Tests.Consumer
         public string MethodWithArrayOverload(LocalBuilder[] locals); // LocalBuilder inherits from LocalVariableInfo.
     }
 
+#region SHOULDNOTWORK
     public interface IInvalidConsumerApi
     {
         public void NonExistentApiMethod();
     }
+
 
     public interface IInvalidNotMatchingArrayInput
     {
@@ -146,4 +145,10 @@ namespace Nanoray.Pintail.Tests.Consumer
     {
         public void NotMatchingEnumBackingType(StateEnum @enum);
     }
+
+    public interface IInvalidIncorrectByRef
+    {
+        public void NotMatchingIncorrectByRef(int value);
+    }
+    #endregion
 }

@@ -322,6 +322,16 @@ namespace Nanoray.Pintail.Tests
         }
 
         [Test]
+        public void TestByRefNotMatchingShouldThrow()
+        {
+            var manager = this.CreateProxyManager(new(
+                noMatchingMethodHandler: ProxyManagerConfiguration<Nothing>.ThrowExceptionNoMatchingMethodHandler
+                ));
+            var invalidProviderApi = new InvalidIncorrectByRef();
+            Assert.Throws<ArgumentException>(() => manager.ObtainProxy<IInvalidIncorrectByRef>(invalidProviderApi));
+        }
+
+        [Test]
         public void TestNonExistentApiMethodByThrowingImplementation()
         {
             var manager = this.CreateProxyManager(new(

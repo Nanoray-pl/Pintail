@@ -236,6 +236,9 @@ namespace Nanoray.Pintail.Tests.Provider
 
         public string MethodWithArrayOverload(LocalBuilder[] locals)
             => "LocalBuilder array!"; // LocalBuilder inherits from LocalVariableInfo.
+
+        public string MethodWithArrayOverload(int[] locals)
+            => "int array!";
 #endregion
     }
 
@@ -247,6 +250,14 @@ namespace Nanoray.Pintail.Tests.Provider
     public class InvalidNotMatchingArrayInput
     {
         public void NotMatchingArrayInput(LocalBuilder[] input) { }
+    }
+
+    public class InvalidIncorrectByRef
+    {
+        public void NotMatchingIncorrectByRef(out int value)
+        {
+            value = 5;
+        }
     }
 
     public interface IProxiedInput
