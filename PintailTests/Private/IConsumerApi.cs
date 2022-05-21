@@ -112,4 +112,42 @@ namespace Nanoray.Pintail.Tests.Consumer
         void FireApiResultEvent(IApiResult value);
         event Action<IApiResult>? ApiResultEvent;
     }
+
+    public interface IProxyInputA
+    {
+        public string hi { get; set; }
+    }
+
+    public interface IProxyInputB
+    {
+        public string bye { get; set; }
+    }
+
+    public class ProxyInputA : IProxyInputA
+    {
+        public string hi { get; set; }
+        public ProxyInputA(string hi)
+        {
+            this.hi = hi;
+        }
+    }
+
+    public class ProxyInputB: IProxyInputB
+    {
+        public string bye { get; set; }
+        public ProxyInputB(string bye)
+        {
+            this.bye = bye;
+        }
+    }
+
+    public interface IConsumerWithTwoProxiedInputs
+    {
+        public void MethodWithTwoInputs(IProxyInputA a, IProxyInputB b);
+
+        public void MethodWithNoOverload(IProxyInputA a);
+
+        public string MethodWithProxiedOverload(IProxyInputA value);
+        public string MethodWithProxiedOverload(IProxyInputB value);
+    }
 }

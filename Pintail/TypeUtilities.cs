@@ -19,6 +19,10 @@ namespace Nanoray.Pintail
             if (targetType.IsByRef != proxyType.IsByRef)
                 return MatchingTypesResult.False;
 
+            // Exact match, don't need to look further.
+            if (proxyType == targetType)
+                return MatchingTypesResult.Exact;
+
             // toss the by ref ness? Not sure here.
             if (targetType.IsByRef && proxyType.IsByRef)
             {
@@ -31,8 +35,6 @@ namespace Nanoray.Pintail
 
             if (proxyType.IsEnum && targetType.IsEnum)
             {
-                if (proxyType == targetType)
-                    return MatchingTypesResult.Exact;
                 if (proxyType.IsGenericParameter && targetType.IsGenericParameter)
                     return MatchingTypesResult.IfProxied;
 
@@ -54,26 +56,24 @@ namespace Nanoray.Pintail
             }
 
             if (proxyType.IsArray && targetType.IsArray)
-            {
-                if (proxyType == targetType)
-                    return MatchingTypesResult.Exact;
-                if (proxyType.GetElementType()!.IsInterface || proxyType.GetElementType()!.IsInterface)
-                    return MatchingTypesResult.IfProxied;
-                return AreTypesMatching(targetType.GetElementType()!, proxyType.GetElementType()!, part, enumMappingBehavior);
-            }
+                return (MatchingTypesResult)Math.Min((int)AreTypesMatching(targetType.GetElementType()!, proxyType.GetElementType()!, part, enumMappingBehavior), (int)MatchingTypesResult.IfProxied);
 
             if (typeA.IsGenericMethodParameter)
                 return typeA.GenericParameterPosition == typeB.GenericParameterPosition ? MatchingTypesResult.Exact : MatchingTypesResult.False;
 
-            if (proxyType == targetType)
-                return MatchingTypesResult.Exact;
+            if (proxyType.IsAssignableTo(typeof(Delegate)) != targetType.IsAssignableTo(typeof(Delegate)))
+                return MatchingTypesResult.False;
 
             // not convinced this works well for ref/out params????
             //if (typeA.IsAssignableFrom(typeB))
             //    return MatchingTypesResult.Assignable;
 
-            if (proxyType.IsInterface || targetType.IsInterface)
-                return MatchingTypesResult.IfProxied;
+            if (typeA.IsInterface || typeB.IsInterface)
+            { // I feel like more checks are needed here? Like, uh, the **type** of the property....This is probably bad.
+                if (typeA.GetProperties().Select((a) => a.Name).ToHashSet().IsSubsetOf(typeB.GetProperties().Select((b) => b.Name)))
+                    return MatchingTypesResult.IfProxied;
+                return MatchingTypesResult.False;
+            }
 
             var targetTypeGenericArguments = targetType.GetGenericArguments();
             var proxyTypeGenericArguments = proxyType.GetGenericArguments();
@@ -97,8 +97,7 @@ namespace Nanoray.Pintail
                             matchingTypesResult = (MatchingTypesResult)Math.Min((int)matchingTypesResult, (int)MatchingTypesResult.IfProxied);
                             break;
                         case MatchingTypesResult.False:
-                            matchingTypesResult = (MatchingTypesResult)Math.Min((int)matchingTypesResult, (int)MatchingTypesResult.False);
-                            break;
+                            return MatchingTypesResult.False;
                     }
                 }
             }
@@ -113,8 +112,7 @@ namespace Nanoray.Pintail
                         matchingTypesResult = (MatchingTypesResult)Math.Min((int)matchingTypesResult, (int)MatchingTypesResult.IfProxied);
                         break;
                     case MatchingTypesResult.False:
-                        matchingTypesResult = (MatchingTypesResult)Math.Min((int)matchingTypesResult, (int)MatchingTypesResult.False);
-                        break;
+                        return MatchingTypesResult.False;
                 }
             }
             return matchingTypesResult;

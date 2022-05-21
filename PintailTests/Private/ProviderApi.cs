@@ -196,4 +196,24 @@ namespace Nanoray.Pintail.Tests.Provider
 
         public event Action<IApiResult>? ApiResultEvent;
     }
+
+    public interface IProxyInputA
+    {
+        public string hi { get; set; }
+    }
+
+    public interface IProxyInputB
+    {
+        public string bye { get; set; }
+    }
+
+    public class ProviderWithTwoProxiedInputs
+    {
+        public void MethodWithTwoInputs(IProxyInputA a, IProxyInputB b) { }
+
+        public void MethodWithNoOverload(IProxyInputA a) { }
+
+        public string MethodWithProxiedOverload(IProxyInputA value) => value.hi;
+        public string MethodWithProxiedOverload(IProxyInputB value) => value.bye;
+    }
 }

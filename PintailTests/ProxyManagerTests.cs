@@ -484,5 +484,22 @@ namespace Nanoray.Pintail.Tests
             string othercallback = consumerApi.MethodWithOverload(() => proxiedInput2);
             Assert.AreEqual(othercallback, proxiedInput2.otherteststring);
         }
+
+        [Test]
+        public void TestProxiedInputOverloads()
+        {
+            var manager = this.CreateProxyManager();
+            var providerApi = new ProviderWithTwoProxiedInputs();
+            var consumerApi = manager.ObtainProxy<IConsumerWithTwoProxiedInputs>(providerApi)!;
+
+            ProxyInputA a = new("HI!");
+            ProxyInputB b = new("BYE!");
+
+            Assert.DoesNotThrow(() => consumerApi.MethodWithNoOverload(a));
+            Assert.DoesNotThrow(() => consumerApi.MethodWithTwoInputs(a, b));
+
+            Assert.AreEqual(a.hi, consumerApi.MethodWithProxiedOverload(a));
+            Assert.AreEqual(b.bye, consumerApi.MethodWithProxiedOverload(b));
+        }
     }
 }
