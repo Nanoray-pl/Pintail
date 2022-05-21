@@ -5,7 +5,18 @@ using System.Text;
 
 namespace Nanoray.Pintail.Tests.Provider
 {
-    internal class ProviderApiWithOverloads
+
+    public interface IProxiedInput
+    {
+        public string teststring { get; set; }
+    }
+
+    public interface IProxiedInput2
+    {
+        public string otherteststring { get; set; }
+    }
+
+    public class ProviderApiWithOverloads
     {
         // base object.
         public Type MethodWithOverload(object value)

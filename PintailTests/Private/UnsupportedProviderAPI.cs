@@ -20,13 +20,13 @@ namespace Nanoray.Pintail.Tests.Provider
         }
     }
 
-    public interface IProxiedInput
+    public class RequiresBoxing
     {
-        public string teststring { get; set; }
+        public object TestMethod(object value) => value;
     }
 
-    public interface IProxiedInput2
+    public class RequiresUnboxing
     {
-        public string otherteststring { get; set; }
+        public object TestMethod(int value) => value;
     }
 }

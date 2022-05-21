@@ -69,8 +69,8 @@ namespace Nanoray.Pintail
                 return MatchingTypesResult.Exact;
 
             // not convinced this works well for ref/out params????
-            if (typeA.IsAssignableFrom(typeB))
-                return MatchingTypesResult.Assignable;
+            //if (typeA.IsAssignableFrom(typeB))
+            //    return MatchingTypesResult.Assignable;
 
             if (proxyType.IsInterface || targetType.IsInterface)
                 return MatchingTypesResult.IfProxied;

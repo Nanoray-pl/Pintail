@@ -97,8 +97,8 @@ namespace Nanoray.Pintail.Tests.Provider
         public R MapperMethod<T, R>(T t, Func<T, R> mapper)
             => mapper(t);
 
-        public string? IsAssignableTest(object? anyObj)
-            => anyObj?.ToString();
+        //public string? IsAssignableTest(object? anyObj)
+        //    => anyObj?.ToString();
 
         public StateEnum GetStateEnum()
             => StateEnum.State1;

@@ -22,6 +22,11 @@ namespace Nanoray.Pintail.Tests.Consumer
 
     public interface IRequiresBoxing
     {
-        public void TestMethod(int value);
+        public object TestMethod(int value);
+    }
+
+    public interface IRequiresUnboxing
+    {
+        public object TestMethod(object value);
     }
 }

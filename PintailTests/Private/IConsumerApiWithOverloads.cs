@@ -5,7 +5,7 @@ using System.Text;
 
 namespace Nanoray.Pintail.Tests.Consumer
 {
-    internal interface IConsumerApiWithOverloads
+    public interface IConsumerApiWithOverloads
     {
         public Type MethodWithOverload(object value);
         public Type MethodWithOverload(int value);

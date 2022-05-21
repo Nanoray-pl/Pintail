@@ -65,6 +65,7 @@ namespace Nanoray.Pintail.Tests
             Assert.AreEqual(obj!.GetType(), typeof(StringBuilder));
         }
 
+        /*
         [Test]
         public void TestIsAssignable()
         {
@@ -75,7 +76,7 @@ namespace Nanoray.Pintail.Tests
             object? obj = null;
             Assert.DoesNotThrow(() => obj = consumerApi.IsAssignableTest("testing"));
             Assert.AreEqual("testing", obj);
-        }
+        }*/
 
         [Test]
         public void TestEnum()

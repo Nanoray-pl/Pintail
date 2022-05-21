@@ -74,7 +74,7 @@ namespace Nanoray.Pintail.Tests.Consumer
         int IntProperty { get; }
         string this[string key] { get; }
         R MapperMethod<T, R>(T t, Func<T, R> mapper);
-        object? IsAssignableTest(string? anyObj);
+        //object? IsAssignableTest(string? anyObj);
 
         StateEnum GetStateEnum();
         void GetOutStateEnum(out StateEnum state);
