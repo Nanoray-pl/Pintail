@@ -150,7 +150,7 @@ namespace Nanoray.Pintail
                 }
 
                 this.NoMatchingMethodHandler(proxyBuilder, this.ProxyInfo, targetField, glueField, proxyInfosField, proxyMethod);
-                proxyMethodLoopContinue:;
+proxyMethodLoopContinue:;
             }
 
             // save info

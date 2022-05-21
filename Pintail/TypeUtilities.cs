@@ -6,8 +6,8 @@ namespace Nanoray.Pintail
 {
     internal static class TypeUtilities
     {
-        internal enum MethodTypeMatchingPart { ReturnType, Parameter }
-        internal enum MatchingTypesResult { False, IfProxied, True }
+        internal enum MethodTypeMatchingPart{ ReturnType, Parameter }
+        internal enum MatchingTypesResult { False, IfProxied, Assignable, Exact }
         internal enum PositionConversion { Proxy }
 
         internal static MatchingTypesResult AreTypesMatching(Type targetType, Type proxyType, MethodTypeMatchingPart part, ProxyManagerEnumMappingBehavior enumMappingBehavior)
@@ -20,28 +20,40 @@ namespace Nanoray.Pintail
             if (proxyType.IsEnum && targetType.IsEnum)
             {
                 if (proxyType == targetType)
-                    return MatchingTypesResult.True;
+                    return MatchingTypesResult.Exact;
                 if (proxyType.IsGenericParameter && targetType.IsGenericParameter)
                     return MatchingTypesResult.IfProxied;
-                var proxyEnumRawValues = proxyType.GetEnumerableEnumValues().Select(e => (int)(object)e).ToList();
-                var targetEnumRawValues = targetType.GetEnumerableEnumValues().Select(e => (int)(object)e).ToList();
+
+                // If the backing types don't match, don't try to proxy.
+                if (proxyType.GetEnumUnderlyingType() != targetType.GetEnumUnderlyingType())
+                    return MatchingTypesResult.False;
+
+                var proxyEnumRawValues = proxyType.GetEnumerableEnumValues().Select(e => Convert.ChangeType(e, proxyType.GetEnumUnderlyingType())).ToHashSet();
+                var targetEnumRawValues = targetType.GetEnumerableEnumValues().Select(e => Convert.ChangeType(e, proxyType.GetEnumUnderlyingType())).ToHashSet();
                 switch (enumMappingBehavior)
                 {
                     case ProxyManagerEnumMappingBehavior.Strict:
-                        return proxyEnumRawValues.OrderBy(e => e).SequenceEqual(targetEnumRawValues.OrderBy(e => e)) ? MatchingTypesResult.IfProxied : MatchingTypesResult.False;
+                        return proxyEnumRawValues == targetEnumRawValues ? MatchingTypesResult.IfProxied : MatchingTypesResult.False;
                     case ProxyManagerEnumMappingBehavior.AllowAdditive:
-                        return targetEnumRawValues.ToHashSet().Except(proxyEnumRawValues).Any() ? MatchingTypesResult.False : MatchingTypesResult.IfProxied;
+                        return targetEnumRawValues.IsSubsetOf(proxyEnumRawValues) ? MatchingTypesResult.False : MatchingTypesResult.IfProxied;
                     case ProxyManagerEnumMappingBehavior.ThrowAtRuntime:
                         return MatchingTypesResult.IfProxied;
                 }
             }
+
+            // ?????? wait do you not need to check the element type here?
             if (proxyType.IsArray && targetType.IsArray)
-                return proxyType == targetType ? MatchingTypesResult.True : MatchingTypesResult.IfProxied;
+                return proxyType == targetType ? MatchingTypesResult.Exact : MatchingTypesResult.IfProxied;
+
+
             if (typeA.IsGenericMethodParameter)
-                return typeA.GenericParameterPosition == typeB.GenericParameterPosition ? MatchingTypesResult.True : MatchingTypesResult.False;
+                return typeA.GenericParameterPosition == typeB.GenericParameterPosition ? MatchingTypesResult.Exact : MatchingTypesResult.False;
+
+            if (proxyType == targetType)
+                return MatchingTypesResult.Exact;
 
             if (typeA.IsAssignableFrom(typeB))
-                return MatchingTypesResult.True;
+                return MatchingTypesResult.Assignable;
 
             if (proxyType.GetNonRefType().IsInterface)
                 return MatchingTypesResult.IfProxied;
@@ -53,7 +65,7 @@ namespace Nanoray.Pintail
             if (targetTypeGenericArguments.Length != proxyTypeGenericArguments.Length || targetTypeGenericArguments.Length == 0)
                 return MatchingTypesResult.False;
 
-            var matchingTypesResult = MatchingTypesResult.True;
+            var matchingTypesResult = MatchingTypesResult.Exact;
 
             if (!(proxyType.IsAssignableTo(typeof(Delegate)) && targetType.IsAssignableTo(typeof(Delegate))))
             {
@@ -63,7 +75,7 @@ namespace Nanoray.Pintail
                     var genericProxyType = proxyType.GetGenericTypeDefinition();
                     switch (AreTypesMatching(genericTargetType, genericProxyType, part, enumMappingBehavior))
                     {
-                        case MatchingTypesResult.True:
+                        case MatchingTypesResult.Exact:
                             break;
                         case MatchingTypesResult.IfProxied:
                             matchingTypesResult = (MatchingTypesResult)Math.Min((int)matchingTypesResult, (int)MatchingTypesResult.IfProxied);
@@ -78,7 +90,7 @@ namespace Nanoray.Pintail
             {
                 switch (AreTypesMatching(targetTypeGenericArguments[i], proxyTypeGenericArguments[i], part, enumMappingBehavior))
                 {
-                    case MatchingTypesResult.True:
+                    case MatchingTypesResult.Exact:
                         break;
                     case MatchingTypesResult.IfProxied:
                         matchingTypesResult = (MatchingTypesResult)Math.Min((int)matchingTypesResult, (int)MatchingTypesResult.IfProxied);
@@ -110,7 +122,7 @@ namespace Nanoray.Pintail
             {
                 case MatchingTypesResult.False:
                     return null;
-                case MatchingTypesResult.True:
+                case MatchingTypesResult.Exact:
                     break;
                 case MatchingTypesResult.IfProxied:
                     positionConversions[0] = PositionConversion.Proxy;
@@ -123,7 +135,7 @@ namespace Nanoray.Pintail
                 {
                     case MatchingTypesResult.False:
                         return null;
-                    case MatchingTypesResult.True:
+                    case MatchingTypesResult.Exact:
                         break;
                     case MatchingTypesResult.IfProxied:
                         positionConversions[i + 1] = PositionConversion.Proxy;

@@ -43,7 +43,7 @@ namespace Nanoray.Pintail
                             continue;
                         switch (TypeUtilities.AreTypesMatching(constructor.GetParameters()[i].ParameterType, callParameters[i]!.GetType(), TypeUtilities.MethodTypeMatchingPart.Parameter, this.EnumMappingBehavior))
                         {
-                            case TypeUtilities.MatchingTypesResult.True:
+                            case TypeUtilities.MatchingTypesResult.Exact:
                                 break;
                             case TypeUtilities.MatchingTypesResult.IfProxied:
                                 var unproxyFactory = manager.GetProxyFactory(isReverse ? this.ProxyInfo : this.ProxyInfo.Reversed());

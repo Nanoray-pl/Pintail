@@ -236,7 +236,7 @@ namespace Nanoray.Pintail.Tests.Provider
 
         public string MethodWithArrayOverload(LocalBuilder[] locals)
             => "LocalBuilder array!"; // LocalBuilder inherits from LocalVariableInfo.
-        #endregion
+#endregion
     }
 
     public class InvalidNotMatchingEnumBackingField
