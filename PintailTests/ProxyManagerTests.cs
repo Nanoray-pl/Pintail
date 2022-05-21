@@ -27,7 +27,7 @@ namespace Nanoray.Pintail.Tests
             var providerApi = new ProviderApi();
 
             var consumerApi = manager.ObtainProxy<IConsumerApi>(providerApi)!;
-            consumerApi.VoidMethod();
+            Assert.DoesNotThrow(() => consumerApi.VoidMethod());
             Assert.AreEqual(123, consumerApi.IntMethod(123));
             Assert.AreEqual(144, consumerApi.DefaultMethod(12));
             Assert.AreEqual(42, consumerApi.IntProperty);
@@ -302,36 +302,6 @@ namespace Nanoray.Pintail.Tests
         }
 
         [Test]
-        public void TestNotMatchingEnumShouldThrow()
-        {
-            var manager = this.CreateProxyManager(new(
-                noMatchingMethodHandler: ProxyManagerConfiguration<Nothing>.ThrowExceptionNoMatchingMethodHandler
-                ));
-            var invalidProviderApi = new InvalidNotMatchingEnumBackingField();
-            Assert.Throws<ArgumentException>(() => manager.ObtainProxy<IInvalidNotMatchingEnumBackingField>(invalidProviderApi));
-        }
-
-        [Test]
-        public void TestNotMatchingArrayShouldThrow()
-        {
-            var manager = this.CreateProxyManager(new(
-                noMatchingMethodHandler: ProxyManagerConfiguration<Nothing>.ThrowExceptionNoMatchingMethodHandler
-                ));
-            var invalidProviderApi = new InvalidNotMatchingArrayInput();
-            Assert.Throws<ArgumentException>(() => manager.ObtainProxy<IInvalidNotMatchingArrayInput>(invalidProviderApi));
-        }
-
-        [Test]
-        public void TestByRefNotMatchingShouldThrow()
-        {
-            var manager = this.CreateProxyManager(new(
-                noMatchingMethodHandler: ProxyManagerConfiguration<Nothing>.ThrowExceptionNoMatchingMethodHandler
-                ));
-            var invalidProviderApi = new InvalidIncorrectByRef();
-            Assert.Throws<ArgumentException>(() => manager.ObtainProxy<IInvalidIncorrectByRef>(invalidProviderApi));
-        }
-
-        [Test]
         public void TestNonExistentApiMethodByThrowingImplementation()
         {
             var manager = this.CreateProxyManager(new(
@@ -471,8 +441,8 @@ namespace Nanoray.Pintail.Tests
         public void TestOverloadedMethods()
         {
             var manager = this.CreateProxyManager();
-            var providerApi = new ProviderApi();
-            var consumerApi = manager.ObtainProxy<IConsumerApi>(providerApi)!;
+            var providerApi = new ProviderApiWithOverloads();
+            var consumerApi = manager.ObtainProxy<IConsumerApiWithOverloads>(providerApi)!;
 
             Type baseType = consumerApi.MethodWithOverload(new object());
             Assert.AreSame(baseType, typeof(object));

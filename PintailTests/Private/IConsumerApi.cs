@@ -111,44 +111,5 @@ namespace Nanoray.Pintail.Tests.Consumer
 
         void FireApiResultEvent(IApiResult value);
         event Action<IApiResult>? ApiResultEvent;
-
-
-        public Type MethodWithOverload(object value);
-        public Type MethodWithOverload(int value);
-        public Type MethodWithOverload(StringBuilder value);
-        public Type MethodWithOverload(DayOfWeek value);
-
-        public Type MethodWithOverload(out int value);
-
-        public string MethodWithOverload(double value);
-        public string MethodWithOverload(IProxiedInput proxy);
-        public string MethodWithOverload(Func<IProxiedInput> callback);
-        public string MethodWithOverload(Func<IProxiedInput2> callback);
-
-        public string MethodWithArrayOverload(LocalVariableInfo[] locals);
-        public string MethodWithArrayOverload(LocalBuilder[] locals); // LocalBuilder inherits from LocalVariableInfo.
     }
-
-#region SHOULDNOTWORK
-    public interface IInvalidConsumerApi
-    {
-        public void NonExistentApiMethod();
-    }
-
-
-    public interface IInvalidNotMatchingArrayInput
-    {
-        public void NotMatchingArrayInput(int[] input);
-    }
-
-    public interface IInvalidNotMatchingEnumBackingField
-    {
-        public void NotMatchingEnumBackingType(StateEnum @enum);
-    }
-
-    public interface IInvalidIncorrectByRef
-    {
-        public void NotMatchingIncorrectByRef(int value);
-    }
-    #endregion
 }
