@@ -8,15 +8,27 @@ namespace Nanoray.Pintail
     {
         internal enum MethodTypeMatchingPart{ ReturnType, Parameter }
         internal enum MatchingTypesResult { False, IfProxied, Assignable, Exact }
+        // Assignable is not currently supported.
         internal enum PositionConversion { Proxy }
 
         internal static MatchingTypesResult AreTypesMatching(Type targetType, Type proxyType, MethodTypeMatchingPart part, ProxyManagerEnumMappingBehavior enumMappingBehavior)
         {
+            if (targetType.IsGenericMethodParameter != proxyType.IsGenericMethodParameter)
+                return MatchingTypesResult.False;
+
+            if (targetType.IsByRef != proxyType.IsByRef)
+                return MatchingTypesResult.False;
+
+            // toss the by ref ness? Not sure here.
+            if (targetType.IsByRef && proxyType.IsByRef)
+            {
+                targetType = targetType.GetNonRefType();
+                proxyType = proxyType.GetNonRefType();
+            }
+
             var typeA = part == MethodTypeMatchingPart.Parameter ? targetType : proxyType;
             var typeB = part == MethodTypeMatchingPart.Parameter ? proxyType : targetType;
 
-            if (typeA.IsGenericMethodParameter != typeB.IsGenericMethodParameter)
-                return MatchingTypesResult.False;
             if (proxyType.IsEnum && targetType.IsEnum)
             {
                 if (proxyType == targetType)
@@ -41,10 +53,14 @@ namespace Nanoray.Pintail
                 }
             }
 
-            // ?????? wait do you not need to check the element type here?
             if (proxyType.IsArray && targetType.IsArray)
-                return proxyType == targetType ? MatchingTypesResult.Exact : MatchingTypesResult.IfProxied;
-
+            {
+                if (proxyType == targetType)
+                    return MatchingTypesResult.Exact;
+                if (proxyType.GetElementType()!.IsInterface || proxyType.GetElementType()!.IsInterface)
+                    return MatchingTypesResult.IfProxied;
+                return MatchingTypesResult.False;
+            }
 
             if (typeA.IsGenericMethodParameter)
                 return typeA.GenericParameterPosition == typeB.GenericParameterPosition ? MatchingTypesResult.Exact : MatchingTypesResult.False;
@@ -52,12 +68,11 @@ namespace Nanoray.Pintail
             if (proxyType == targetType)
                 return MatchingTypesResult.Exact;
 
-            if (typeA.IsAssignableFrom(typeB))
-                return MatchingTypesResult.Assignable;
+            // not convinced this works well for ref/out params????
+            //if (typeA.IsAssignableFrom(typeB))
+            //    return MatchingTypesResult.Assignable;
 
-            if (proxyType.GetNonRefType().IsInterface)
-                return MatchingTypesResult.IfProxied;
-            if (targetType.GetNonRefType().IsInterface)
+            if (proxyType.IsInterface || targetType.IsInterface)
                 return MatchingTypesResult.IfProxied;
 
             var targetTypeGenericArguments = targetType.GetGenericArguments();
@@ -131,7 +146,7 @@ namespace Nanoray.Pintail
 
             for (int i = 0; i < mParameters.Length; i++)
             {
-                switch (AreTypesMatching(mParameters[i].ParameterType.GetNonRefType(), proxyMethodParameters[i].ParameterType.GetNonRefType(), MethodTypeMatchingPart.Parameter, enumMappingBehavior))
+                switch (AreTypesMatching(mParameters[i].ParameterType, proxyMethodParameters[i].ParameterType, MethodTypeMatchingPart.Parameter, enumMappingBehavior))
                 {
                     case MatchingTypesResult.False:
                         return null;
