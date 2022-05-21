@@ -59,7 +59,7 @@ namespace Nanoray.Pintail
                     return MatchingTypesResult.Exact;
                 if (proxyType.GetElementType()!.IsInterface || proxyType.GetElementType()!.IsInterface)
                     return MatchingTypesResult.IfProxied;
-                return MatchingTypesResult.False;
+                return AreTypesMatching(targetType.GetElementType()!, proxyType.GetElementType()!, part, enumMappingBehavior);
             }
 
             if (typeA.IsGenericMethodParameter)
@@ -69,8 +69,8 @@ namespace Nanoray.Pintail
                 return MatchingTypesResult.Exact;
 
             // not convinced this works well for ref/out params????
-            //if (typeA.IsAssignableFrom(typeB))
-            //    return MatchingTypesResult.Assignable;
+            if (typeA.IsAssignableFrom(typeB))
+                return MatchingTypesResult.Assignable;
 
             if (proxyType.IsInterface || targetType.IsInterface)
                 return MatchingTypesResult.IfProxied;
@@ -91,6 +91,7 @@ namespace Nanoray.Pintail
                     switch (AreTypesMatching(genericTargetType, genericProxyType, part, enumMappingBehavior))
                     {
                         case MatchingTypesResult.Exact:
+                        case MatchingTypesResult.Assignable:
                             break;
                         case MatchingTypesResult.IfProxied:
                             matchingTypesResult = (MatchingTypesResult)Math.Min((int)matchingTypesResult, (int)MatchingTypesResult.IfProxied);
@@ -106,6 +107,7 @@ namespace Nanoray.Pintail
                 switch (AreTypesMatching(targetTypeGenericArguments[i], proxyTypeGenericArguments[i], part, enumMappingBehavior))
                 {
                     case MatchingTypesResult.Exact:
+                    case MatchingTypesResult.Assignable:
                         break;
                     case MatchingTypesResult.IfProxied:
                         matchingTypesResult = (MatchingTypesResult)Math.Min((int)matchingTypesResult, (int)MatchingTypesResult.IfProxied);
