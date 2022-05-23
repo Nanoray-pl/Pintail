@@ -501,5 +501,22 @@ namespace Nanoray.Pintail.Tests
             Assert.AreEqual(a.hi, consumerApi.MethodWithProxiedOverload(a));
             Assert.AreEqual(b.bye, consumerApi.MethodWithProxiedOverload(b));
         }
+
+        [Test]
+        public void TestProxiedOverrides()
+        {
+            var manager = this.CreateProxyManager();
+            var providerApi = new ProviderApiWithOverrides();
+            var consumerApi = manager.ObtainProxy<IConsumerApiWithOverrides>(providerApi)!;
+
+            Assert.AreEqual("BASESTRING", consumerApi.MethodWithOverride());
+            Assert.AreEqual("heya", consumerApi.MethodWithoutOverride());
+
+            var overriddenProviderApi = new ProviderApiWithOverridesMeow();
+            var overriddenConsumerApi = manager.ObtainProxy<IConsumerApiWithOverrides>(overriddenProviderApi)!;
+
+            Assert.AreEqual("MEOW", overriddenConsumerApi.MethodWithOverride());
+            Assert.AreEqual("heya", overriddenConsumerApi.MethodWithoutOverride());
+        }
     }
 }
