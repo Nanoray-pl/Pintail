@@ -140,16 +140,34 @@ namespace Nanoray.Pintail
             IList<ProxyInfo<Context>> relatedProxyInfos = new List<ProxyInfo<Context>>();
             foreach (MethodInfo proxyMethod in allProxyMethods)
             {
+                var candidates = new Dictionary<MethodInfo, TypeUtilities.PositionConversion?[]>();
                 foreach (MethodInfo targetMethod in allTargetMethods)
                 {
                     var positionConversions = TypeUtilities.MatchProxyMethod(targetMethod, proxyMethod, this.EnumMappingBehavior);
                     if (positionConversions is null)
                         continue;
-                    this.ProxyMethod(manager, proxyBuilder, proxyMethod, targetMethod, targetField, glueField, proxyInfosField, positionConversions, relatedProxyInfos);
-                    goto proxyMethodLoopContinue;
+
+                    // no inputs are proxied.
+                    if (positionConversions.All((a) => a is null))
+                    {
+                        this.ProxyMethod(manager, proxyBuilder, proxyMethod, targetMethod, targetField, glueField, proxyInfosField, positionConversions, relatedProxyInfos);
+                        goto proxyMethodLoopContinue;
+                    }
+                    else
+                    {
+                        candidates[targetMethod] = positionConversions;
+                    }
                 }
 
-                this.NoMatchingMethodHandler(proxyBuilder, this.ProxyInfo, targetField, glueField, proxyInfosField, proxyMethod);
+                if (candidates.Any())
+                {
+                    var (targetMethod, positionConversions) = candidates.First();
+                    this.ProxyMethod(manager, proxyBuilder, proxyMethod, targetMethod, targetField, glueField, proxyInfosField, positionConversions, relatedProxyInfos);
+                }
+                else
+                {
+                    this.NoMatchingMethodHandler(proxyBuilder, this.ProxyInfo, targetField, glueField, proxyInfosField, proxyMethod);
+                }
 proxyMethodLoopContinue:;
             }
 

@@ -6,10 +6,31 @@ namespace Nanoray.Pintail
 {
     internal static class TypeUtilities
     {
+        /// <summary>
+        /// 
+        /// </summary>
+        internal enum MethodTypeAssignability
+        {
+            /// <summary>
+            /// It is sufficient if the target typed can be assigned to the proxy type.
+            /// </summary>
+            AssignTo,
+
+            /// <summary>
+            /// It is sufficient if the target type can be assigned from the proxy type.
+            /// </summary>
+            AssignFrom,
+
+            /// <summary>
+            /// This type should exactly match the other type. Assigning to/from is not appropriate.
+            /// </summary>
+            Exact
+        }
+
         internal enum MethodTypeMatchingPart{ ReturnType, Parameter }
         internal enum MatchingTypesResult { False, IfProxied, Assignable, Exact }
         // Assignable is not currently supported.
-        internal enum PositionConversion { Proxy }
+        internal enum PositionConversion { Proxy, Assignable, Exact }
 
         internal static MatchingTypesResult AreTypesMatching(Type targetType, Type proxyType, MethodTypeMatchingPart part, ProxyManagerEnumMappingBehavior enumMappingBehavior)
         {
@@ -30,6 +51,7 @@ namespace Nanoray.Pintail
                 proxyType = proxyType.GetNonRefType();
             }
 
+            // I feel like ref ness will cause issues here.
             var typeA = part == MethodTypeMatchingPart.Parameter ? targetType : proxyType;
             var typeB = part == MethodTypeMatchingPart.Parameter ? proxyType : targetType;
 
@@ -68,6 +90,7 @@ namespace Nanoray.Pintail
             //if (typeA.IsAssignableFrom(typeB))
             //    return MatchingTypesResult.Assignable;
 
+            // The boxing/unboxing bug probably isn't gone either.
             if (typeA.IsInterface || typeB.IsInterface)
             { // I feel like more checks are needed here? Like, uh, the **type** of the property....This is probably bad.
                 if (typeA.GetProperties().Select((a) => a.Name).ToHashSet().IsSubsetOf(typeB.GetProperties().Select((b) => b.Name)))
@@ -82,6 +105,7 @@ namespace Nanoray.Pintail
 
             var matchingTypesResult = MatchingTypesResult.Exact;
 
+            // I'm not convinced this ever gets run?
             if (!(proxyType.IsAssignableTo(typeof(Delegate)) && targetType.IsAssignableTo(typeof(Delegate))))
             {
                 if (!targetType.IsGenericTypeDefinition && !proxyType.IsGenericTypeDefinition)
@@ -161,5 +185,17 @@ namespace Nanoray.Pintail
             // method matched
             return positionConversions;
         }
+    }
+
+    internal static class MethodTypeAssignabilityExtensions
+    {
+        internal static TypeUtilities.MethodTypeAssignability Swap(this TypeUtilities.MethodTypeAssignability assignability)
+            => assignability switch
+            {
+                TypeUtilities.MethodTypeAssignability.AssignTo => TypeUtilities.MethodTypeAssignability.AssignFrom,
+                TypeUtilities.MethodTypeAssignability.AssignFrom => TypeUtilities.MethodTypeAssignability.AssignTo,
+                TypeUtilities.MethodTypeAssignability.Exact => TypeUtilities.MethodTypeAssignability.Exact,
+                _ => throw new ArgumentException("Recieved unexpected enum value!"),
+            };
     }
 }
