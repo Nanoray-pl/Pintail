@@ -554,6 +554,20 @@ namespace Nanoray.Pintail.Tests
         }
 
         [Test]
+        public void TestComplexProxiedOverrides()
+        {
+            var manager = this.CreateProxyManager();
+            var providerApi = new ProviderWithComplexProxiedInputs();
+            var consumerApi = manager.ObtainProxy<IConsumerApiWithComplexProxiedInputs>(providerApi)!;
+
+            ProxyInputA a = new("HI!");
+            ProxyInputB b = new("BYE!");
+
+            Assert.AreEqual(a.hi, consumerApi.MethodWithProxiedOverload(() => a));
+            Assert.AreEqual(b.bye, consumerApi.MethodWithProxiedOverload(() => b));
+        }
+
+        [Test]
         public void TestFluentApi()
         {
             var manager = this.CreateProxyManager();

@@ -102,4 +102,11 @@ namespace Nanoray.Pintail.Tests.Provider
         public string MethodWithOverload(IInputWithTwoGenerics<string, int> proxy)
             => "string, int";
     }
+
+    public class ProviderWithComplexProxiedInputs
+    {
+        public string MethodWithProxiedOverload(Func<IProxyInputA> value) => value().hi;
+
+        public string MethodWithProxiedOverload(Func<IProxyInputB> value) => value().bye;
+    }
 }
