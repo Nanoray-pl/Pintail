@@ -28,6 +28,8 @@ namespace Nanoray.Pintail.Tests.Consumer
         public string MethodWithArrayOverload(LocalBuilder[] locals); // LocalBuilder inherits from LocalVariableInfo.
 
         public string MethodWithArrayOverload(int[] locals);
+
+        public string MethodWithArrayOverload(IProxiedInput[] locals);
     }
 
     public interface IConsumerApiWithOverloadsWithGenerics : ISimpleConsumerApiWithOverloads
@@ -35,6 +37,8 @@ namespace Nanoray.Pintail.Tests.Consumer
         public string MethodWithOverload<T>(IInputWithGeneric<T> proxy);
 
         public string MethodWithOverload(IInputWithGeneric<string> proxy);
+
+        public string MethodWithOverload(IInputWithTwoGenerics<string,int> proxy);
     }
 
 }

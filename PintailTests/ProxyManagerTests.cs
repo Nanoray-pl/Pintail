@@ -500,6 +500,23 @@ namespace Nanoray.Pintail.Tests
 
             string ints = consumerApi.MethodWithArrayOverload(new[] { 1, 2, 3 });
             Assert.AreEqual("int array!", ints);
+
+            string proxied = consumerApi.MethodWithArrayOverload(Array.Empty<Consumer.IProxiedInput>());
+            Assert.AreEqual("proxied array!", proxied);
+        }
+
+        [Test]
+        public void TestOverloadsWithGenerics()
+        {
+            var manager = this.CreateProxyManager();
+            var providerApi = new ComplexProviderApiWithOverloadsWithGenerics();
+            var consumerApi = manager.ObtainProxy<IConsumerApiWithOverloadsWithGenerics>(providerApi)!;
+
+            InputWithGeneric<string> stringGeneric = new();
+            InputWithTwoGenerics<string, int> twoGenerics = new();
+
+            Assert.AreEqual("string?", consumerApi.MethodWithOverload(stringGeneric));
+            Assert.AreEqual("string, int", consumerApi.MethodWithOverload(twoGenerics));
         }
 
         [Test]

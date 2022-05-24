@@ -16,6 +16,26 @@ namespace Nanoray.Pintail.Tests.Provider
         public string otherteststring { get; set; }
     }
 
+    public interface IInputWithGeneric<T>
+    {
+        string? RefProperty { get; set; }
+        int ValProperty { get; set; }
+        T? GenericProperty { get; set; }
+
+        void SetValue(T? value);
+        T? GetValue();
+    }
+
+    public interface IInputWithTwoGenerics<T, U>
+    {
+        string? RefProperty { get; set; }
+        int ValProperty { get; set; }
+        T? GenericProperty { get; set; }
+
+        void SetValue(T? value);
+        T? GetValue();
+    }
+
     public class SimpleProviderApiWithOverloads
     {
         // base object.
@@ -66,5 +86,20 @@ namespace Nanoray.Pintail.Tests.Provider
 
         public string MethodWithArrayOverload(int[] locals)
             => "int array!";
+
+        public string MethodWithArrayOverload(IProxiedInput[] locals)
+            => "proxied array!";
+    }
+
+    public class ComplexProviderApiWithOverloadsWithGenerics : SimpleProviderApiWithOverloads
+    {
+        public string MethodWithOverload<T>(IInputWithGeneric<T> proxy)
+            => "One Generic";
+
+        public string MethodWithOverload(IInputWithGeneric<string> proxy)
+            => "string?";
+
+        public string MethodWithOverload(IInputWithTwoGenerics<string, int> proxy)
+            => "string, int";
     }
 }
