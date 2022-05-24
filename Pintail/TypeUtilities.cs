@@ -96,8 +96,8 @@ namespace Nanoray.Pintail
 
             // The boxing/unboxing bug probably isn't gone either.
             if (typeA.IsInterface || typeB.IsInterface)
-            { // I feel like more checks are needed here? Like, uh, the **type** of the property....This is probably bad.
-                if (typeA.GetProperties().Select((a) => a.Name).ToHashSet().IsSubsetOf(typeB.GetProperties().Select((b) => b.Name)))
+            {
+                if (CanInterfaceBeMapped(typeB, typeA, enumMappingBehavior, MethodTypeAssignability.AssignTo))
                     return MatchingTypesResult.IfProxied;
                 return MatchingTypesResult.False;
             }
@@ -190,8 +190,6 @@ namespace Nanoray.Pintail
             return positionConversions;
         }
 
-
-
         internal static bool CanInterfaceBeMapped(Type target, Type proxy, ProxyManagerEnumMappingBehavior enumMappingBehavior, MethodTypeAssignability assignability)
         {
             List<Type>? types = null;
@@ -206,8 +204,6 @@ namespace Nanoray.Pintail
                         return true;
                 }
             }
-
-            
 
             HashSet<MethodInfo> ToAssignToMethods = (assignability == MethodTypeAssignability.AssignTo ? target.FindInterfaceMethods() : proxy.FindInterfaceMethods()).ToHashSet();
             HashSet<MethodInfo> ToAssignFromMethods = (assignability == MethodTypeAssignability.AssignTo? proxy.FindInterfaceMethods() : target.FindInterfaceMethods()).ToHashSet();
