@@ -70,8 +70,8 @@ namespace Nanoray.Pintail
                 {
                     case ProxyManagerEnumMappingBehavior.Strict:
                         return proxyEnumRawValues == targetEnumRawValues ? MatchingTypesResult.IfProxied : MatchingTypesResult.False;
-                    case ProxyManagerEnumMappingBehavior.AllowAdditive: //TODO <-- check this.
-                        return targetEnumRawValues.IsSubsetOf(proxyEnumRawValues) ? MatchingTypesResult.IfProxied : MatchingTypesResult.False;
+                    case ProxyManagerEnumMappingBehavior.AllowAdditive:
+                        return proxyEnumRawValues.IsSubsetOf(targetEnumRawValues) ? MatchingTypesResult.IfProxied : MatchingTypesResult.False;
                     case ProxyManagerEnumMappingBehavior.ThrowAtRuntime:
                         return MatchingTypesResult.IfProxied;
                 }
@@ -229,7 +229,7 @@ namespace Nanoray.Pintail
             // check the cache.
             // TODO: target.AssemblyQualifiedName seems to be null sometimes? figure that out...
             List<Type>? types = null;
-            string cachekey = $"{target.AssemblyQualifiedName}@@{enumMappingBehavior:D}@@{assignability:D}";
+            string cachekey = $"{target.AssemblyQualifiedName ?? $"{target.Assembly.GetName().Name}??{target.Namespace}??{target.Name}"}@@{enumMappingBehavior:D}@@{assignability:D}";
             if (cache.Contains(cachekey))
             {
                 CacheItem? item = cache.GetCacheItem(cachekey);
@@ -241,8 +241,9 @@ namespace Nanoray.Pintail
                 }
             }
 
-            HashSet<MethodInfo> ToAssignToMethods = (assignability == MethodTypeAssignability.AssignTo ? target.FindInterfaceMethods() : proxy.FindInterfaceMethods()).ToHashSet();
-            HashSet<MethodInfo> ToAssignFromMethods = (assignability == MethodTypeAssignability.AssignTo ? proxy.FindInterfaceMethods() : target.FindInterfaceMethods()).ToHashSet();
+            // Figure out groupby...
+            var ToAssignToMethods = (assignability == MethodTypeAssignability.AssignTo ? target.FindInterfaceMethods() : proxy.FindInterfaceMethods());
+            var ToAssignFromMethods = (assignability == MethodTypeAssignability.AssignTo ? proxy.FindInterfaceMethods() : target.FindInterfaceMethods());
 
             HashSet<MethodInfo> FoundMethods = new();
 

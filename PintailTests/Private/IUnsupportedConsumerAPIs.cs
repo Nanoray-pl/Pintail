@@ -1,5 +1,12 @@
 namespace Nanoray.Pintail.Tests.Consumer
 {
+    public enum ATooBigEnum { Just, A, Few, Too, Many, Values}
+
+    public interface IInsufficientEnumValues
+    {
+        public ATooBigEnum method();
+    }
+
     public interface IInvalidConsumerApi
     {
         public void NonExistentApiMethod();

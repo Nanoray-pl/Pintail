@@ -2,6 +2,13 @@ using System.Reflection.Emit;
 
 namespace Nanoray.Pintail.Tests.Provider
 {
+    public enum ATooBigEnum { Not, Enough, Values}
+
+    public class EnumInsufficientlyBig
+    {
+        public ATooBigEnum method() => ATooBigEnum.Enough;
+    }
+
     public class InvalidNotMatchingEnumBackingField
     {
         public void NotMatchingEnumBackingType(UIntEnum @enum) { }

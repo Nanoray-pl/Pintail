@@ -71,5 +71,16 @@ namespace Nanoray.Pintail.Tests
             var invalidProviderApi = new RequiresUnboxing();
             Assert.Throws<ArgumentException>(() => manager.ObtainProxy<IRequiresUnboxing>(invalidProviderApi));
         }
+
+        [Test]
+        public void TestEnum()
+        {
+            var manager = this.CreateProxyManager(new(
+                noMatchingMethodHandler: ProxyManagerConfiguration<Nothing>.ThrowExceptionNoMatchingMethodHandler,
+                enumMappingBehavior: ProxyManagerEnumMappingBehavior.AllowAdditive
+                ));
+            var invalidProviderApi = new EnumInsufficientlyBig();
+            Assert.Throws<ArgumentException>(() => manager.ObtainProxy<IInsufficientEnumValues>(invalidProviderApi));
+        }
     }
 }
