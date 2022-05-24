@@ -26,5 +26,15 @@ namespace Nanoray.Pintail.Tests.Consumer
 
         public string MethodWithArrayOverload(LocalVariableInfo[] locals);
         public string MethodWithArrayOverload(LocalBuilder[] locals); // LocalBuilder inherits from LocalVariableInfo.
+
+        public string MethodWithArrayOverload(int[] locals);
     }
+
+    public interface IConsumerApiWithOverloadsWithGenerics : ISimpleConsumerApiWithOverloads
+    {
+        public string MethodWithOverload<T>(IInputWithGeneric<T> proxy);
+
+        public string MethodWithOverload(IInputWithGeneric<string> proxy);
+    }
+
 }

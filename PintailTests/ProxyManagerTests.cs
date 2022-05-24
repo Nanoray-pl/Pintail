@@ -486,6 +486,23 @@ namespace Nanoray.Pintail.Tests
         }
 
         [Test]
+        public void TestArrayOverloadedMethods()
+        {
+            var manager = this.CreateProxyManager();
+            var providerApi = new ComplexProviderApiWithOverloads();
+            var consumerApi = manager.ObtainProxy<IComplexConsumerApiWithOverloads>(providerApi)!;
+
+            string localbuilders = consumerApi.MethodWithArrayOverload(Array.Empty<LocalBuilder>());
+            Assert.AreEqual("LocalBuilder array!", localbuilders);
+
+            string localvars = consumerApi.MethodWithArrayOverload(Array.Empty<LocalVariableInfo>());
+            Assert.AreEqual("LocalVariableInfo array!", localvars);
+
+            string ints = consumerApi.MethodWithArrayOverload(new[] { 1, 2, 3 });
+            Assert.AreEqual("int array!", ints);
+        }
+
+        [Test]
         public void TestProxiedInputOverloads()
         {
             var manager = this.CreateProxyManager();

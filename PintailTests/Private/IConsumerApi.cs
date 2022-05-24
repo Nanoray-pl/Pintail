@@ -53,6 +53,46 @@ namespace Nanoray.Pintail.Tests.Consumer
         }
     }
 
+    public interface IInputWithGeneric<T>
+    {
+        string? RefProperty { get; set; }
+        int ValProperty { get; set; }
+        T? GenericProperty { get; set; }
+
+        void SetValue(T? value);
+        T? GetValue();
+    }
+
+    public interface IInputWithTwoGenerics<T,U>
+    {
+        string? RefProperty { get; set; }
+        int ValProperty { get; set; }
+        T? GenericProperty { get; set; }
+
+        void SetValue(T? value);
+        T? GetValue();
+    }
+
+    public class InputWithGeneric<T> : IInputWithGeneric<T>
+    {
+        public string? RefProperty { get; set; }
+        public int ValProperty { get; set; }
+        public T? GenericProperty { get; set; }
+
+        public T? GetValue() => default;
+        public void SetValue(T? value) => this.GenericProperty = value;
+    }
+
+    public class InputWithTwoGenerics<T,U> : IInputWithTwoGenerics<T,U>
+    {
+        public string? RefProperty { get; set; }
+        public int ValProperty { get; set; }
+        public T? GenericProperty { get; set; }
+
+        public T? GetValue() => default;
+        public void SetValue(T? value) => this.GenericProperty = value;
+    }
+
     public interface ISimpleConsumerApi<T>
     {
         void SetValue(T? value);
