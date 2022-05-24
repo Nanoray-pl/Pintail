@@ -41,6 +41,17 @@ namespace Nanoray.Pintail.Tests.Provider
             => this.IntMethod(num * num);
     }
 
+    public class SimpleFluentProviderApi
+    {
+        public int state { get; set; }
+
+        public SimpleFluentProviderApi method()
+        {
+            this.state = 10;
+            return this;
+        }
+    }
+
     public class SimpleProviderApi<T>
     {
         private T? Value;

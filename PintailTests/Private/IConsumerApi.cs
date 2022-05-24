@@ -93,6 +93,13 @@ namespace Nanoray.Pintail.Tests.Consumer
         public void SetValue(T? value) => this.GenericProperty = value;
     }
 
+    public interface ISimpleConsumerFluentAPI
+    {
+        int state { get; set; }
+
+        ISimpleConsumerFluentAPI method();
+    }
+
     public interface ISimpleConsumerApi<T>
     {
         void SetValue(T? value);

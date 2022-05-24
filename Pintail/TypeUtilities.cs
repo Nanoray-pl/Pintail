@@ -198,9 +198,36 @@ namespace Nanoray.Pintail
         }
 
         // This recursion might be dangerous. I'm not sure.
-        // Todo: figure out what else I need to do for recursion.
+        // Todo: figure out what else I need to do for recursion to avoid infinite loops.
         internal static bool CanInterfaceBeMapped(Type target, Type proxy, ProxyManagerEnumMappingBehavior enumMappingBehavior, MethodTypeAssignability assignability, HashSet<Type> assumeMappableIfRecursed)
         {
+            // If it's just assignable, we can skip the whole reflection logic
+            // which can be quite slow.
+            switch (assignability)
+            {
+                case MethodTypeAssignability.AssignTo:
+                    if (target.IsAssignableTo(proxy))
+                        return true;
+                    break;
+                case MethodTypeAssignability.AssignFrom:
+                    if (target.IsAssignableFrom(proxy))
+                        return true;
+                    break;
+                case MethodTypeAssignability.Exact:
+                    if (target == proxy)
+                        return true;
+                    break;
+            }
+
+            // Rule out a few common issues with generics first.
+            if (target.IsGenericType != proxy.IsGenericType)
+                return false;
+
+            if (target.IsGenericType && proxy.IsGenericType && target.GenericTypeArguments.Length != proxy.GenericTypeArguments.Length)
+                return false;
+
+            // check the cache.
+            // TODO: target.AssemblyQualifiedName seems to be null sometimes? figure that out...
             List<Type>? types = null;
             string cachekey = $"{target.AssemblyQualifiedName}@@{enumMappingBehavior:D}@@{assignability:D}";
             if (cache.Contains(cachekey))
@@ -212,15 +239,6 @@ namespace Nanoray.Pintail
                     if (types.Contains(proxy))
                         return true;
                 }
-            }
-
-            // TODO: just check if it's actually assignable or not.
-            switch (assignability)
-            {
-                case MethodTypeAssignability.AssignTo:
-                case MethodTypeAssignability.AssignFrom:
-                case MethodTypeAssignability.Exact:
-                    break;
             }
 
             HashSet<MethodInfo> ToAssignToMethods = (assignability == MethodTypeAssignability.AssignTo ? target.FindInterfaceMethods() : proxy.FindInterfaceMethods()).ToHashSet();

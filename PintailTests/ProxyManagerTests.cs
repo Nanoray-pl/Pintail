@@ -552,5 +552,17 @@ namespace Nanoray.Pintail.Tests
             Assert.AreEqual("MEOW", overriddenConsumerApi.MethodWithOverride());
             Assert.AreEqual("heya", overriddenConsumerApi.MethodWithoutOverride());
         }
+
+        [Test]
+        public void TestFluentApi()
+        {
+            var manager = this.CreateProxyManager();
+            var providerApi = new SimpleFluentProviderApi();
+            var consumerApi = manager.ObtainProxy<ISimpleConsumerFluentAPI>(providerApi)!;
+
+            consumerApi.state = 5;
+            Assert.AreEqual(consumerApi, consumerApi.method());
+            Assert.AreEqual(10, consumerApi.state);
+        }
     }
 }
