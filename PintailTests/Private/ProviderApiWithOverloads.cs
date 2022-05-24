@@ -108,5 +108,9 @@ namespace Nanoray.Pintail.Tests.Provider
         public string MethodWithProxiedOverload(Func<IProxyInputA> value) => value().hi;
 
         public string MethodWithProxiedOverload(Func<IProxyInputB> value) => value().bye;
+
+        public event Action<IProxyInputA> FancyEvent;
+
+        public void FireEvent(IProxyInputA val) => FancyEvent?.Invoke(val);
     }
 }

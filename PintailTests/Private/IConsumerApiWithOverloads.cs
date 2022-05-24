@@ -46,6 +46,10 @@ namespace Nanoray.Pintail.Tests.Consumer
         public string MethodWithProxiedOverload(Func<IProxyInputA> value);
 
         public string MethodWithProxiedOverload(Func<IProxyInputB> value);
+
+        public event Action<IProxyInputA> FancyEvent;
+
+        public void FireEvent(IProxyInputA val);
     }
 
 }

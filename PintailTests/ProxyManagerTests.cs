@@ -565,6 +565,11 @@ namespace Nanoray.Pintail.Tests
 
             Assert.AreEqual(a.hi, consumerApi.MethodWithProxiedOverload(() => a));
             Assert.AreEqual(b.bye, consumerApi.MethodWithProxiedOverload(() => b));
+
+            int x = 4;
+            consumerApi.FancyEvent += (Consumer.IProxyInputA a) => x = 5;
+            consumerApi.FireEvent(a);
+            Assert.AreEqual(5, x);
         }
 
         [Test]
