@@ -32,4 +32,7 @@
         <PackagePath>\</PackagePath>
       </None>
 	</ItemGroup>
+	<ItemGroup>
+	  <PackageReference Include="System.Runtime.Caching" Version="6.0.0" />
+	</ItemGroup>
 </Project>

@@ -112,23 +112,8 @@ namespace Nanoray.Pintail
                     break;
             }
 
-            IEnumerable<MethodInfo> FindInterfaceMethods(Type baseType)
-            {
-                foreach (MethodInfo method in baseType.GetMethods())
-                {
-                    yield return method;
-                }
-                foreach (Type interfaceType in baseType.GetInterfaces())
-                {
-                    foreach (var method in FindInterfaceMethods(interfaceType))
-                    {
-                        yield return method;
-                    }
-                }
-            }
-
-            var allTargetMethods = FindInterfaceMethods(this.ProxyInfo.Target.Type).ToHashSet();
-            var allProxyMethods = FindInterfaceMethods(this.ProxyInfo.Proxy.Type).ToHashSet();
+            var allTargetMethods = this.ProxyInfo.Target.Type.FindInterfaceMethods().ToHashSet();
+            var allProxyMethods = this.ProxyInfo.Proxy.Type.FindInterfaceMethods().ToHashSet();
 
             if (this.ProxyInfo.Proxy.Type.IsAssignableTo(typeof(Delegate)))
             {

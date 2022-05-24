@@ -1,13 +1,17 @@
 using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
+using System.Runtime.Caching;
 
 namespace Nanoray.Pintail
 {
     internal static class TypeUtilities
     {
+        static readonly MemoryCache cache = new("ProxyCache");
+
         /// <summary>
-        /// 
+        /// Documentation is hard.
         /// </summary>
         internal enum MethodTypeAssignability
         {
@@ -184,6 +188,70 @@ namespace Nanoray.Pintail
 
             // method matched
             return positionConversions;
+        }
+
+
+
+        internal static bool CanInterfaceBeMapped(Type target, Type proxy, ProxyManagerEnumMappingBehavior enumMappingBehavior, MethodTypeAssignability assignability)
+        {
+            List<Type>? types = null;
+            string cachekey = $"{target.FullName}@@{enumMappingBehavior:D}@@{assignability:D}";
+            if (cache.Contains(cachekey))
+            {
+                CacheItem? item = cache.GetCacheItem(cachekey);
+                if (item.Value is List<Type>)
+                {
+                    types = (List<Type>)item.Value;
+                    if (types.Contains(proxy))
+                        return true;
+                }
+            }
+
+            
+
+            HashSet<MethodInfo> ToAssignToMethods = (assignability == MethodTypeAssignability.AssignTo ? target.FindInterfaceMethods() : proxy.FindInterfaceMethods()).ToHashSet();
+            HashSet<MethodInfo> ToAssignFromMethods = (assignability == MethodTypeAssignability.AssignTo? proxy.FindInterfaceMethods() : target.FindInterfaceMethods()).ToHashSet();
+
+            HashSet<MethodInfo> FoundMethods = new();
+
+            foreach (var assignToMethod in ToAssignToMethods)
+            {
+                foreach (var assignFromMethod in ToAssignFromMethods)
+                {
+                    // double check the directions are right here. Argh. I can never seem to get AssignTo/AssignFrom right on the first try.
+                    if (TypeUtilities.MatchProxyMethod(assignToMethod, assignFromMethod, enumMappingBehavior) is not null)
+                    {
+                        FoundMethods.Add(assignToMethod);
+                        goto NextMethod;
+                    }
+                }
+                return false;
+NextMethod:;
+            }
+
+            if (assignability == MethodTypeAssignability.Exact && FoundMethods != ToAssignFromMethods)
+                return false;
+
+            types ??= new();
+            types.Add(proxy);
+
+            cache.Add(new CacheItem(cachekey, types), new CacheItemPolicy() { SlidingExpiration = TimeSpan.FromMinutes(5)});
+            return true;
+        }
+
+        internal static IEnumerable<MethodInfo> FindInterfaceMethods(this Type baseType)
+        {
+            foreach (MethodInfo method in baseType.GetMethods())
+            {
+                yield return method;
+            }
+            foreach (Type interfaceType in baseType.GetInterfaces())
+            {
+                foreach (var method in FindInterfaceMethods(interfaceType))
+                {
+                    yield return method;
+                }
+            }
         }
     }
 
