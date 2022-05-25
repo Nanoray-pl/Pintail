@@ -1,4 +1,3 @@
-using System;
 using System.Reflection;
 using System.Reflection.Emit;
 using Nanoray.Pintail.Tests.Consumer;
@@ -27,8 +26,22 @@ namespace Nanoray.Pintail.Tests
 
             var consumerApi = consumerApiManager.GetOne();
 
+            var otherconsumerApiManager = manager.ObtainProxy<IFluentConsumerApiManager>(providerApiManager)!;
+
+            var otherconsumerApi = otherconsumerApiManager.GetOne();
+
             consumerApi.valueState = 5;
             Assert.AreEqual(5, consumerApi.valueState);
+
+            otherconsumerApi.valueState = 7;
+            Assert.AreEqual(7, otherconsumerApi.valueState);
+            Assert.AreEqual(5, consumerApi.valueState);
+
+            consumerApi.Prop = 1337;
+            otherconsumerApi.Prop = 2500;
+
+            Assert.AreEqual(1337, consumerApi.Prop);
+            Assert.AreEqual(2500, otherconsumerApi.Prop);
         }
     }
 }

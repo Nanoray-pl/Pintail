@@ -5,7 +5,7 @@ namespace Nanoray.Pintail.Tests.Provider
         public IFluentProviderApi GetOne() => new FluentProviderApi();
     }
 
-    public class FluentProviderApi : IFluentProviderApi
+    public class FluentProviderApi: IFluentProviderApi
     {
         public int valueState { get; set; }
 
@@ -30,16 +30,32 @@ namespace Nanoray.Pintail.Tests.Provider
             this.referenceState = "ZeroArgs";
             return this;
         }
+
+        public IFluentProviderApi NewMethodAdded() => this;
     }
 
     public interface IFluentProviderApi
     {
         public int valueState { get; set; }
 
-        public string referenceState { get; set; }
+        public string? referenceState { get; set; }
 
         public IFluentProviderApi DoSomething();
 
         public IFluentProviderApi MethodWithOverload();
+
+        public IFluentProviderApi NewMethodAdded();
+
+        public int Prop { get; set; }
+    }
+
+    public interface IFluentProviderResult
+    {
+        public int state { get; set; }
+    }
+
+    public interface IFluentProviderGeneric<T> where T: new()
+    {
+        public T value { get; set; }
     }
 }

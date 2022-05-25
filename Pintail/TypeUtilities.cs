@@ -289,6 +289,81 @@ NextMethod:
                 }
             }
         }
+
+        internal static IEnumerable<(MethodInfo targetMethod, PositionConversion?[] positionConversions)> RankMethods(
+            Dictionary<MethodInfo, TypeUtilities.PositionConversion?[]> candidates,
+            MethodInfo proxyMethod)
+        {
+            if (candidates.Count == 1)
+            {
+                var (target, positions) = candidates.First();
+                yield return (target, positions);
+                yield break;
+            }
+
+            // Favor methods where the names match.
+            var nameMatches = candidates.Where((kvp) => TypeUtilities.AreAllParamNamesMatching(kvp.Key, proxyMethod)).ToList();
+            if (nameMatches.Count == 1)
+            {
+                var (target, positions) = nameMatches.First();
+                yield return (target, positions);
+                yield break;
+            }
+            else if (nameMatches.Count == 0)
+            { // No name matches, all will be considered equally.
+                nameMatches = candidates.ToList();
+            }
+
+            // okay, we seem to have multiple. Let's try ranking them.
+            nameMatches.Sort((a, b) => CompareTwoMethods(a.Key, b.Key));
+            foreach (var (target, positions) in nameMatches)
+                yield return (target, positions);
+
+            yield break;
+        }
+
+        private static bool AreAllParamNamesMatching(MethodInfo target, MethodInfo proxy)
+            => target.GetParameters().Zip(proxy.GetParameters(), (a, b) => (a, b)).All((pair) => pair.a.Name == pair.b.Name);
+
+        /// <summary>
+        /// Compares two methods to see which is the "better" overload.
+        /// </summary>
+        /// <param name="methodA">First method</param>
+        /// <param name="methodB">Second method.</param>
+        /// <returns>-1 if the first is better, 1 if the second is better.</returns>
+        /// <exception cref="AmbiguousMatchException">It is not possible to resolve the two.</exception>
+        /// <remarks>A method is considered better if all of its parameters' types can be assigned to
+        /// and there's t least </remarks>
+        private static int CompareTwoMethods(MethodInfo methodA, MethodInfo methodB)
+        {
+            int direction = 0;
+            foreach (var (paramA, paramB) in methodA.GetParameters().Zip(methodB.GetParameters()))
+            {
+                if (paramA.ParameterType == paramB.ParameterType)
+                    continue;
+                else if (paramA.ParameterType.IsAssignableTo(paramB.ParameterType))
+                {
+                    if (direction == 1)
+                        throw new AmbiguousMatchException($"{methodA.DeclaringType}::{methodA.Name} and {methodB.DeclaringType}::{methodB.Name} are ambiguous matches!");
+                    direction = -1;
+                }
+                else if (paramA.ParameterType.IsAssignableFrom(paramB.ParameterType))
+                {
+                    if (direction == -1)
+                        throw new AmbiguousMatchException($"{methodA.DeclaringType}::{methodA.Name} and {methodB.DeclaringType}::{methodB.Name} are ambiguous matches!");
+                    direction = 1;
+                }
+            }
+            if (direction == 0)
+            {
+                if (methodA.DeclaringType!.IsAssignableTo(methodB.DeclaringType))
+                    return -1;
+                else if (methodA.DeclaringType!.IsAssignableFrom(methodB.DeclaringType))
+                    return 1;
+                throw new AmbiguousMatchException($"{methodA.DeclaringType}::{methodA.Name} and {methodB.DeclaringType}::{methodB.Name} are ambiguous matches!");
+            }
+            return direction;
+        }
     }
 
     internal static class MethodTypeAssignabilityExtensions

@@ -116,6 +116,7 @@ namespace Nanoray.Pintail
             var allTargetMethods = this.ProxyInfo.Target.Type.FindInterfaceMethods().ToHashSet();
             var allProxyMethods = this.ProxyInfo.Proxy.Type.FindInterfaceMethods().ToHashSet();
 
+            // not sure here?
             if (this.ProxyInfo.Proxy.Type.IsAssignableTo(typeof(Delegate)))
             {
                 allTargetMethods.RemoveWhere(m => m.Name != "Invoke");
@@ -147,14 +148,27 @@ namespace Nanoray.Pintail
 
                 if (candidates.Any())
                 {
-                    var (targetMethod, positionConversions) = candidates.First();
-                    this.ProxyMethod(manager, proxyBuilder, proxyMethod, targetMethod, targetField, glueField, proxyInfosField, positionConversions, relatedProxyInfos);
+                    List<Exception> exceptions = new();
+                    foreach (var (targetMethod, positionConversions) in TypeUtilities.RankMethods(candidates, proxyMethod))
+                    {
+                        try
+                        {
+                            this.ProxyMethod(manager, proxyBuilder, proxyMethod, targetMethod, targetField, glueField, proxyInfosField, positionConversions, relatedProxyInfos);
+                            goto proxyMethodLoopContinue;
+                        }
+                        catch (Exception ex)
+                        {
+                            exceptions.Add(ex);
+                        }
+                    }
+                    throw new AggregateException("Errors generated while attempting to map", exceptions);
                 }
                 else
                 {
                     this.NoMatchingMethodHandler(proxyBuilder, this.ProxyInfo, targetField, glueField, proxyInfosField, proxyMethod);
                 }
-proxyMethodLoopContinue:;
+proxyMethodLoopContinue:
+                ;
             }
 
             // save info
