@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Collections.Immutable;
 using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using System.Reflection;
@@ -128,7 +129,7 @@ namespace Nanoray.Pintail
                 var candidates = new Dictionary<MethodInfo, TypeUtilities.PositionConversion?[]>();
                 foreach (MethodInfo targetMethod in allTargetMethods)
                 {
-                    var positionConversions = TypeUtilities.MatchProxyMethod(targetMethod, proxyMethod, this.EnumMappingBehavior, new HashSet<Type> { this.ProxyInfo.Target.Type, this.ProxyInfo.Proxy.Type});
+                    var positionConversions = TypeUtilities.MatchProxyMethod(targetMethod, proxyMethod, this.EnumMappingBehavior, (new[]{this.ProxyInfo.Target.Type, this.ProxyInfo.Proxy.Type}).ToImmutableHashSet() );
                     if (positionConversions is null)
                         continue;
 

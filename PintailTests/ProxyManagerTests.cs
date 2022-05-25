@@ -582,6 +582,12 @@ namespace Nanoray.Pintail.Tests
             consumerApi.state = 5;
             Assert.AreEqual(consumerApi, consumerApi.method());
             Assert.AreEqual(10, consumerApi.state);
+            Assert.AreEqual(1337, consumerApi.GetOtherState());
+
+            var otherconsumer = manager.ObtainProxy<ISimpleConsumerFluentAPI>(providerApi)!;
+            otherconsumer.state = 7;
+            Assert.AreEqual(7, otherconsumer.state);
+            // Assert.AreEqual(10, consumerApi.state); // currently fails.
         }
     }
 }

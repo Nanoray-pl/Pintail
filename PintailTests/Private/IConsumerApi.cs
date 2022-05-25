@@ -35,6 +35,18 @@ namespace Nanoray.Pintail.Tests.Consumer
         public string otherteststring { get; set;}
     }
 
+    public interface IProxiedInputWithGenerics<T>
+    {
+        public T Value { get; set; }
+    }
+
+    public interface IProxiedInputWithTwoGenerics<T,U>
+    {
+        public T TValue { get; set; }
+        public U UValue { get; set; }
+    }
+
+
     public class ProxiedInput : IProxiedInput
     {
         public string teststring { get; set;}
@@ -98,6 +110,8 @@ namespace Nanoray.Pintail.Tests.Consumer
         int state { get; set; }
 
         ISimpleConsumerFluentAPI method();
+
+        public int GetOtherState();
     }
 
     public interface ISimpleConsumerApi<T>

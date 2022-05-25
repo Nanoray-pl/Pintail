@@ -1,8 +1,6 @@
 using System;
-using System.Linq;
 using System.Reflection;
 using System.Reflection.Emit;
-using System.Text;
 using Nanoray.Pintail.Tests.Consumer;
 using Nanoray.Pintail.Tests.Provider;
 using NUnit.Framework;
@@ -73,7 +71,7 @@ namespace Nanoray.Pintail.Tests
         }
 
         [Test]
-        public void TestEnum()
+        public void TestIncorrectlySizedEnum()
         {
             var manager = this.CreateProxyManager(new(
                 noMatchingMethodHandler: ProxyManagerConfiguration<Nothing>.ThrowExceptionNoMatchingMethodHandler,

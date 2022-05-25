@@ -44,12 +44,24 @@ namespace Nanoray.Pintail.Tests.Provider
     public class SimpleFluentProviderApi
     {
         public int state { get; set; }
+        private int otherstate;
 
         public SimpleFluentProviderApi method()
         {
             this.state = 10;
+            this.otherstate = 1337;
             return this;
         }
+
+        public int GetOtherState() => this.otherstate;
+
+        public SimpleFluentProviderApi unusedMethod() => this;
+    }
+
+    public class ComplexFluentProviderApi : SimpleFluentProviderApi
+    {
+        
+
     }
 
     public class SimpleProviderApi<T>

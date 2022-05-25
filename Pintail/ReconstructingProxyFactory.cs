@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Collections.Immutable;
 using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 
@@ -42,7 +43,7 @@ namespace Nanoray.Pintail
                     {
                         if (callParameters[i] is null)
                             continue;
-                        switch (TypeUtilities.AreTypesMatching(constructor.GetParameters()[i].ParameterType, callParameters[i]!.GetType(), TypeUtilities.MethodTypeAssignability.AssignTo, this.EnumMappingBehavior, new HashSet<Type>()))
+                        switch (TypeUtilities.AreTypesMatching(constructor.GetParameters()[i].ParameterType, callParameters[i]!.GetType(), TypeUtilities.MethodTypeAssignability.AssignTo, this.EnumMappingBehavior, ImmutableHashSet<Type>.Empty))
                         {
                             case TypeUtilities.MatchingTypesResult.Exact:
                             case TypeUtilities.MatchingTypesResult.Assignable:

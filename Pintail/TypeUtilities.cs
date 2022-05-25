@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Collections.Immutable;
 using System.Linq;
 using System.Reflection;
 using System.Runtime.Caching;
@@ -36,7 +37,7 @@ namespace Nanoray.Pintail
         // Assignable is not currently supported.
         internal enum PositionConversion { Proxy, Assignable, Exact }
 
-        internal static MatchingTypesResult AreTypesMatching(Type targetType, Type proxyType, MethodTypeAssignability assignability, ProxyManagerEnumMappingBehavior enumMappingBehavior, HashSet<Type> assumeMappableIfRecursed)
+        internal static MatchingTypesResult AreTypesMatching(Type targetType, Type proxyType, MethodTypeAssignability assignability, ProxyManagerEnumMappingBehavior enumMappingBehavior, ImmutableHashSet<Type> assumeMappableIfRecursed)
         {
             if (targetType.IsGenericMethodParameter != proxyType.IsGenericMethodParameter)
                 return MatchingTypesResult.False;
@@ -153,7 +154,7 @@ namespace Nanoray.Pintail
             return matchingTypesResult;
         }
 
-        internal static PositionConversion?[]? MatchProxyMethod(MethodInfo targetMethod, MethodInfo proxyMethod, ProxyManagerEnumMappingBehavior enumMappingBehavior, HashSet<Type> assumeMappableIfRecursed)
+        internal static PositionConversion?[]? MatchProxyMethod(MethodInfo targetMethod, MethodInfo proxyMethod, ProxyManagerEnumMappingBehavior enumMappingBehavior, ImmutableHashSet<Type> assumeMappableIfRecursed)
         {
             // checking if `targetMethod` matches `proxyMethod`
             var proxyMethodParameters = proxyMethod.GetParameters();
@@ -199,7 +200,7 @@ namespace Nanoray.Pintail
 
         // This recursion might be dangerous. I'm not sure.
         // Todo: figure out what else I need to do for recursion to avoid infinite loops.
-        internal static bool CanInterfaceBeMapped(Type target, Type proxy, ProxyManagerEnumMappingBehavior enumMappingBehavior, MethodTypeAssignability assignability, HashSet<Type> assumeMappableIfRecursed)
+        internal static bool CanInterfaceBeMapped(Type target, Type proxy, ProxyManagerEnumMappingBehavior enumMappingBehavior, MethodTypeAssignability assignability, ImmutableHashSet<Type> assumeMappableIfRecursed)
         {
             // If it's just assignable, we can skip the whole reflection logic
             // which can be quite slow.
@@ -227,7 +228,6 @@ namespace Nanoray.Pintail
                 return false;
 
             // check the cache.
-            // TODO: target.AssemblyQualifiedName seems to be null sometimes? figure that out...
             List<Type>? types = null;
             string cachekey = $"{target.AssemblyQualifiedName ?? $"{target.Assembly.GetName().Name}??{target.Namespace}??{target.Name}"}@@{enumMappingBehavior:D}@@{assignability:D}";
             if (cache.Contains(cachekey))
@@ -246,6 +246,7 @@ namespace Nanoray.Pintail
             var ToAssignFromMethods = (assignability == MethodTypeAssignability.AssignTo ? proxy.FindInterfaceMethods() : target.FindInterfaceMethods());
 
             HashSet<MethodInfo> FoundMethods = new();
+            assumeMappableIfRecursed = assumeMappableIfRecursed.Add(target).Add(proxy);
 
             foreach (var assignToMethod in ToAssignToMethods)
             {
