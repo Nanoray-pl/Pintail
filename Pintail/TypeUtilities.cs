@@ -276,17 +276,20 @@ NextMethod:
             return true;
         }
 
-        internal static IEnumerable<MethodInfo> FindInterfaceMethods(this Type baseType)
+        internal static IEnumerable<MethodInfo> FindInterfaceMethods(this Type baseType, Func<MethodInfo, bool>? filter = null)
         {
+            filter ??= (_) => true;
             foreach (MethodInfo method in baseType.GetMethods())
             {
-                yield return method;
+                if (filter(method))
+                    yield return method;
             }
             foreach (Type interfaceType in baseType.GetInterfaces())
             {
-                foreach (var method in FindInterfaceMethods(interfaceType))
+                foreach (var method in FindInterfaceMethods(interfaceType, filter))
                 {
-                    yield return method;
+                    if (filter(method))
+                        yield return method;
                 }
             }
         }
@@ -358,7 +361,9 @@ NextMethod:
 
             if (direction == 0)
             {
-                if (methodA.DeclaringType!.IsAssignableTo(methodB.DeclaringType))
+                if (methodA.DeclaringType == methodB.DeclaringType) // somehow you gave me the same method???
+                    return 0;
+                else if (methodA.DeclaringType!.IsAssignableTo(methodB.DeclaringType))
                     return -1;
                 else if (methodA.DeclaringType!.IsAssignableFrom(methodB.DeclaringType))
                     return 1;

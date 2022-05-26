@@ -113,15 +113,11 @@ namespace Nanoray.Pintail
                     break;
             }
 
-            var allTargetMethods = this.ProxyInfo.Target.Type.FindInterfaceMethods().ToHashSet();
-            var allProxyMethods = this.ProxyInfo.Proxy.Type.FindInterfaceMethods().ToHashSet();
+            // crosscheck this.
+            Func<MethodInfo, bool>? filter = this.ProxyInfo.Proxy.Type.IsAssignableTo(typeof(Delegate)) ? (f => f.Name == "Invoke") : null; 
 
-            // not sure here?
-            if (this.ProxyInfo.Proxy.Type.IsAssignableTo(typeof(Delegate)))
-            {
-                allTargetMethods.RemoveWhere(m => m.Name != "Invoke");
-                allProxyMethods.RemoveWhere(m => m.Name != "Invoke");
-            }
+            var allTargetMethods = this.ProxyInfo.Target.Type.FindInterfaceMethods(filter);
+            var allProxyMethods = this.ProxyInfo.Proxy.Type.FindInterfaceMethods(filter);
 
             // proxy methods
             IList<ProxyInfo<Context>> relatedProxyInfos = new List<ProxyInfo<Context>>();
