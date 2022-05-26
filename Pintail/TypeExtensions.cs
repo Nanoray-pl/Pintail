@@ -27,12 +27,26 @@ namespace Nanoray.Pintail
             string? fullName = type.AssemblyQualifiedName;
             if (fullName is not null)
                 return fullName;
-            return BuildTypeName(type, type => $"[{type.GetQualifiedName()}]");
+            return BuildQualifiedTypeName(type, type => $"[{type.GetQualifiedName()}]");
         }
 
         internal static string GetShortName(this Type type)
         {
             return BuildTypeName(type, GetShortName);
+        }
+
+        private static string BuildQualifiedTypeName(Type type, Func<Type, string> nameProvider)
+        {
+            StringBuilder sb = new(type.Assembly.GetName().FullName);
+            sb.Append("@@").Append(type.FullName);
+            Type[] genericArguments = type.GetGenericArguments();
+            if (genericArguments.Length != 0)
+            {
+                sb.Append('[');
+                sb.AppendJoin(",", genericArguments.Select(generic => nameProvider(generic)));
+                sb.Append(']');
+            }
+            return sb.ToString();
         }
 
         private static string BuildTypeName(Type type, Func<Type, string> nameProvider)
@@ -42,12 +56,7 @@ namespace Nanoray.Pintail
             if (genericArguments.Length != 0)
             {
                 sb.Append('[');
-                for (int i = 0; i < genericArguments.Length; i++)
-                {
-                    if (i != 0)
-                        sb.Append(", ");
-                    sb.Append(nameProvider(genericArguments[i]));
-                }
+                sb.AppendJoin(",", genericArguments.Select(generic => nameProvider(generic)));
                 sb.Append(']');
             }
             return sb.ToString();
