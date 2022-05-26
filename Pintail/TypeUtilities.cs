@@ -257,7 +257,7 @@ namespace Nanoray.Pintail
                     // double check the directions are right here. Argh. I can never seem to get AssignTo/AssignFrom right on the first try.
                     if (TypeUtilities.MatchProxyMethod(assignToMethod, assignFromMethod, enumMappingBehavior, assumeMappableIfRecursed) is not null)
                     {
-                        FoundMethods.Add(assignToMethod);
+                        FoundMethods.Add(assignFromMethod);
                         goto NextMethod;
                     }
                 }
@@ -268,7 +268,7 @@ NextMethod:
 
             if (assignability == MethodTypeAssignability.Exact)
             {
-                FoundMethods.ExceptWith(ToAssignFromMethods);
+                FoundMethods.SymmetricExceptWith(ToAssignFromMethods);
                 if (FoundMethods.Count != 0)
                     return false;
             }
