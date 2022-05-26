@@ -58,12 +58,6 @@ namespace Nanoray.Pintail.Tests.Provider
         public SimpleFluentProviderApi unusedMethod() => this;
     }
 
-    public class ComplexFluentProviderApi : SimpleFluentProviderApi
-    {
-        
-
-    }
-
     public class SimpleProviderApi<T>
     {
         private T? Value;
@@ -77,6 +71,8 @@ namespace Nanoray.Pintail.Tests.Provider
         {
             return this.Value;
         }
+
+        public T? UnusedMethod => this.Value;
     }
 
     public class SimpleProviderApi : IProviderApiDefaultMethods

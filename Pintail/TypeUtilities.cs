@@ -229,7 +229,7 @@ namespace Nanoray.Pintail
 
             // check the cache.
             List<Type>? types = null;
-            string cachekey = $"{target.AssemblyQualifiedName ?? $"{target.Assembly.GetName().Name}??{target.Namespace}??{target.Name}"}@@{enumMappingBehavior:D}@@{assignability:D}";
+            string cachekey = $"{target.AssemblyQualifiedName ?? $"{target.Assembly.GetName().Name}??{target.Namespace}??{target.Name}"}@@{enumMappingBehavior:D}@@{assignability:D}"; //sometimes AssemblyQualifiedName is null
             if (cache.Contains(cachekey))
             {
                 CacheItem? item = cache.GetCacheItem(cachekey);
@@ -246,13 +246,14 @@ namespace Nanoray.Pintail
             var ToAssignFromMethods = (assignability == MethodTypeAssignability.AssignTo ? proxy.FindInterfaceMethods() : target.FindInterfaceMethods());
 
             HashSet<MethodInfo> FoundMethods = new();
+
+            // To avoid infinite recursion, avoid checking myself.
             assumeMappableIfRecursed = assumeMappableIfRecursed.Add(target).Add(proxy);
 
             foreach (var assignToMethod in ToAssignToMethods)
             {
                 foreach (var assignFromMethod in ToAssignFromMethods)
                 {
-                    // The recursion here might be a problem.
                     // double check the directions are right here. Argh. I can never seem to get AssignTo/AssignFrom right on the first try.
                     if (TypeUtilities.MatchProxyMethod(assignToMethod, assignFromMethod, enumMappingBehavior, assumeMappableIfRecursed) is not null)
                     {
@@ -302,7 +303,7 @@ NextMethod:
             }
 
             // Favor methods where the names match.
-            var nameMatches = candidates.Where((kvp) => TypeUtilities.AreAllParamNamesMatching(kvp.Key, proxyMethod)).ToList();
+            var nameMatches = candidates.Where((kvp) => AreAllParamNamesMatching(kvp.Key, proxyMethod)).ToList();
             if (nameMatches.Count == 1)
             {
                 var (target, positions) = nameMatches.First();
@@ -333,7 +334,7 @@ NextMethod:
         /// <returns>-1 if the first is better, 1 if the second is better.</returns>
         /// <exception cref="AmbiguousMatchException">It is not possible to resolve the two.</exception>
         /// <remarks>A method is considered better if all of its parameters' types can be assigned to
-        /// and there's t least </remarks>
+        /// the other method's params and there's at least one param that's "better".</remarks>
         private static int CompareTwoMethods(MethodInfo methodA, MethodInfo methodB)
         {
             int direction = 0;
@@ -344,23 +345,24 @@ NextMethod:
                 else if (paramA.ParameterType.IsAssignableTo(paramB.ParameterType))
                 {
                     if (direction == 1)
-                        throw new AmbiguousMatchException($"{methodA.DeclaringType}::{methodA.Name} and {methodB.DeclaringType}::{methodB.Name} are ambiguous matches!");
+                        throw new AmbiguousMatchException($"{methodA.DeclaringType!.GetShortName()}::{methodA.Name} and {methodB.DeclaringType!.GetShortName()}::{methodB.Name} are ambiguous matches!");
                     direction = -1;
                 }
                 else if (paramA.ParameterType.IsAssignableFrom(paramB.ParameterType))
                 {
                     if (direction == -1)
-                        throw new AmbiguousMatchException($"{methodA.DeclaringType}::{methodA.Name} and {methodB.DeclaringType}::{methodB.Name} are ambiguous matches!");
+                        throw new AmbiguousMatchException($"{methodA.DeclaringType!.GetShortName()}::{methodA.Name} and {methodB.DeclaringType!.GetShortName()}::{methodB.Name} are ambiguous matches!");
                     direction = 1;
                 }
             }
+
             if (direction == 0)
             {
                 if (methodA.DeclaringType!.IsAssignableTo(methodB.DeclaringType))
                     return -1;
                 else if (methodA.DeclaringType!.IsAssignableFrom(methodB.DeclaringType))
                     return 1;
-                throw new AmbiguousMatchException($"{methodA.DeclaringType}::{methodA.Name} and {methodB.DeclaringType}::{methodB.Name} are ambiguous matches!");
+                throw new AmbiguousMatchException($"{methodA.DeclaringType!.GetShortName()}::{methodA.Name} and {methodB.DeclaringType!.GetShortName()}::{methodB.Name} are ambiguous matches!");
             }
             return direction;
         }

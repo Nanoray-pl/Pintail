@@ -1,3 +1,5 @@
+using System;
+
 namespace Nanoray.Pintail.Tests.Provider
 {
     public class FluentProviderApiManager
@@ -12,6 +14,12 @@ namespace Nanoray.Pintail.Tests.Provider
         public string? referenceState { get; set; }
 
         private int privateState;
+
+        private IProxiedInput? proxied;
+
+        private Func<IProxiedInput>? func;
+
+        private Action<IProxiedInput>? action;
 
         public int Prop
         {
@@ -31,6 +39,25 @@ namespace Nanoray.Pintail.Tests.Provider
             return this;
         }
 
+        public IFluentProviderApi MethodWithOverload(int testmethod)
+        {
+            this.privateState = testmethod;
+            return this;
+        }
+
+        public IFluentProviderApi MethodWithOverload(IProxiedInput testmethod)
+        {
+            this.proxied = testmethod;
+            return this;
+        }
+
+        public IFluentProviderApi MethodWithDelegates(Func<IProxiedInput> func, Action<IProxiedInput> action)
+        {
+            this.action = action;
+            this.func = func;
+            return this;
+        }
+
         public IFluentProviderApi NewMethodAdded() => this;
     }
 
@@ -43,6 +70,12 @@ namespace Nanoray.Pintail.Tests.Provider
         public IFluentProviderApi DoSomething();
 
         public IFluentProviderApi MethodWithOverload();
+
+        public IFluentProviderApi MethodWithOverload(int testmethod);
+
+        public IFluentProviderApi MethodWithOverload(IProxiedInput testmethod);
+
+        public IFluentProviderApi MethodWithDelegates(Func<IProxiedInput> func, Action<IProxiedInput> action);
 
         public IFluentProviderApi NewMethodAdded();
 

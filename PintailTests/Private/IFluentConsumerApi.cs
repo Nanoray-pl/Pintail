@@ -14,11 +14,11 @@ namespace Nanoray.Pintail.Tests.Consumer
 
         public IFluentConsumerApi MethodWithOverload();
 
-        //public IFluentConsumerApi MethodWithOverload(int testmethod);
+        public IFluentConsumerApi MethodWithOverload(int testmethod);
 
-        //public IFluentConsumerApi MethodWithOverload(IProxiedInput testmethod);
+        public IFluentConsumerApi MethodWithOverload(IProxiedInput testmethod);
 
-        //public IFluentConsumerApi MethodWithOverload(Func<IProxiedInput> func, Action<IProxiedInput> action);
+        public IFluentConsumerApi MethodWithDelegates(Func<IProxiedInput> func, Action<IProxiedInput> action);
     }
 
     public interface IFluentConsumerApiManager

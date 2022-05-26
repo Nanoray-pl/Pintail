@@ -161,7 +161,7 @@ namespace Nanoray.Pintail
                             exceptions.Add(ex);
                         }
                     }
-                    throw new AggregateException("Errors generated while attempting to map", exceptions);
+                    throw new AggregateException($"Errors generated while attempting to map {proxyMethod.Name}", exceptions);
                 }
                 else
                 {
