@@ -174,6 +174,7 @@ namespace Nanoray.Pintail
                 case MatchingTypesResult.False:
                     return null;
                 case MatchingTypesResult.Exact:
+                case MatchingTypesResult.Assignable:
                     break;
                 case MatchingTypesResult.IfProxied:
                     positionConversions[0] = PositionConversion.Proxy;
@@ -187,6 +188,7 @@ namespace Nanoray.Pintail
                     case MatchingTypesResult.False:
                         return null;
                     case MatchingTypesResult.Exact:
+                    case MatchingTypesResult.Assignable:
                         break;
                     case MatchingTypesResult.IfProxied:
                         positionConversions[i + 1] = PositionConversion.Proxy;
@@ -255,7 +257,7 @@ namespace Nanoray.Pintail
                 foreach (var assignFromMethod in ToAssignFromMethods)
                 {
                     // double check the directions are right here. Argh. I can never seem to get AssignTo/AssignFrom right on the first try.
-                    if (TypeUtilities.MatchProxyMethod(assignToMethod, assignFromMethod, enumMappingBehavior, assumeMappableIfRecursed) is not null)
+                    if (MatchProxyMethod(assignToMethod, assignFromMethod, enumMappingBehavior, assumeMappableIfRecursed) is not null)
                     {
                         FoundMethods.Add(assignFromMethod);
                         goto NextMethod;
