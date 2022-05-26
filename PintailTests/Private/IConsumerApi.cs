@@ -5,6 +5,18 @@ namespace Nanoray.Pintail.Tests.Consumer
 {
     public delegate void CustomGenericOutDelegate<T>(out T param);
 
+    public interface IATestClass
+    {
+        public interface IInnerClass
+        {
+            public string sigh { get; }
+        }
+
+        public string? Name { get; }
+
+        public IInnerClass[]? inner { get;}
+    }
+
     public enum StateEnum
     {
         State0, State1, State2, StateNonExisting

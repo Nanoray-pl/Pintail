@@ -589,5 +589,18 @@ namespace Nanoray.Pintail.Tests
             Assert.AreEqual(7, otherconsumer.state);
             // Assert.AreEqual(10, consumerApi.state); // currently fails.
         }
+
+        [Test]
+        public void TestWithAbstractClass()
+        {
+            var manager = this.CreateProxyManager();
+            var providerApi = new ATestClassImpl();
+
+            var consumerApi = manager.ObtainProxy<IATestClass>(providerApi)!;
+
+            Assert.AreEqual("Hi!", consumerApi.Name);
+            Assert.AreEqual("sigh", consumerApi.inner[0].sigh);
+        }
+
     }
 }

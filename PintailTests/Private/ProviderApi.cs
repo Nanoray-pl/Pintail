@@ -6,6 +6,23 @@ namespace Nanoray.Pintail.Tests.Provider
 {
     public delegate void CustomGenericOutDelegate<T>(out T param);
 
+    public abstract class ATestClass
+    {
+        public abstract string? Name { get; }
+    }
+
+    public class ATestClassImpl: ATestClass
+    {
+        public class InnerClass
+        {
+            public string sigh { get; } = "sigh";
+        }
+
+        public InnerClass[]? inner { get; } = new[] {new InnerClass()};
+
+        public override string? Name { get; } = "Hi!";
+    }
+
     public enum StateEnum
     {
         State0, State1, State2
