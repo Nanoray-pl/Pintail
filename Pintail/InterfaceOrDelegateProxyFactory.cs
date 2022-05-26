@@ -114,8 +114,9 @@ namespace Nanoray.Pintail
             }
 
             // crosscheck this.
-            Func<MethodInfo, bool>? filter = this.ProxyInfo.Proxy.Type.IsAssignableTo(typeof(Delegate)) ? (f => f.Name == "Invoke") : null; 
+            Func<MethodInfo, bool>? filter = this.ProxyInfo.Proxy.Type.IsAssignableTo(typeof(Delegate)) ? (f => f.Name == "Invoke") : (_) => true; 
 
+            // Groupby might make this more efficient.
             var allTargetMethods = this.ProxyInfo.Target.Type.FindInterfaceMethods(filter).ToList();
             var allProxyMethods = this.ProxyInfo.Proxy.Type.FindInterfaceMethods(filter);
 
@@ -144,20 +145,29 @@ namespace Nanoray.Pintail
 
                 if (candidates.Any())
                 {
-                    List<Exception> exceptions = new();
-                    foreach (var (targetMethod, positionConversions) in TypeUtilities.RankMethods(candidates, proxyMethod))
-                    {
-                        try
-                        {
-                            this.ProxyMethod(manager, proxyBuilder, proxyMethod, targetMethod, targetField, glueField, proxyInfosField, positionConversions, relatedProxyInfos);
-                            goto proxyMethodLoopContinue;
-                        }
-                        catch (Exception ex)
-                        {
-                            exceptions.Add(ex);
-                        }
+                    if (candidates.Count == 1)
+                    { // Only have one option, bypass ranking.
+                        var (targetMethod, positionConversions) = candidates.First();
+                        this.ProxyMethod(manager, proxyBuilder, proxyMethod, targetMethod, targetField, glueField, proxyInfosField, positionConversions, relatedProxyInfos);
+                        goto proxyMethodLoopContinue;
                     }
-                    throw new AggregateException($"Errors generated while attempting to map {proxyMethod.Name}", exceptions);
+                    else
+                    {
+                        List<Exception> exceptions = new();
+                        foreach (var (targetMethod, positionConversions) in TypeUtilities.RankMethods(candidates, proxyMethod))
+                        {
+                            try
+                            {
+                                this.ProxyMethod(manager, proxyBuilder, proxyMethod, targetMethod, targetField, glueField, proxyInfosField, positionConversions, relatedProxyInfos);
+                                goto proxyMethodLoopContinue;
+                            }
+                            catch (Exception ex)
+                            {
+                                exceptions.Add(ex);
+                            }
+                        }
+                        throw new AggregateException($"Errors generated while attempting to map {proxyMethod.Name}", exceptions);
+                    }
                 }
                 else
                 {

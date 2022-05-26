@@ -298,36 +298,23 @@ NextMethod:
             }
         }
 
-        internal static IEnumerable<(MethodInfo targetMethod, PositionConversion?[] positionConversions)> RankMethods(
+        internal static IEnumerable<KeyValuePair<MethodInfo, PositionConversion?[]>> RankMethods(
             Dictionary<MethodInfo, TypeUtilities.PositionConversion?[]> candidates,
             MethodInfo proxyMethod)
         {
             if (candidates.Count == 1)
-            {
-                var (target, positions) = candidates.First();
-                yield return (target, positions);
-                yield break;
-            }
+                return candidates;
 
             // Favor methods where the names match.
             var nameMatches = candidates.Where((kvp) => AreAllParamNamesMatching(kvp.Key, proxyMethod)).ToList();
             if (nameMatches.Count == 1)
-            {
-                var (target, positions) = nameMatches.First();
-                yield return (target, positions);
-                yield break;
-            }
-            else if (nameMatches.Count == 0)
-            { // No name matches, all will be considered equally.
+                return nameMatches;
+            else if (nameMatches.Count == 0) // No name matches, all will be considered equally. 
                 nameMatches = candidates.ToList();
-            }
 
             // okay, we seem to have multiple. Let's try ranking them.
             nameMatches.Sort((a, b) => CompareTwoMethods(a.Key, b.Key));
-            foreach (var (target, positions) in nameMatches)
-                yield return (target, positions);
-
-            yield break;
+            return nameMatches;
         }
 
         private static bool AreAllParamNamesMatching(MethodInfo target, MethodInfo proxy)
