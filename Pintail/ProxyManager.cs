@@ -171,7 +171,7 @@ namespace Nanoray.Pintail
             methodBuilder.SetParameters(argTypes);
 
             ILGenerator il = methodBuilder.GetILGenerator();
-            il.Emit(OpCodes.Ldstr, $"The {proxyInfo.Proxy.Type.GetShortName()} interface defines method {proxyMethod.Name} which doesn't exist in the API.");
+            il.Emit(OpCodes.Ldstr, $"The {proxyInfo.Proxy.Type.GetShortName()} interface defines method {proxyMethod.Name} which doesn't exist in the API. (It may depend on an interface that was not mappable).");
             il.Emit(OpCodes.Newobj, typeof(NotImplementedException).GetConstructor(new Type[] { typeof(string) })!);
             il.Emit(OpCodes.Throw);
         };

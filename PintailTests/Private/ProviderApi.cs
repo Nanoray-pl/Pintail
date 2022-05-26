@@ -8,17 +8,28 @@ namespace Nanoray.Pintail.Tests.Provider
 
     public abstract class ATestClass
     {
+        public abstract class InnerClass
+        {
+            public abstract string sigh { get; }
+        }
+
+        public class ObjInnerClass: InnerClass
+        {
+            public override string sigh { get; } = "helloworld";
+        }
+        public abstract InnerClass[]? inner { get; }
+
         public abstract string? Name { get; }
     }
 
     public class ATestClassImpl: ATestClass
     {
-        public class InnerClass
+        private class InnerClassImpl: InnerClass
         {
-            public string sigh { get; } = "sigh";
+            public override string sigh { get; } = "sigh";
         }
 
-        public InnerClass[]? inner { get; } = new[] {new InnerClass()};
+        public override InnerClass[]? inner { get; } = new[] {new InnerClassImpl()};
 
         public override string? Name { get; } = "Hi!";
     }

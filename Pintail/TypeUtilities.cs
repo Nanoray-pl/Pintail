@@ -65,6 +65,10 @@ namespace Nanoray.Pintail
                 if (proxyType.GetEnumUnderlyingType() != targetType.GetEnumUnderlyingType())
                     return MatchingTypesResult.False;
 
+                // No need to check the enum values here, don't build them.
+                if (enumMappingBehavior == ProxyManagerEnumMappingBehavior.ThrowAtRuntime)
+                    return MatchingTypesResult.IfProxied;
+
                 var proxyEnumRawValues = proxyType.GetEnumerableEnumValues().Select(e => Convert.ChangeType(e, proxyType.GetEnumUnderlyingType())).ToHashSet();
                 var targetEnumRawValues = targetType.GetEnumerableEnumValues().Select(e => Convert.ChangeType(e, proxyType.GetEnumUnderlyingType())).ToHashSet();
                 switch (enumMappingBehavior)
@@ -73,8 +77,6 @@ namespace Nanoray.Pintail
                         return proxyEnumRawValues == targetEnumRawValues ? MatchingTypesResult.IfProxied : MatchingTypesResult.False;
                     case ProxyManagerEnumMappingBehavior.AllowAdditive:
                         return proxyEnumRawValues.IsSubsetOf(targetEnumRawValues) ? MatchingTypesResult.IfProxied : MatchingTypesResult.False;
-                    case ProxyManagerEnumMappingBehavior.ThrowAtRuntime:
-                        return MatchingTypesResult.IfProxied;
                 }
             }
 
@@ -231,7 +233,7 @@ namespace Nanoray.Pintail
 
             // check the cache.
             List<Type>? types = null;
-            string cachekey = $"{target.AssemblyQualifiedName ?? $"{target.Assembly.GetName().Name}??{target.Namespace}??{target.Name}"}@@{enumMappingBehavior:D}@@{assignability:D}"; //sometimes AssemblyQualifiedName is null
+            string cachekey = $"{target.AssemblyQualifiedName ?? $"{target.Assembly.GetName().FullName}??{target.Namespace}??{target.Name}"}@@{enumMappingBehavior:D}@@{assignability:D}"; //sometimes AssemblyQualifiedName is null
             if (cache.Contains(cachekey))
             {
                 CacheItem? item = cache.GetCacheItem(cachekey);
