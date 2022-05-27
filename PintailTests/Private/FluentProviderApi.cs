@@ -1,4 +1,6 @@
 using System;
+using System.Collections.Generic;
+using System.Linq;
 
 namespace Nanoray.Pintail.Tests.Provider
 {
@@ -20,6 +22,10 @@ namespace Nanoray.Pintail.Tests.Provider
         private Func<IProxiedInput>? func;
 
         private Action<IProxiedInput>? action;
+
+        private IProxiedInput[]? array;
+
+        //public IList<IProxiedInput> list { get; } = new List<IProxiedInput>();
 
         public int Prop
         {
@@ -59,6 +65,16 @@ namespace Nanoray.Pintail.Tests.Provider
         }
 
         public IFluentProviderApi NewMethodAdded() => this;
+
+        public IFluentProviderApi ArrayMethod(IProxiedInput[] arraymethod)
+        {
+            this.array = arraymethod;
+            return this;
+        }
+
+        public IProxiedInput[]? ArrayReturn() => this.array;
+
+        public IList<IProxiedInput>? ListReturn() => this.array?.ToList();
     }
 
     public interface IFluentProviderApi
@@ -78,6 +94,12 @@ namespace Nanoray.Pintail.Tests.Provider
         public IFluentProviderApi MethodWithDelegates(Func<IProxiedInput> func, Action<IProxiedInput> action);
 
         public IFluentProviderApi NewMethodAdded();
+
+        public IFluentProviderApi ArrayMethod(IProxiedInput[] arraymethod);
+
+        public IProxiedInput[]? ArrayReturn();
+
+        public IList<IProxiedInput>? ListReturn();
 
         public int Prop { get; set; }
     }

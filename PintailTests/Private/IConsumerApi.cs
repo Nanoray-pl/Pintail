@@ -14,7 +14,7 @@ namespace Nanoray.Pintail.Tests.Consumer
 
         public string? Name { get; }
 
-        public IInnerClass[]? inner { get;}
+        public IInnerClass[] inner { get; }
     }
 
     public enum StateEnum
@@ -149,6 +149,8 @@ namespace Nanoray.Pintail.Tests.Consumer
 
     public interface IComplexConsumerApi: ISimpleConsumerApi
     {
+        public IList<IProxiedInput> list { get; }
+
         StateEnum GetStateEnum();
         void GetOutStateEnum(out StateEnum state);
         StateEnum GetSameEnumState(StateEnum state);

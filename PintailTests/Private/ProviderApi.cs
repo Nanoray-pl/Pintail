@@ -13,7 +13,7 @@ namespace Nanoray.Pintail.Tests.Provider
             public abstract string sigh { get; }
         }
 
-        public class ObjInnerClass: InnerClass
+        public class InnerClassImpl: InnerClass
         {
             public override string sigh { get; } = "helloworld";
         }
@@ -22,14 +22,14 @@ namespace Nanoray.Pintail.Tests.Provider
         public abstract string? Name { get; }
     }
 
-    public class ATestClassImpl: ATestClass
+    public class ATestClassImpl : ATestClass
     {
-        private class InnerClassImpl: InnerClass
+        private class InnerClassImpl : InnerClass
         {
             public override string sigh { get; } = "sigh";
         }
 
-        public override InnerClass[]? inner { get; } = new[] {new InnerClassImpl()};
+        public override InnerClass[] inner { get; } = new[] { new InnerClassImpl() };
 
         public override string? Name { get; } = "Hi!";
     }
@@ -149,6 +149,8 @@ namespace Nanoray.Pintail.Tests.Provider
 
     public class ComplexProviderApi: SimpleProviderApi
     {
+
+        public IList<IProxiedInput> list { get; } = new List<IProxiedInput>();
         public StateEnum GetStateEnum()
             => StateEnum.State1;
 

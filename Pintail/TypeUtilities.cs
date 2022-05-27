@@ -246,8 +246,8 @@ namespace Nanoray.Pintail
             }
 
             // Figure out groupby...
-            var ToAssignToMethods = (assignability == MethodTypeAssignability.AssignTo ? target.FindInterfaceMethods() : proxy.FindInterfaceMethods()).ToList();
-            var ToAssignFromMethods = (assignability == MethodTypeAssignability.AssignTo ? proxy.FindInterfaceMethods() : target.FindInterfaceMethods());
+            var ToAssignToMethods = (assignability == MethodTypeAssignability.AssignTo ? target.FindInterfaceMethods() : proxy.FindInterfaceMethods());
+            var ToAssignFromMethods = (assignability == MethodTypeAssignability.AssignTo ? proxy.FindInterfaceMethods() : target.FindInterfaceMethods()).ToList();
 
             HashSet<MethodInfo> FoundMethods = new();
 

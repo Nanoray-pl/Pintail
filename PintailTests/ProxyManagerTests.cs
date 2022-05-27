@@ -598,9 +598,9 @@ namespace Nanoray.Pintail.Tests
                 ));
             var providerApi = new ATestClassImpl();
 
-            //var consumerApi = manager.ObtainProxy<IATestClass>(providerApi)!;
+            var consumerApi = manager.ObtainProxy<IATestClass>(providerApi)!;
 
-            manager.TryProxy<IATestClass>(providerApi, out var consumerApi);
+            //manager.TryProxy<IATestClass>(providerApi, out var consumerApi);
 
             Assert.AreEqual("Hi!", consumerApi.Name);
             Assert.AreEqual("sigh", consumerApi.inner[0].sigh);
