@@ -3,13 +3,12 @@ using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Linq;
 using System.Reflection;
-using System.Runtime.Caching;
 
 namespace Nanoray.Pintail
 {
     internal static class TypeUtilities
     {
-        static readonly MemoryCache cache = new("ProxyCache");
+        static readonly IDictionary<string, List<Type>> cache = new Dictionary<string, List<Type>>();
 
         /// <summary>
         /// Controls how the target interface should compare to the proxy interface.
@@ -232,17 +231,11 @@ namespace Nanoray.Pintail
                 return false;
 
             // check the cache.
-            List<Type>? types = null;
             string cachekey = $"{target.AssemblyQualifiedName ?? $"{target.Assembly.GetName().FullName}??{target.Namespace}??{target.Name}"}@@{enumMappingBehavior:D}@@{assignability:D}"; //sometimes AssemblyQualifiedName is null
-            if (cache.Contains(cachekey))
+            if (cache.TryGetValue(cachekey, out List<Type>? types))
             {
-                CacheItem? item = cache.GetCacheItem(cachekey);
-                if (item.Value is List<Type>)
-                {
-                    types = (List<Type>)item.Value;
-                    if (types.Contains(proxy))
-                        return true;
-                }
+                if (types.Contains(proxy))
+                    return true;
             }
 
             // Figure out groupby...
@@ -280,7 +273,7 @@ NextMethod:
             types ??= new();
             types.Add(proxy);
 
-            cache.Add(new CacheItem(cachekey, types), new CacheItemPolicy() { SlidingExpiration = TimeSpan.FromMinutes(5)});
+            cache[cachekey] = types;
             return true;
         }
 
