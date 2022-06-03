@@ -1,10 +1,9 @@
 namespace Nanoray.Pintail.Tests.Consumer
 {
-
     public interface IConsumerApiWithOverrides
     {
-        public string MethodWithOverride();
+        string MethodWithOverride();
 
-        public string MethodWithoutOverride();
+        string MethodWithoutOverride();
     }
 }

@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
 using System.Reflection.Emit;
@@ -263,7 +264,7 @@ namespace Nanoray.Pintail.Tests
             Assert.AreEqual(result1.Text, result2.Text);
             Assert.AreEqual(result1, result2);
 
-            consumerApi.SetMapper((r) => new Consumer.ApiResult($"{r.Text}{r.Text}"));
+            consumerApi.SetMapper(r => new Consumer.ApiResult($"{r.Text}{r.Text}"));
             var result3 = consumerApi.GetMapper()(result2);
             Assert.AreEqual($"{result2.Text}{result2.Text}", result3.Text);
             Assert.AreNotEqual(result2, result3);
@@ -379,7 +380,7 @@ namespace Nanoray.Pintail.Tests
             var providerApi = new ComplexProviderApi();
             var consumerApi = manager.ObtainProxy<IComplexConsumerApi>(providerApi)!;
 
-            var result = consumerApi.ConstructorConstrainedGenericMethod<System.Collections.Generic.List<string>>();
+            var result = consumerApi.ConstructorConstrainedGenericMethod<List<string>>();
             Assert.AreEqual(0, result.Count);
         }
 
@@ -605,9 +606,9 @@ namespace Nanoray.Pintail.Tests
             Assert.AreEqual("Hi!", consumerApi.Name);
             Assert.AreEqual("sigh", consumerApi.inner[0].sigh);
 
-            manager.TryProxy<IATestClass>(providerApi, out consumerApi);
+            manager.TryProxy(providerApi, out consumerApi);
 
-            Assert.AreEqual("Hi!", consumerApi.Name);
+            Assert.AreEqual("Hi!", consumerApi!.Name);
             Assert.AreEqual("sigh", consumerApi.inner[0].sigh);
         }
 

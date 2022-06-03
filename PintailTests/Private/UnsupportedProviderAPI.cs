@@ -2,7 +2,7 @@ using System.Reflection.Emit;
 
 namespace Nanoray.Pintail.Tests.Provider
 {
-    public enum ATooBigEnum { Not, Enough, Values}
+    public enum ATooBigEnum { Not, Enough, Values }
 
     public class EnumInsufficientlyBig
     {

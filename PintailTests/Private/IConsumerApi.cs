@@ -9,12 +9,12 @@ namespace Nanoray.Pintail.Tests.Consumer
     {
         public interface IInnerClass
         {
-            public string sigh { get; }
+            string sigh { get; }
         }
 
-        public string? Name { get; }
+        string? Name { get; }
 
-        public IInnerClass[] inner { get; }
+        IInnerClass[] inner { get; }
     }
 
     public enum StateEnum
@@ -39,29 +39,30 @@ namespace Nanoray.Pintail.Tests.Consumer
 
     public interface IProxiedInput
     {
-        public string teststring { get; set;}
+        string teststring { get; set; }
     }
 
     public interface IProxiedInput2
     {
-        public string otherteststring { get; set;}
+        string otherteststring { get; set; }
     }
 
     public interface IProxiedInputWithGenerics<T>
     {
-        public T Value { get; set; }
+        T Value { get; set; }
     }
 
     public interface IProxiedInputWithTwoGenerics<T,U>
     {
-        public T TValue { get; set; }
-        public U UValue { get; set; }
+        T TValue { get; set; }
+        U UValue { get; set; }
     }
 
 
     public class ProxiedInput : IProxiedInput
     {
-        public string teststring { get; set;}
+        public string teststring { get; set; }
+
         public ProxiedInput(string teststring)
         {
             this.teststring = teststring;
@@ -71,6 +72,7 @@ namespace Nanoray.Pintail.Tests.Consumer
     public class ProxiedInput2: IProxiedInput2
     {
         public string otherteststring { get; set; }
+
         public ProxiedInput2(string otherteststring)
         {
             this.otherteststring = otherteststring;
@@ -190,17 +192,18 @@ namespace Nanoray.Pintail.Tests.Consumer
 
     public interface IProxyInputA
     {
-        public string hi { get; set; }
+        string hi { get; set; }
     }
 
     public interface IProxyInputB
     {
-        public string bye { get; set; }
+        string bye { get; set; }
     }
 
     public class ProxyInputA : IProxyInputA
     {
         public string hi { get; set; }
+
         public ProxyInputA(string hi)
         {
             this.hi = hi;
@@ -210,6 +213,7 @@ namespace Nanoray.Pintail.Tests.Consumer
     public class ProxyInputB: IProxyInputB
     {
         public string bye { get; set; }
+
         public ProxyInputB(string bye)
         {
             this.bye = bye;

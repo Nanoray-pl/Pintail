@@ -24,7 +24,7 @@ namespace Nanoray.Pintail.Tests.Provider
 
     public class ATestClassImpl : ATestClass
     {
-        private class InnerClassImpl : InnerClass
+        private new class InnerClassImpl : InnerClass
         {
             public override string sigh { get; } = "sigh";
         }
@@ -151,6 +151,7 @@ namespace Nanoray.Pintail.Tests.Provider
     {
 
         public IList<IProxiedInput> list { get; } = new List<IProxiedInput>();
+
         public StateEnum GetStateEnum()
             => StateEnum.State1;
 
@@ -248,12 +249,12 @@ namespace Nanoray.Pintail.Tests.Provider
 
     public interface IProxyInputA
     {
-        public string hi { get; set; }
+        string hi { get; set; }
     }
 
     public interface IProxyInputB
     {
-        public string bye { get; set; }
+        string bye { get; set; }
     }
 
     public class ProviderWithTwoProxiedInputs

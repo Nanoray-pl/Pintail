@@ -202,7 +202,7 @@ namespace Nanoray.Pintail
         }
 
         // This recursion might be dangerous. I'm not sure.
-        // Todo: figure out what else I need to do for recursion to avoid infinite loops.
+        // TODO: figure out what else I need to do for recursion to avoid infinite loops.
         internal static bool CanInterfaceBeMapped(Type target, Type proxy, ProxyManagerEnumMappingBehavior enumMappingBehavior, MethodTypeAssignability assignability, ImmutableHashSet<Type> assumeMappableIfRecursed)
         {
             // If it's just assignable, we can skip the whole reflection logic
@@ -239,34 +239,33 @@ namespace Nanoray.Pintail
             }
 
             // Figure out groupby...
-            var ToAssignToMethods = (assignability == MethodTypeAssignability.AssignTo ? target.FindInterfaceMethods() : proxy.FindInterfaceMethods());
-            var ToAssignFromMethods = (assignability == MethodTypeAssignability.AssignTo ? proxy.FindInterfaceMethods() : target.FindInterfaceMethods()).ToList();
+            var toAssignToMethods = (assignability == MethodTypeAssignability.AssignTo ? target.FindInterfaceMethods() : proxy.FindInterfaceMethods());
+            var toAssignFromMethods = (assignability == MethodTypeAssignability.AssignTo ? proxy.FindInterfaceMethods() : target.FindInterfaceMethods()).ToList();
 
-            HashSet<MethodInfo> FoundMethods = new();
+            HashSet<MethodInfo> foundMethods = new();
 
             // To avoid infinite recursion, avoid checking myself.
             assumeMappableIfRecursed = assumeMappableIfRecursed.Add(target).Add(proxy);
 
-            foreach (var assignToMethod in ToAssignToMethods)
+            foreach (var assignToMethod in toAssignToMethods)
             {
-                foreach (var assignFromMethod in ToAssignFromMethods)
+                foreach (var assignFromMethod in toAssignFromMethods)
                 {
-                    // double check the directions are right here. Argh. I can never seem to get AssignTo/AssignFrom right on the first try.
+                    // TODO: double check the directions are right here. Argh. I can never seem to get AssignTo/AssignFrom right on the first try.
                     if (MatchProxyMethod(assignToMethod, assignFromMethod, enumMappingBehavior, assumeMappableIfRecursed) is not null)
                     {
-                        FoundMethods.Add(assignFromMethod);
+                        foundMethods.Add(assignFromMethod);
                         goto NextMethod;
                     }
                 }
                 return false;
-NextMethod:
-                ;
+                NextMethod:;
             }
 
             if (assignability == MethodTypeAssignability.Exact)
             {
-                FoundMethods.SymmetricExceptWith(ToAssignFromMethods);
-                if (FoundMethods.Count != 0)
+                foundMethods.SymmetricExceptWith(toAssignFromMethods);
+                if (foundMethods.Count != 0)
                     return false;
             }
 
@@ -296,14 +295,15 @@ NextMethod:
         }
 
         internal static IEnumerable<KeyValuePair<MethodInfo, PositionConversion?[]>> RankMethods(
-            Dictionary<MethodInfo, TypeUtilities.PositionConversion?[]> candidates,
-            MethodInfo proxyMethod)
+            Dictionary<MethodInfo, PositionConversion?[]> candidates,
+            MethodInfo proxyMethod
+        )
         {
             if (candidates.Count == 1)
                 return candidates;
 
             // Favor methods where the names match.
-            var nameMatches = candidates.Where((kvp) => AreAllParamNamesMatching(kvp.Key, proxyMethod)).ToList();
+            var nameMatches = candidates.Where(kvp => AreAllParamNamesMatching(kvp.Key, proxyMethod)).ToList();
             if (nameMatches.Count == 1)
                 return nameMatches;
             else if (nameMatches.Count == 0) // No name matches, all will be considered equally. 

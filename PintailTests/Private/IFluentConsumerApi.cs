@@ -5,33 +5,32 @@ namespace Nanoray.Pintail.Tests.Consumer
 {
     public interface IFluentConsumerApi
     {
-        public int valueState { get; set; }
+        int valueState { get; set; }
 
-        public string referenceState { get; set; }
+        string referenceState { get; set; }
 
-        public int Prop { get; set; }
+        int Prop { get; set; }
 
-        public IFluentConsumerApi DoSomething();
+        IFluentConsumerApi DoSomething();
 
-        public IFluentConsumerApi MethodWithOverload();
+        IFluentConsumerApi MethodWithOverload();
 
-        public IFluentConsumerApi MethodWithOverload(int testmethod);
+        IFluentConsumerApi MethodWithOverload(int testmethod);
 
-        public IFluentConsumerApi MethodWithOverload(IProxiedInput testmethod);
+        IFluentConsumerApi MethodWithOverload(IProxiedInput testmethod);
 
-        public IFluentConsumerApi MethodWithDelegates(Func<IProxiedInput> func, Action<IProxiedInput> action);
+        IFluentConsumerApi MethodWithDelegates(Func<IProxiedInput> func, Action<IProxiedInput> action);
 
-        public IFluentConsumerApi ArrayMethod(IProxiedInput[] arraymethod);
+        IFluentConsumerApi ArrayMethod(IProxiedInput[] arraymethod);
 
-        public IProxiedInput[]? ArrayReturn();
+        IProxiedInput[]? ArrayReturn();
 
-        public IList<IProxiedInput>? ListReturn();
+        IList<IProxiedInput>? ListReturn();
         //public IList<IProxiedInput> list { get; }
     }
 
     public interface IFluentConsumerApiManager
     {
-        public IFluentConsumerApi GetOne();
+        IFluentConsumerApi GetOne();
     }
-
 }

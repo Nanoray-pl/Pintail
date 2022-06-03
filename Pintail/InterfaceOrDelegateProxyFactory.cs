@@ -114,7 +114,7 @@ namespace Nanoray.Pintail
             }
 
             // crosscheck this.
-            Func<MethodInfo, bool>? filter = this.ProxyInfo.Proxy.Type.IsAssignableTo(typeof(Delegate)) ? (f => f.Name == "Invoke") : (_) => true; 
+            Func<MethodInfo, bool> filter = this.ProxyInfo.Proxy.Type.IsAssignableTo(typeof(Delegate)) ? (f => f.Name == "Invoke") : (_) => true; 
 
             // Groupby might make this more efficient.
             var allTargetMethods = this.ProxyInfo.Target.Type.FindInterfaceMethods(filter).ToList();
@@ -127,12 +127,12 @@ namespace Nanoray.Pintail
                 var candidates = new Dictionary<MethodInfo, TypeUtilities.PositionConversion?[]>();
                 foreach (MethodInfo targetMethod in allTargetMethods)
                 {
-                    var positionConversions = TypeUtilities.MatchProxyMethod(targetMethod, proxyMethod, this.EnumMappingBehavior, (new[]{this.ProxyInfo.Target.Type, this.ProxyInfo.Proxy.Type}).ToImmutableHashSet() );
+                    var positionConversions = TypeUtilities.MatchProxyMethod(targetMethod, proxyMethod, this.EnumMappingBehavior, ImmutableHashSet.Create(this.ProxyInfo.Target.Type, this.ProxyInfo.Proxy.Type));
                     if (positionConversions is null)
                         continue;
 
                     // no inputs are proxied.
-                    if (positionConversions.All((a) => a is null))
+                    if (positionConversions.All(a => a is null))
                     {
                         this.ProxyMethod(manager, proxyBuilder, proxyMethod, targetMethod, targetField, glueField, proxyInfosField, positionConversions, relatedProxyInfos);
                         goto proxyMethodLoopContinue;
@@ -145,36 +145,26 @@ namespace Nanoray.Pintail
 
                 if (candidates.Any())
                 {
-                    if (candidates.Count == 1)
-                    { // Only have one option, bypass ranking.
-                        var (targetMethod, positionConversions) = candidates.First();
-                        this.ProxyMethod(manager, proxyBuilder, proxyMethod, targetMethod, targetField, glueField, proxyInfosField, positionConversions, relatedProxyInfos);
-                        goto proxyMethodLoopContinue;
-                    }
-                    else
+                    List<Exception> exceptions = new();
+                    foreach (var (targetMethod, positionConversions) in TypeUtilities.RankMethods(candidates, proxyMethod))
                     {
-                        List<Exception> exceptions = new();
-                        foreach (var (targetMethod, positionConversions) in TypeUtilities.RankMethods(candidates, proxyMethod))
+                        try
                         {
-                            try
-                            {
-                                this.ProxyMethod(manager, proxyBuilder, proxyMethod, targetMethod, targetField, glueField, proxyInfosField, positionConversions, relatedProxyInfos);
-                                goto proxyMethodLoopContinue;
-                            }
-                            catch (Exception ex)
-                            {
-                                exceptions.Add(ex);
-                            }
+                            this.ProxyMethod(manager, proxyBuilder, proxyMethod, targetMethod, targetField, glueField, proxyInfosField, positionConversions, relatedProxyInfos);
+                            goto proxyMethodLoopContinue;
                         }
-                        throw new AggregateException($"Errors generated while attempting to map {proxyMethod.Name}", exceptions);
+                        catch (Exception ex)
+                        {
+                            exceptions.Add(ex);
+                        }
                     }
+                    throw new AggregateException($"Errors generated while attempting to map {proxyMethod.Name}", exceptions);
                 }
                 else
                 {
                     this.NoMatchingMethodHandler(proxyBuilder, this.ProxyInfo, targetField, glueField, proxyInfosField, proxyMethod);
                 }
-proxyMethodLoopContinue:
-                ;
+                proxyMethodLoopContinue:;
             }
 
             // save info

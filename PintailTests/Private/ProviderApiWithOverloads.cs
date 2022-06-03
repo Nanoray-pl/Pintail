@@ -5,7 +5,6 @@ using System.Text;
 
 namespace Nanoray.Pintail.Tests.Provider
 {
-
     public interface IProxiedInput
     {
         public string teststring { get; set; }
@@ -109,7 +108,7 @@ namespace Nanoray.Pintail.Tests.Provider
 
         public string MethodWithProxiedOverload(Func<IProxyInputB> value) => value().bye;
 
-        public event Action<IProxyInputA> FancyEvent;
+        public event Action<IProxyInputA>? FancyEvent;
 
         public void FireEvent(IProxyInputA val) => FancyEvent?.Invoke(val);
     }

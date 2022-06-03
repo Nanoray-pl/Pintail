@@ -79,38 +79,38 @@ namespace Nanoray.Pintail.Tests.Provider
 
     public interface IFluentProviderApi
     {
-        public int valueState { get; set; }
+        int valueState { get; set; }
 
-        public string? referenceState { get; set; }
+        string? referenceState { get; set; }
 
-        public IFluentProviderApi DoSomething();
+        IFluentProviderApi DoSomething();
 
-        public IFluentProviderApi MethodWithOverload();
+        IFluentProviderApi MethodWithOverload();
 
-        public IFluentProviderApi MethodWithOverload(int testmethod);
+        IFluentProviderApi MethodWithOverload(int testmethod);
 
-        public IFluentProviderApi MethodWithOverload(IProxiedInput testmethod);
+        IFluentProviderApi MethodWithOverload(IProxiedInput testmethod);
 
-        public IFluentProviderApi MethodWithDelegates(Func<IProxiedInput> func, Action<IProxiedInput> action);
+        IFluentProviderApi MethodWithDelegates(Func<IProxiedInput> func, Action<IProxiedInput> action);
 
-        public IFluentProviderApi NewMethodAdded();
+        IFluentProviderApi NewMethodAdded();
 
-        public IFluentProviderApi ArrayMethod(IProxiedInput[] arraymethod);
+        IFluentProviderApi ArrayMethod(IProxiedInput[] arraymethod);
 
-        public IProxiedInput[]? ArrayReturn();
+        IProxiedInput[]? ArrayReturn();
 
-        public IList<IProxiedInput>? ListReturn();
+        IList<IProxiedInput>? ListReturn();
 
-        public int Prop { get; set; }
+        int Prop { get; set; }
     }
 
     public interface IFluentProviderResult
     {
-        public int state { get; set; }
+        int state { get; set; }
     }
 
     public interface IFluentProviderGeneric<T> where T: new()
     {
-        public T value { get; set; }
+        T value { get; set; }
     }
 }

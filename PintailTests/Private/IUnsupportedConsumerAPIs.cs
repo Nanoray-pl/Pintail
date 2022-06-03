@@ -1,39 +1,39 @@
 namespace Nanoray.Pintail.Tests.Consumer
 {
-    public enum ATooBigEnum { Just, A, Few, Too, Many, Values}
+    public enum ATooBigEnum { Just, A, Few, Too, Many, Values }
 
     public interface IInsufficientEnumValues
     {
-        public ATooBigEnum method();
+        ATooBigEnum method();
     }
 
     public interface IInvalidConsumerApi
     {
-        public void NonExistentApiMethod();
+        void NonExistentApiMethod();
     }
 
     public interface IInvalidNotMatchingArrayInput
     {
-        public void NotMatchingArrayInput(int[] input);
+        void NotMatchingArrayInput(int[] input);
     }
 
     public interface IInvalidNotMatchingEnumBackingField
     {
-        public void NotMatchingEnumBackingType(StateEnum @enum);
+        void NotMatchingEnumBackingType(StateEnum @enum);
     }
 
     public interface IInvalidIncorrectByRef
     {
-        public void NotMatchingIncorrectByRef(int value);
+        void NotMatchingIncorrectByRef(int value);
     }
 
     public interface IRequiresBoxing
     {
-        public object TestMethod(int value);
+        object TestMethod(int value);
     }
 
     public interface IRequiresUnboxing
     {
-        public object TestMethod(object value);
+        object TestMethod(object value);
     }
 }
