@@ -24,34 +24,17 @@ namespace Nanoray.Pintail
 
         internal static string GetQualifiedName(this Type type)
         {
-            string? fullName = type.AssemblyQualifiedName;
-            if (fullName is not null)
-                return fullName;
-            return BuildQualifiedTypeName(type, type => $"[{type.GetQualifiedName()}]");
+            return BuildTypeName(type, type => type.AssemblyQualifiedName ?? $"{type.Assembly.GetName().FullName}@@{type.FullName ?? type.Name}");
         }
 
         internal static string GetShortName(this Type type)
         {
-            return BuildTypeName(type, GetShortName);
-        }
-
-        private static string BuildQualifiedTypeName(Type type, Func<Type, string> nameProvider)
-        {
-            StringBuilder sb = new(type.Assembly.GetName().FullName);
-            sb.Append("@@").Append(type.FullName);
-            Type[] genericArguments = type.GetGenericArguments();
-            if (genericArguments.Length != 0)
-            {
-                sb.Append('[');
-                sb.AppendJoin(",", genericArguments.Select(generic => nameProvider(generic)));
-                sb.Append(']');
-            }
-            return sb.ToString();
+            return BuildTypeName(type, type => type.Name);
         }
 
         private static string BuildTypeName(Type type, Func<Type, string> nameProvider)
         {
-            StringBuilder sb = new(type.Name);
+            StringBuilder sb = new(nameProvider(type));
             Type[] genericArguments = type.GetGenericArguments();
             if (genericArguments.Length != 0)
             {
