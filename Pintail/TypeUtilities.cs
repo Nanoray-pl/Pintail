@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Linq;
@@ -8,7 +9,6 @@ namespace Nanoray.Pintail
 {
     internal static class TypeUtilities
     {
-        static readonly IDictionary<string, List<Type>> cache = new Dictionary<string, List<Type>>();
 
         /// <summary>
         /// Controls how the target interface should compare to the proxy interface.
@@ -36,7 +36,13 @@ namespace Nanoray.Pintail
         // Assignable is not currently supported.
         internal enum PositionConversion { Proxy, Assignable, Exact }
 
-        internal static MatchingTypesResult AreTypesMatching(Type targetType, Type proxyType, MethodTypeAssignability assignability, ProxyManagerEnumMappingBehavior enumMappingBehavior, ImmutableHashSet<Type> assumeMappableIfRecursed)
+        internal static MatchingTypesResult AreTypesMatching(
+            Type targetType,
+            Type proxyType,
+            MethodTypeAssignability assignability,
+            ProxyManagerEnumMappingBehavior enumMappingBehavior,
+            ImmutableHashSet<Type> assumeMappableIfRecursed,
+            ConcurrentDictionary<string, List<Type>> interfaceMappabilityCache)
         {
             if (targetType.IsGenericMethodParameter != proxyType.IsGenericMethodParameter)
                 return MatchingTypesResult.False;
@@ -80,7 +86,7 @@ namespace Nanoray.Pintail
             }
 
             if (proxyType.IsArray && targetType.IsArray)
-                return (MatchingTypesResult)Math.Min((int)AreTypesMatching(targetType.GetElementType()!, proxyType.GetElementType()!, assignability, enumMappingBehavior, assumeMappableIfRecursed), (int)MatchingTypesResult.IfProxied);
+                return (MatchingTypesResult)Math.Min((int)AreTypesMatching(targetType.GetElementType()!, proxyType.GetElementType()!, assignability, enumMappingBehavior, assumeMappableIfRecursed, interfaceMappabilityCache), (int)MatchingTypesResult.IfProxied);
 
             // check mismatched generics.
             if (proxyType.IsGenericMethodParameter)
@@ -98,7 +104,7 @@ namespace Nanoray.Pintail
             {
                 if (assumeMappableIfRecursed.Contains(targetType))
                     return MatchingTypesResult.IfProxied; // we will need to double check this later.
-                if (CanInterfaceBeMapped(targetType, proxyType, enumMappingBehavior, assignability, assumeMappableIfRecursed))
+                if (CanInterfaceBeMapped(targetType, proxyType, enumMappingBehavior, assignability, assumeMappableIfRecursed, interfaceMappabilityCache))
                     return MatchingTypesResult.IfProxied;
                 return MatchingTypesResult.False;
             }
@@ -106,7 +112,7 @@ namespace Nanoray.Pintail
             {
                 if (assumeMappableIfRecursed.Contains(proxyType))
                     return MatchingTypesResult.IfProxied; // we will need to double check this later.
-                if (CanInterfaceBeMapped(targetType, proxyType, enumMappingBehavior, assignability, assumeMappableIfRecursed))
+                if (CanInterfaceBeMapped(targetType, proxyType, enumMappingBehavior, assignability, assumeMappableIfRecursed, interfaceMappabilityCache))
                     return MatchingTypesResult.IfProxied;
                 return MatchingTypesResult.False;
             }
@@ -125,7 +131,7 @@ namespace Nanoray.Pintail
                 {
                     var genericTargetType = targetType.GetGenericTypeDefinition();
                     var genericProxyType = proxyType.GetGenericTypeDefinition();
-                    switch (AreTypesMatching(genericTargetType, genericProxyType, assignability, enumMappingBehavior, assumeMappableIfRecursed))
+                    switch (AreTypesMatching(genericTargetType, genericProxyType, assignability, enumMappingBehavior, assumeMappableIfRecursed, interfaceMappabilityCache))
                     {
                         case MatchingTypesResult.Exact:
                         case MatchingTypesResult.Assignable:
@@ -140,7 +146,7 @@ namespace Nanoray.Pintail
             }
             for (int i = 0; i < targetTypeGenericArguments.Length; i++)
             {
-                switch (AreTypesMatching(targetTypeGenericArguments[i], proxyTypeGenericArguments[i], assignability, enumMappingBehavior, assumeMappableIfRecursed))
+                switch (AreTypesMatching(targetTypeGenericArguments[i], proxyTypeGenericArguments[i], assignability, enumMappingBehavior, assumeMappableIfRecursed, interfaceMappabilityCache))
                 {
                     case MatchingTypesResult.Exact:
                     case MatchingTypesResult.Assignable:
@@ -155,7 +161,12 @@ namespace Nanoray.Pintail
             return matchingTypesResult;
         }
 
-        internal static PositionConversion?[]? MatchProxyMethod(MethodInfo targetMethod, MethodInfo proxyMethod, ProxyManagerEnumMappingBehavior enumMappingBehavior, ImmutableHashSet<Type> assumeMappableIfRecursed)
+        internal static PositionConversion?[]? MatchProxyMethod(
+            MethodInfo targetMethod,
+            MethodInfo proxyMethod,
+            ProxyManagerEnumMappingBehavior enumMappingBehavior,
+            ImmutableHashSet<Type> assumeMappableIfRecursed,
+            ConcurrentDictionary<string, List<Type>> interfaceMappabilityCache)
         {
             // checking if `targetMethod` matches `proxyMethod`
             var proxyMethodParameters = proxyMethod.GetParameters();
@@ -170,7 +181,7 @@ namespace Nanoray.Pintail
                 return null;
             var positionConversions = new PositionConversion?[mParameters.Length + 1]; // 0 = return type; n + 1 = parameter position n
 
-            switch (AreTypesMatching(targetMethod.ReturnType, proxyMethod.ReturnType, MethodTypeAssignability.AssignFrom, enumMappingBehavior, assumeMappableIfRecursed))
+            switch (AreTypesMatching(targetMethod.ReturnType, proxyMethod.ReturnType, MethodTypeAssignability.AssignFrom, enumMappingBehavior, assumeMappableIfRecursed, interfaceMappabilityCache))
             {
                 case MatchingTypesResult.False:
                     return null;
@@ -184,7 +195,7 @@ namespace Nanoray.Pintail
 
             for (int i = 0; i < mParameters.Length; i++)
             {
-                switch (AreTypesMatching(mParameters[i].ParameterType, proxyMethodParameters[i].ParameterType, MethodTypeAssignability.AssignTo, enumMappingBehavior, assumeMappableIfRecursed))
+                switch (AreTypesMatching(mParameters[i].ParameterType, proxyMethodParameters[i].ParameterType, MethodTypeAssignability.AssignTo, enumMappingBehavior, assumeMappableIfRecursed, interfaceMappabilityCache))
                 {
                     case MatchingTypesResult.False:
                         return null;
@@ -203,7 +214,13 @@ namespace Nanoray.Pintail
 
         // This recursion might be dangerous. I'm not sure.
         // TODO: figure out what else I need to do for recursion to avoid infinite loops.
-        internal static bool CanInterfaceBeMapped(Type target, Type proxy, ProxyManagerEnumMappingBehavior enumMappingBehavior, MethodTypeAssignability assignability, ImmutableHashSet<Type> assumeMappableIfRecursed)
+        internal static bool CanInterfaceBeMapped(
+            Type target,
+            Type proxy,
+            ProxyManagerEnumMappingBehavior enumMappingBehavior,
+            MethodTypeAssignability assignability,
+            ImmutableHashSet<Type> assumeMappableIfRecursed,
+            ConcurrentDictionary<string, List<Type>> interfaceMappabilityCache)
         {
             // If it's just assignable, we can skip the whole reflection logic
             // which can be quite slow.
@@ -232,7 +249,7 @@ namespace Nanoray.Pintail
 
             // check the cache.
             string cachekey = $"{target.AssemblyQualifiedName ?? $"{target.Assembly.GetName().FullName}??{target.Namespace}??{target.Name}"}@@{enumMappingBehavior:D}@@{assignability:D}"; //sometimes AssemblyQualifiedName is null
-            if (cache.TryGetValue(cachekey, out List<Type>? types))
+            if (interfaceMappabilityCache.TryGetValue(cachekey, out List<Type>? types))
             {
                 if (types.Contains(proxy))
                     return true;
@@ -252,7 +269,7 @@ namespace Nanoray.Pintail
                 foreach (var assignFromMethod in toAssignFromMethods)
                 {
                     // TODO: double check the directions are right here. Argh. I can never seem to get AssignTo/AssignFrom right on the first try.
-                    if (MatchProxyMethod(assignToMethod, assignFromMethod, enumMappingBehavior, assumeMappableIfRecursed) is not null)
+                    if (MatchProxyMethod(assignToMethod, assignFromMethod, enumMappingBehavior, assumeMappableIfRecursed, interfaceMappabilityCache) is not null)
                     {
                         foundMethods.Add(assignFromMethod);
                         goto NextMethod;
@@ -272,7 +289,7 @@ namespace Nanoray.Pintail
             types ??= new();
             types.Add(proxy);
 
-            cache[cachekey] = types;
+            interfaceMappabilityCache[cachekey] = types;
             return true;
         }
 

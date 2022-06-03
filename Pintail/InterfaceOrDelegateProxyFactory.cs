@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Diagnostics.CodeAnalysis;
@@ -29,7 +30,15 @@ namespace Nanoray.Pintail
         private readonly ConditionalWeakTable<object, object> ProxyCache = new();
         private Type? BuiltProxyType;
 
-        internal InterfaceOrDelegateProxyFactory(ProxyInfo<Context> proxyInfo, ProxyManagerNoMatchingMethodHandler<Context> noMatchingMethodHandler, ProxyManagerProxyPrepareBehavior proxyPrepareBehavior, ProxyManagerEnumMappingBehavior enumMappingBehavior, ProxyObjectInterfaceMarking proxyObjectInterfaceMarking)
+        private readonly ConcurrentDictionary<string, List<Type>> interfaceMappabilityCache;
+
+        internal InterfaceOrDelegateProxyFactory(
+            ProxyInfo<Context> proxyInfo,
+            ProxyManagerNoMatchingMethodHandler<Context> noMatchingMethodHandler,
+            ProxyManagerProxyPrepareBehavior proxyPrepareBehavior,
+            ProxyManagerEnumMappingBehavior enumMappingBehavior,
+            ProxyObjectInterfaceMarking proxyObjectInterfaceMarking,
+            ConcurrentDictionary<string, List<Type>> interfaceMappabilityCache)
         {
             bool isProxyDelegate = proxyInfo.Proxy.Type.IsAssignableTo(typeof(Delegate));
             bool isTargetDelegate = proxyInfo.Target.Type.IsAssignableTo(typeof(Delegate));
@@ -51,6 +60,7 @@ namespace Nanoray.Pintail
             this.ProxyPrepareBehavior = proxyPrepareBehavior;
             this.EnumMappingBehavior = enumMappingBehavior;
             this.ProxyObjectInterfaceMarking = proxyObjectInterfaceMarking;
+            this.interfaceMappabilityCache = interfaceMappabilityCache;
         }
 
         internal void Prepare(ProxyManager<Context> manager, string typeName)
@@ -127,7 +137,7 @@ namespace Nanoray.Pintail
                 var candidates = new Dictionary<MethodInfo, TypeUtilities.PositionConversion?[]>();
                 foreach (MethodInfo targetMethod in allTargetMethods)
                 {
-                    var positionConversions = TypeUtilities.MatchProxyMethod(targetMethod, proxyMethod, this.EnumMappingBehavior, ImmutableHashSet.Create(this.ProxyInfo.Target.Type, this.ProxyInfo.Proxy.Type));
+                    var positionConversions = TypeUtilities.MatchProxyMethod(targetMethod, proxyMethod, this.EnumMappingBehavior, ImmutableHashSet.Create(this.ProxyInfo.Target.Type, this.ProxyInfo.Proxy.Type), this.interfaceMappabilityCache);
                     if (positionConversions is null)
                         continue;
 

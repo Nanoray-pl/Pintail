@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
@@ -243,6 +244,8 @@ namespace Nanoray.Pintail
         internal readonly ProxyManagerConfiguration<Context> Configuration;
 		private readonly IDictionary<ProxyInfo<Context>, IProxyFactory<Context>> Factories = new Dictionary<ProxyInfo<Context>, IProxyFactory<Context>>();
 
+        private readonly ConcurrentDictionary<string, List<Type>> interfaceMappabilityCache = new();
+
         /// <summary>
         /// Constructs a <see cref="ProxyManager{Context}"/>.
         /// </summary>
@@ -294,7 +297,8 @@ namespace Nanoray.Pintail
                             this.Configuration.NoMatchingMethodHandler,
                             this.Configuration.ProxyPrepareBehavior,
                             this.Configuration.EnumMappingBehavior,
-                            this.Configuration.ProxyObjectInterfaceMarking
+                            this.Configuration.ProxyObjectInterfaceMarking,
+                            this.interfaceMappabilityCache
                         );
                         factory = newFactory;
                         this.Factories[proxyInfo] = factory;
@@ -310,7 +314,7 @@ namespace Nanoray.Pintail
                     }
                     else
                     {
-                        var newFactory = new ReconstructingProxyFactory<Context>(proxyInfo, this.Configuration.EnumMappingBehavior);
+                        var newFactory = new ReconstructingProxyFactory<Context>(proxyInfo, this.Configuration.EnumMappingBehavior, this.interfaceMappabilityCache);
                         factory = newFactory;
                         this.Factories[proxyInfo] = factory;
                         try

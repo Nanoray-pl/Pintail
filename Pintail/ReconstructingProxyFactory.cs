@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Diagnostics.CodeAnalysis;
@@ -13,10 +14,13 @@ namespace Nanoray.Pintail
         private Func<IProxyManager<Context>, object, object> ProxyFactory = null!;
         private Func<IProxyManager<Context>, object, object> UnproxyFactory = null!;
 
-        internal ReconstructingProxyFactory(ProxyInfo<Context> proxyInfo, ProxyManagerEnumMappingBehavior enumMappingBehavior)
+        private readonly ConcurrentDictionary<string, List<Type>> interfaceMappabilityCache;
+
+        internal ReconstructingProxyFactory(ProxyInfo<Context> proxyInfo, ProxyManagerEnumMappingBehavior enumMappingBehavior, ConcurrentDictionary<string, List<Type>> interfaceMappabilityCache)
         {
             this.ProxyInfo = proxyInfo;
             this.EnumMappingBehavior = enumMappingBehavior;
+            this.interfaceMappabilityCache = interfaceMappabilityCache;
         }
 
         internal void Prepare()
@@ -43,7 +47,7 @@ namespace Nanoray.Pintail
                     {
                         if (callParameters[i] is null)
                             continue;
-                        switch (TypeUtilities.AreTypesMatching(constructor.GetParameters()[i].ParameterType, callParameters[i]!.GetType(), TypeUtilities.MethodTypeAssignability.AssignTo, this.EnumMappingBehavior, ImmutableHashSet<Type>.Empty))
+                        switch (TypeUtilities.AreTypesMatching(constructor.GetParameters()[i].ParameterType, callParameters[i]!.GetType(), TypeUtilities.MethodTypeAssignability.AssignTo, this.EnumMappingBehavior, ImmutableHashSet<Type>.Empty, this.interfaceMappabilityCache))
                         {
                             case TypeUtilities.MatchingTypesResult.Exact:
                             case TypeUtilities.MatchingTypesResult.Assignable:
