@@ -7,7 +7,7 @@ namespace Nanoray.Pintail
     /// </summary>
     /// <typeparam name="Context">The context type used to describe the current proxy process. Use <see cref="Nothing"/> if not needed.</typeparam>
     public interface IProxyFactory<Context>
-	{
+    {
         /// <summary>
         /// The proxy information describing this specific <see cref="IProxyFactory{Context}"/>.
         /// </summary>
