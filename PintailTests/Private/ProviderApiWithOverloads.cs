@@ -7,12 +7,12 @@ namespace Nanoray.Pintail.Tests.Provider
 {
     public interface IProxiedInput
     {
-        public string teststring { get; set; }
+        string teststring { get; set; }
     }
 
     public interface IProxiedInput2
     {
-        public string otherteststring { get; set; }
+        string otherteststring { get; set; }
     }
 
     public interface IInputWithGeneric<T>
@@ -90,7 +90,7 @@ namespace Nanoray.Pintail.Tests.Provider
             => "proxied array!";
     }
 
-    public class ComplexProviderApiWithOverloadsWithGenerics : SimpleProviderApiWithOverloads
+    public class ComplexProviderApiWithOverloadsWithGenerics: SimpleProviderApiWithOverloads
     {
         public string MethodWithOverload<T>(IInputWithGeneric<T> proxy)
             => "One Generic";

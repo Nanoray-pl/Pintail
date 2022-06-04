@@ -16,7 +16,7 @@ namespace Nanoray.Pintail.Tests.Consumer
         string MethodWithOverload(double value);
     }
 
-    public interface IComplexConsumerApiWithOverloads : ISimpleConsumerApiWithOverloads
+    public interface IComplexConsumerApiWithOverloads: ISimpleConsumerApiWithOverloads
     {
         string MethodWithOverload(IProxiedInput proxy);
         string MethodWithOverload(Func<IProxiedInput> callback);
@@ -30,13 +30,13 @@ namespace Nanoray.Pintail.Tests.Consumer
         string MethodWithArrayOverload(IProxiedInput[] locals);
     }
 
-    public interface IConsumerApiWithOverloadsWithGenerics : ISimpleConsumerApiWithOverloads
+    public interface IConsumerApiWithOverloadsWithGenerics: ISimpleConsumerApiWithOverloads
     {
         string MethodWithOverload<T>(IInputWithGeneric<T> proxy);
 
         string MethodWithOverload(IInputWithGeneric<string> proxy);
 
-        string MethodWithOverload(IInputWithTwoGenerics<string,int> proxy);
+        string MethodWithOverload(IInputWithTwoGenerics<string, int> proxy);
     }
 
     public interface IConsumerApiWithComplexProxiedInputs

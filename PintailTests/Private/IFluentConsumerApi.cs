@@ -26,6 +26,7 @@ namespace Nanoray.Pintail.Tests.Consumer
         IProxiedInput[]? ArrayReturn();
 
         IList<IProxiedInput>? ListReturn();
+
         //public IList<IProxiedInput> list { get; }
     }
 

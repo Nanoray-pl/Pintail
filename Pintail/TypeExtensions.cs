@@ -75,7 +75,7 @@ namespace Nanoray.Pintail
                 yield return (Enum)value;
         }
 
-        internal static IEnumerable<EnumType> GetEnumerableEnumValues<EnumType>() where EnumType: Enum
+        internal static IEnumerable<EnumType> GetEnumerableEnumValues<EnumType>() where EnumType : Enum
         {
             return typeof(EnumType).GetEnumerableEnumValues().Select(e => (EnumType)e);
         }

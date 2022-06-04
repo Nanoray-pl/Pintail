@@ -7,7 +7,7 @@ namespace Nanoray.Pintail.Tests.Provider
         public virtual string MethodWithOverride() => "BASESTRING";
     }
 
-    public class ProviderApiWithOverridesMeow : ProviderApiWithOverrides
+    public class ProviderApiWithOverridesMeow: ProviderApiWithOverrides
     {
         public override string MethodWithOverride() => "MEOW";
     }

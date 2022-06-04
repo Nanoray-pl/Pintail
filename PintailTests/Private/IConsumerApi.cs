@@ -52,14 +52,14 @@ namespace Nanoray.Pintail.Tests.Consumer
         T Value { get; set; }
     }
 
-    public interface IProxiedInputWithTwoGenerics<T,U>
+    public interface IProxiedInputWithTwoGenerics<T, U>
     {
         T TValue { get; set; }
         U UValue { get; set; }
     }
 
 
-    public class ProxiedInput : IProxiedInput
+    public class ProxiedInput: IProxiedInput
     {
         public string teststring { get; set; }
 
@@ -89,7 +89,7 @@ namespace Nanoray.Pintail.Tests.Consumer
         T? GetValue();
     }
 
-    public interface IInputWithTwoGenerics<T,U>
+    public interface IInputWithTwoGenerics<T, U>
     {
         string? RefProperty { get; set; }
         int ValProperty { get; set; }
@@ -99,7 +99,7 @@ namespace Nanoray.Pintail.Tests.Consumer
         T? GetValue();
     }
 
-    public class InputWithGeneric<T> : IInputWithGeneric<T>
+    public class InputWithGeneric<T>: IInputWithGeneric<T>
     {
         public string? RefProperty { get; set; }
         public int ValProperty { get; set; }
@@ -109,7 +109,7 @@ namespace Nanoray.Pintail.Tests.Consumer
         public void SetValue(T? value) => this.GenericProperty = value;
     }
 
-    public class InputWithTwoGenerics<T,U> : IInputWithTwoGenerics<T,U>
+    public class InputWithTwoGenerics<T, U>: IInputWithTwoGenerics<T, U>
     {
         public string? RefProperty { get; set; }
         public int ValProperty { get; set; }
@@ -180,8 +180,8 @@ namespace Nanoray.Pintail.Tests.Consumer
 
         IList<T> ComplexGenericMethod<T>(string key);
 
-        EnumType? EnumConstrainedGenericMethod<EnumType>(string name) where EnumType: notnull, Enum;
-        T ConstructorConstrainedGenericMethod<T>() where T: new();
+        EnumType? EnumConstrainedGenericMethod<EnumType>(string name) where EnumType : notnull, Enum;
+        T ConstructorConstrainedGenericMethod<T>() where T : new();
 
         void FireStringEvent(string value);
         event Action<string>? StringEvent;
@@ -200,7 +200,7 @@ namespace Nanoray.Pintail.Tests.Consumer
         string bye { get; set; }
     }
 
-    public class ProxyInputA : IProxyInputA
+    public class ProxyInputA: IProxyInputA
     {
         public string hi { get; set; }
 

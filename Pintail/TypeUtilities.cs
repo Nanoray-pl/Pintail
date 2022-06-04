@@ -31,7 +31,7 @@ namespace Nanoray.Pintail
             Exact
         }
 
-        internal enum MethodTypeMatchingPart{ ReturnType, Parameter }
+        internal enum MethodTypeMatchingPart { ReturnType, Parameter }
         internal enum MatchingTypesResult { False, IfProxied, Assignable, Exact }
         // Assignable is not currently supported.
         internal enum PositionConversion { Proxy, Assignable, Exact }

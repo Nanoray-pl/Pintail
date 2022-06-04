@@ -124,7 +124,7 @@ namespace Nanoray.Pintail
             }
 
             // crosscheck this.
-            Func<MethodInfo, bool> filter = this.ProxyInfo.Proxy.Type.IsAssignableTo(typeof(Delegate)) ? (f => f.Name == "Invoke") : (_) => true; 
+            Func<MethodInfo, bool> filter = this.ProxyInfo.Proxy.Type.IsAssignableTo(typeof(Delegate)) ? (f => f.Name == "Invoke") : (_) => true;
 
             // Groupby might make this more efficient.
             var allTargetMethods = this.ProxyInfo.Target.Type.FindInterfaceMethods(filter).ToList();

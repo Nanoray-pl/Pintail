@@ -22,9 +22,9 @@ namespace Nanoray.Pintail.Tests.Provider
         public abstract string? Name { get; }
     }
 
-    public class ATestClassImpl : ATestClass
+    public class ATestClassImpl: ATestClass
     {
-        private new class InnerClassImpl : InnerClass
+        private new class InnerClassImpl: InnerClass
         {
             public override string sigh { get; } = "sigh";
         }
@@ -39,7 +39,7 @@ namespace Nanoray.Pintail.Tests.Provider
         State0, State1, State2
     }
 
-    public enum UIntEnum : uint
+    public enum UIntEnum: uint
     {
         State0 = 0,
         State1 = 1,
@@ -51,7 +51,7 @@ namespace Nanoray.Pintail.Tests.Provider
         string Text { get; }
     }
 
-    public class ApiResult : IApiResult
+    public class ApiResult: IApiResult
     {
         public string Text { get; private set; }
 
@@ -103,7 +103,7 @@ namespace Nanoray.Pintail.Tests.Provider
         public T? UnusedMethod => this.Value;
     }
 
-    public class SimpleProviderApi : IProviderApiDefaultMethods
+    public class SimpleProviderApi: IProviderApiDefaultMethods
     {
         protected Func<IApiResult, IApiResult> Mapper = (r) => r;
         protected CustomGenericOutDelegate<StateEnum> CustomOutDelegate = (out StateEnum p) => p = StateEnum.State0;
@@ -233,7 +233,7 @@ namespace Nanoray.Pintail.Tests.Provider
             return default;
         }
 
-        public T ConstructorConstrainedGenericMethod<T>() where T: new()
+        public T ConstructorConstrainedGenericMethod<T>() where T : new()
             => new();
 
         public void FireStringEvent(string value)

@@ -12,7 +12,7 @@ namespace Nanoray.Pintail.Tests
 {
     [TestFixture]
     public class ProxyManagerTests
-	{
+    {
         private ProxyManager<Nothing> CreateProxyManager(ProxyManagerConfiguration<Nothing>? configuration = null)
         {
             var assemblyBuilder = AssemblyBuilder.DefineDynamicAssembly(new AssemblyName($"Nanoray.Pintail.Proxies, Version={this.GetType().Assembly.GetName().Version}, Culture=neutral"), AssemblyBuilderAccess.Run);
@@ -596,7 +596,7 @@ namespace Nanoray.Pintail.Tests
         {
             var manager = this.CreateProxyManager(new(
                 proxyObjectInterfaceMarking: ProxyObjectInterfaceMarking.MarkerWithProperty
-                ));
+            ));
             var providerApi = new ATestClassImpl();
 
             var consumerApi = manager.ObtainProxy<IATestClass>(providerApi)!;
@@ -611,6 +611,5 @@ namespace Nanoray.Pintail.Tests
             Assert.AreEqual("Hi!", consumerApi!.Name);
             Assert.AreEqual("sigh", consumerApi.inner[0].sigh);
         }
-
     }
 }

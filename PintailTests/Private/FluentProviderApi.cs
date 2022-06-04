@@ -109,7 +109,7 @@ namespace Nanoray.Pintail.Tests.Provider
         int state { get; set; }
     }
 
-    public interface IFluentProviderGeneric<T> where T: new()
+    public interface IFluentProviderGeneric<T> where T : new()
     {
         T value { get; set; }
     }
