@@ -6,6 +6,18 @@ namespace Nanoray.Pintail.Tests.Consumer
 {
     public delegate void CustomGenericOutDelegate<T>(out T param);
 
+    public interface IATestClass
+    {
+        public interface IInnerClass
+        {
+            string sigh { get; }
+        }
+
+        string? Name { get; }
+
+        IInnerClass[] inner { get; }
+    }
+
     public enum StateEnum
     {
         State0, State1, State2, StateNonExisting
@@ -28,20 +40,33 @@ namespace Nanoray.Pintail.Tests.Consumer
 
     public interface IProxiedInput
     {
-        public string teststring { get; set;}
+        string teststring { get; set; }
     }
 
     public interface IProxiedInput2
     {
-        public string otherteststring { get; set;}
+        string otherteststring { get; set; }
     }
 
-    public class ProxiedInput : IProxiedInput
+    public interface IProxiedInputWithGenerics<T>
     {
-        public string teststring { get; set;}
+        T Value { get; set; }
+    }
+
+    public interface IProxiedInputWithTwoGenerics<T, U>
+    {
+        T TValue { get; set; }
+        U UValue { get; set; }
+    }
+
+
+    public class ProxiedInput: IProxiedInput
+    {
+        public string teststring { get; set; }
+
         public ProxiedInput(string teststring)
         {
-            teststring = teststring;
+            this.teststring = teststring;
         }
     }
 
@@ -50,17 +75,66 @@ namespace Nanoray.Pintail.Tests.Consumer
         public string otherteststring { get; set; }
         public ProxiedInput2(string otherteststring)
         {
-            otherteststring = otherteststring;
+            this.otherteststring = otherteststring;
         }
     }
 
-    public interface IConsumerApi<T>
+    public interface IInputWithGeneric<T>
+    {
+        string? RefProperty { get; set; }
+        int ValProperty { get; set; }
+        T? GenericProperty { get; set; }
+
+        void SetValue(T? value);
+        T? GetValue();
+    }
+
+    public interface IInputWithTwoGenerics<T, U>
+    {
+        string? RefProperty { get; set; }
+        int ValProperty { get; set; }
+        T? GenericProperty { get; set; }
+
+        void SetValue(T? value);
+        T? GetValue();
+    }
+
+    public class InputWithGeneric<T>: IInputWithGeneric<T>
+    {
+        public string? RefProperty { get; set; }
+        public int ValProperty { get; set; }
+        public T? GenericProperty { get; set; }
+
+        public T? GetValue() => default;
+        public void SetValue(T? value) => this.GenericProperty = value;
+    }
+
+    public class InputWithTwoGenerics<T, U>: IInputWithTwoGenerics<T, U>
+    {
+        public string? RefProperty { get; set; }
+        public int ValProperty { get; set; }
+        public T? GenericProperty { get; set; }
+
+        public T? GetValue() => default;
+        public void SetValue(T? value) => this.GenericProperty = value;
+    }
+
+    public interface ISimpleConsumerFluentAPI
+    {
+        int state { get; set; }
+
+        ISimpleConsumerFluentAPI method();
+
+        public int GetOtherState();
+    }
+
+    public interface ISimpleConsumerApi<T>
     {
         void SetValue(T? value);
         T? GetValue();
     }
 
-    public interface IConsumerApi
+    public interface ISimpleConsumerApi
     {
         void VoidMethod();
         int IntMethod(int num);
@@ -72,7 +146,12 @@ namespace Nanoray.Pintail.Tests.Consumer
         int IntProperty { get; }
         string this[string key] { get; }
         R MapperMethod<T, R>(T t, Func<T, R> mapper);
-        object? IsAssignableTest(string? anyObj);
+        //object? IsAssignableTest(string? anyObj);
+    }
+
+    public interface IComplexConsumerApi: ISimpleConsumerApi
+    {
+        public IList<IProxiedInput> list { get; }
 
         StateEnum GetStateEnum();
         void GetOutStateEnum(out StateEnum state);
@@ -101,8 +180,8 @@ namespace Nanoray.Pintail.Tests.Consumer
 
         IList<T> ComplexGenericMethod<T>(string key);
 
-        EnumType? EnumConstrainedGenericMethod<EnumType>(string name) where EnumType: notnull, Enum;
-        T ConstructorConstrainedGenericMethod<T>() where T: new();
+        EnumType? EnumConstrainedGenericMethod<EnumType>(string name) where EnumType : notnull, Enum;
+        T ConstructorConstrainedGenericMethod<T>() where T : new();
 
         void FireStringEvent(string value);
         event Action<string>? StringEvent;
@@ -124,8 +203,43 @@ namespace Nanoray.Pintail.Tests.Consumer
         public string MethodWithOverload(Func<IProxiedInput2> callback);
     }
 
-    public interface IInvalidConsumerApi
+    public interface IProxyInputA
     {
-        void NonExistentApiMethod();
+        string hi { get; set; }
+    }
+
+    public interface IProxyInputB
+    {
+        string bye { get; set; }
+    }
+
+    public class ProxyInputA: IProxyInputA
+    {
+        public string hi { get; set; }
+
+        public ProxyInputA(string hi)
+        {
+            this.hi = hi;
+        }
+    }
+
+    public class ProxyInputB: IProxyInputB
+    {
+        public string bye { get; set; }
+
+        public ProxyInputB(string bye)
+        {
+            this.bye = bye;
+        }
+    }
+
+    public interface IConsumerWithTwoProxiedInputs
+    {
+        public void MethodWithTwoInputs(IProxyInputA a, IProxyInputB b);
+
+        public void MethodWithNoOverload(IProxyInputA a);
+
+        public string MethodWithProxiedOverload(IProxyInputA value);
+        public string MethodWithProxiedOverload(IProxyInputB value);
     }
 }

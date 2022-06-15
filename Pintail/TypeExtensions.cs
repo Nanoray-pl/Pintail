@@ -24,30 +24,22 @@ namespace Nanoray.Pintail
 
         internal static string GetQualifiedName(this Type type)
         {
-            string? fullName = type.AssemblyQualifiedName;
-            if (fullName is not null)
-                return fullName;
-            return BuildTypeName(type, type => $"[{type.GetQualifiedName()}]");
+            return BuildTypeName(type, type => type.AssemblyQualifiedName ?? $"{type.Assembly.GetName().FullName}@@{type.FullName ?? type.Name}");
         }
 
         internal static string GetShortName(this Type type)
         {
-            return BuildTypeName(type, GetShortName);
+            return BuildTypeName(type, type => type.Name);
         }
 
         private static string BuildTypeName(Type type, Func<Type, string> nameProvider)
         {
-            StringBuilder sb = new(type.Name);
+            StringBuilder sb = new(nameProvider(type));
             Type[] genericArguments = type.GetGenericArguments();
             if (genericArguments.Length != 0)
             {
                 sb.Append('[');
-                for (int i = 0; i < genericArguments.Length; i++)
-                {
-                    if (i != 0)
-                        sb.Append(", ");
-                    sb.Append(nameProvider(genericArguments[i]));
-                }
+                sb.AppendJoin(",", genericArguments.Select(generic => nameProvider(generic)));
                 sb.Append(']');
             }
             return sb.ToString();
@@ -75,7 +67,7 @@ namespace Nanoray.Pintail
                 yield return (Enum)value;
         }
 
-        internal static IEnumerable<EnumType> GetEnumerableEnumValues<EnumType>() where EnumType: Enum
+        internal static IEnumerable<EnumType> GetEnumerableEnumValues<EnumType>() where EnumType : Enum
         {
             return typeof(EnumType).GetEnumerableEnumValues().Select(e => (EnumType)e);
         }

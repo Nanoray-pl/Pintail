@@ -1,5 +1,7 @@
 using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.Collections.Immutable;
 using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using System.Reflection;
@@ -28,7 +30,15 @@ namespace Nanoray.Pintail
         private readonly ConditionalWeakTable<object, object> ProxyCache = new();
         private Type? BuiltProxyType;
 
-        internal InterfaceOrDelegateProxyFactory(ProxyInfo<Context> proxyInfo, ProxyManagerNoMatchingMethodHandler<Context> noMatchingMethodHandler, ProxyManagerProxyPrepareBehavior proxyPrepareBehavior, ProxyManagerEnumMappingBehavior enumMappingBehavior, ProxyObjectInterfaceMarking proxyObjectInterfaceMarking)
+        private readonly ConcurrentDictionary<string, List<Type>> interfaceMappabilityCache;
+
+        internal InterfaceOrDelegateProxyFactory(
+            ProxyInfo<Context> proxyInfo,
+            ProxyManagerNoMatchingMethodHandler<Context> noMatchingMethodHandler,
+            ProxyManagerProxyPrepareBehavior proxyPrepareBehavior,
+            ProxyManagerEnumMappingBehavior enumMappingBehavior,
+            ProxyObjectInterfaceMarking proxyObjectInterfaceMarking,
+            ConcurrentDictionary<string, List<Type>> interfaceMappabilityCache)
         {
             bool isProxyDelegate = proxyInfo.Proxy.Type.IsAssignableTo(typeof(Delegate));
             bool isTargetDelegate = proxyInfo.Target.Type.IsAssignableTo(typeof(Delegate));
@@ -50,6 +60,7 @@ namespace Nanoray.Pintail
             this.ProxyPrepareBehavior = proxyPrepareBehavior;
             this.EnumMappingBehavior = enumMappingBehavior;
             this.ProxyObjectInterfaceMarking = proxyObjectInterfaceMarking;
+            this.interfaceMappabilityCache = interfaceMappabilityCache;
         }
 
         internal void Prepare(ProxyManager<Context> manager, string typeName)
@@ -112,44 +123,57 @@ namespace Nanoray.Pintail
                     break;
             }
 
-            IEnumerable<MethodInfo> FindInterfaceMethods(Type baseType)
-            {
-                foreach (MethodInfo method in baseType.GetMethods())
-                {
-                    yield return method;
-                }
-                foreach (Type interfaceType in baseType.GetInterfaces())
-                {
-                    foreach (var method in FindInterfaceMethods(interfaceType))
-                    {
-                        yield return method;
-                    }
-                }
-            }
+            // crosscheck this.
+            Func<MethodInfo, bool> filter = this.ProxyInfo.Proxy.Type.IsAssignableTo(typeof(Delegate)) ? (f => f.Name == "Invoke") : (_) => true;
 
-            var allTargetMethods = FindInterfaceMethods(this.ProxyInfo.Target.Type).ToHashSet();
-            var allProxyMethods = FindInterfaceMethods(this.ProxyInfo.Proxy.Type).ToHashSet();
-
-            if (this.ProxyInfo.Proxy.Type.IsAssignableTo(typeof(Delegate)))
-            {
-                allTargetMethods.RemoveWhere(m => m.Name != "Invoke");
-                allProxyMethods.RemoveWhere(m => m.Name != "Invoke");
-            }
+            // Groupby might make this more efficient.
+            var allTargetMethods = this.ProxyInfo.Target.Type.FindInterfaceMethods(filter).ToList();
+            var allProxyMethods = this.ProxyInfo.Proxy.Type.FindInterfaceMethods(filter);
 
             // proxy methods
             IList<ProxyInfo<Context>> relatedProxyInfos = new List<ProxyInfo<Context>>();
             foreach (MethodInfo proxyMethod in allProxyMethods)
             {
+                var candidates = new Dictionary<MethodInfo, TypeUtilities.PositionConversion?[]>();
                 foreach (MethodInfo targetMethod in allTargetMethods)
                 {
-                    var positionConversions = TypeUtilities.MatchProxyMethod(targetMethod, proxyMethod, this.EnumMappingBehavior);
+                    var positionConversions = TypeUtilities.MatchProxyMethod(targetMethod, proxyMethod, this.EnumMappingBehavior, ImmutableHashSet.Create(this.ProxyInfo.Target.Type, this.ProxyInfo.Proxy.Type), this.interfaceMappabilityCache);
                     if (positionConversions is null)
                         continue;
-                    this.ProxyMethod(manager, proxyBuilder, proxyMethod, targetMethod, targetField, glueField, proxyInfosField, positionConversions, relatedProxyInfos);
-                    goto proxyMethodLoopContinue;
+
+                    // no inputs are proxied.
+                    if (positionConversions.All(a => a is null))
+                    {
+                        this.ProxyMethod(manager, proxyBuilder, proxyMethod, targetMethod, targetField, glueField, proxyInfosField, positionConversions, relatedProxyInfos);
+                        goto proxyMethodLoopContinue;
+                    }
+                    else
+                    {
+                        candidates[targetMethod] = positionConversions;
+                    }
                 }
 
-                this.NoMatchingMethodHandler(proxyBuilder, this.ProxyInfo, targetField, glueField, proxyInfosField, proxyMethod);
+                if (candidates.Any())
+                {
+                    List<Exception> exceptions = new();
+                    foreach (var (targetMethod, positionConversions) in TypeUtilities.RankMethods(candidates, proxyMethod))
+                    {
+                        try
+                        {
+                            this.ProxyMethod(manager, proxyBuilder, proxyMethod, targetMethod, targetField, glueField, proxyInfosField, positionConversions, relatedProxyInfos);
+                            goto proxyMethodLoopContinue;
+                        }
+                        catch (Exception ex)
+                        {
+                            exceptions.Add(ex);
+                        }
+                    }
+                    throw new AggregateException($"Errors generated while attempting to map {proxyMethod.Name}", exceptions);
+                }
+                else
+                {
+                    this.NoMatchingMethodHandler(proxyBuilder, this.ProxyInfo, targetField, glueField, proxyInfosField, proxyMethod);
+                }
                 proxyMethodLoopContinue:;
             }
 

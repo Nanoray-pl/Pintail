@@ -22,7 +22,7 @@ namespace Nanoray.Pintail
         /// <param name="proxyInfo">Proxy info describing the <see cref="IProxyFactory{Context}"/> to return.</param>
         /// <returns>A <see cref="IProxyFactory{Context}"/> instance for the given proxy info.</returns>
         IProxyFactory<Context> ObtainProxyFactory(ProxyInfo<Context> proxyInfo);
-	}
+    }
 
     /// <summary>
     /// Declares some extensions to make it easier to use <see cref="IProxyManager{Context}"/>.
@@ -40,7 +40,7 @@ namespace Nanoray.Pintail
         /// <param name="proxyContext">The context of the proxy instance.</param>
         /// <returns>A proxy of the given instance.</returns>
         [return: NotNullIfNotNull("instance")]
-        public static TProxy ObtainProxy<Context, TProxy>(this IProxyManager<Context> self, object instance, Context targetContext, Context proxyContext) where TProxy: class
+        public static TProxy ObtainProxy<Context, TProxy>(this IProxyManager<Context> self, object instance, Context targetContext, Context proxyContext) where TProxy : class
         {
             var factory = self.ObtainProxyFactory(new ProxyInfo<Context>(
                 target: new TypeInfo<Context>(targetContext, instance.GetType()),
@@ -60,7 +60,7 @@ namespace Nanoray.Pintail
         /// <param name="proxyContext">The context of the proxy instance.</param>
         /// <param name="proxy">The resulting proxy instance (or unproxied instance), if the (un)proxying succeeds.</param>
         /// <returns>`true` if the (un)proxying succeeds, `false` otherwise.</returns>
-        public static bool TryProxy<Context, TProxy>(this IProxyManager<Context> self, object toProxy, Context targetContext, Context proxyContext, [NotNullWhen(true)] out TProxy? proxy) where TProxy: class
+        public static bool TryProxy<Context, TProxy>(this IProxyManager<Context> self, object toProxy, Context targetContext, Context proxyContext, [NotNullWhen(true)] out TProxy? proxy) where TProxy : class
         {
             try
             {
