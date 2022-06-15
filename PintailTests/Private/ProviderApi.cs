@@ -6,9 +6,44 @@ namespace Nanoray.Pintail.Tests.Provider
 {
     public delegate void CustomGenericOutDelegate<T>(out T param);
 
+    public abstract class ATestClass
+    {
+        public abstract class InnerClass
+        {
+            public abstract string sigh { get; }
+        }
+
+        public class InnerClassImpl: InnerClass
+        {
+            public override string sigh { get; } = "helloworld";
+        }
+        public abstract InnerClass[]? inner { get; }
+
+        public abstract string? Name { get; }
+    }
+
+    public class ATestClassImpl: ATestClass
+    {
+        private new class InnerClassImpl: InnerClass
+        {
+            public override string sigh { get; } = "sigh";
+        }
+
+        public override InnerClass[] inner { get; } = new[] { new InnerClassImpl() };
+
+        public override string? Name { get; } = "Hi!";
+    }
+
     public enum StateEnum
     {
         State0, State1, State2
+    }
+
+    public enum UIntEnum: uint
+    {
+        State0 = 0,
+        State1 = 1,
+        State2 = 2,
     }
 
     public interface IApiResult
@@ -34,7 +69,24 @@ namespace Nanoray.Pintail.Tests.Provider
             => this.IntMethod(num * num);
     }
 
-    public class ProviderApi<T>
+    public class SimpleFluentProviderApi
+    {
+        public int state { get; set; }
+        private int otherstate;
+
+        public SimpleFluentProviderApi method()
+        {
+            this.state = 10;
+            this.otherstate = 1337;
+            return this;
+        }
+
+        public int GetOtherState() => this.otherstate;
+
+        public SimpleFluentProviderApi unusedMethod() => this;
+    }
+
+    public class SimpleProviderApi<T>
     {
         private T? Value;
 
@@ -47,12 +99,14 @@ namespace Nanoray.Pintail.Tests.Provider
         {
             return this.Value;
         }
+
+        public T? UnusedMethod => this.Value;
     }
 
-    public class ProviderApi: IProviderApiDefaultMethods
+    public class SimpleProviderApi: IProviderApiDefaultMethods
     {
-        private Func<IApiResult, IApiResult> Mapper = (r) => r;
-        private CustomGenericOutDelegate<StateEnum> CustomOutDelegate = (out StateEnum p) => p = StateEnum.State0;
+        protected Func<IApiResult, IApiResult> Mapper = (r) => r;
+        protected CustomGenericOutDelegate<StateEnum> CustomOutDelegate = (out StateEnum p) => p = StateEnum.State0;
 
         public void VoidMethod() { }
 
@@ -88,8 +142,15 @@ namespace Nanoray.Pintail.Tests.Provider
         public R MapperMethod<T, R>(T t, Func<T, R> mapper)
             => mapper(t);
 
-        public string? IsAssignableTest(object? anyObj)
-            => anyObj?.ToString();
+        //public string? IsAssignableTest(object? anyObj)
+        //    => anyObj?.ToString();
+
+    }
+
+    public class ComplexProviderApi: SimpleProviderApi
+    {
+
+        public IList<IProxiedInput> list { get; } = new List<IProxiedInput>();
 
         public StateEnum GetStateEnum()
             => StateEnum.State1;
@@ -172,7 +233,7 @@ namespace Nanoray.Pintail.Tests.Provider
             return default;
         }
 
-        public T ConstructorConstrainedGenericMethod<T>() where T: new()
+        public T ConstructorConstrainedGenericMethod<T>() where T : new()
             => new();
 
         public void FireStringEvent(string value)
@@ -232,5 +293,25 @@ namespace Nanoray.Pintail.Tests.Provider
     public interface IProxiedInput2
     {
         public string otherteststring { get; set;}
+    }
+
+    public interface IProxyInputA
+    {
+        string hi { get; set; }
+    }
+
+    public interface IProxyInputB
+    {
+        string bye { get; set; }
+    }
+
+    public class ProviderWithTwoProxiedInputs
+    {
+        public void MethodWithTwoInputs(IProxyInputA a, IProxyInputB b) { }
+
+        public void MethodWithNoOverload(IProxyInputA a) { }
+
+        public string MethodWithProxiedOverload(IProxyInputA value) => value.hi;
+        public string MethodWithProxiedOverload(IProxyInputB value) => value.bye;
     }
 }

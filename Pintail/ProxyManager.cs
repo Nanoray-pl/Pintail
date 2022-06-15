@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
@@ -146,7 +147,7 @@ namespace Nanoray.Pintail
         /// If a method cannot be implemented, <see cref="ArgumentException"/> will be thrown right away.
         /// </summary>
         public static readonly ProxyManagerNoMatchingMethodHandler<Context> ThrowExceptionNoMatchingMethodHandler = (proxyBuilder, proxyInfo, _, _, _, proxyMethod)
-            => throw new ArgumentException($"The {proxyInfo.Proxy.Type.GetShortName()} interface defines method {proxyMethod.Name} which doesn't exist in the API.");
+            => throw new ArgumentException($"The {proxyInfo.Proxy.Type.GetShortName()} interface defines method {proxyMethod.Name} which doesn't exist in the API or depends on an interface that cannot be mapped!");
 
         /// <summary>
         /// If a method cannot be implemented, a blank implementation will be created instead, which will throw <see cref="NotImplementedException"/> when called.
@@ -171,7 +172,7 @@ namespace Nanoray.Pintail
             methodBuilder.SetParameters(argTypes);
 
             ILGenerator il = methodBuilder.GetILGenerator();
-            il.Emit(OpCodes.Ldstr, $"The {proxyInfo.Proxy.Type.GetShortName()} interface defines method {proxyMethod.Name} which doesn't exist in the API.");
+            il.Emit(OpCodes.Ldstr, $"The {proxyInfo.Proxy.Type.GetShortName()} interface defines method {proxyMethod.Name} which doesn't exist in the API. (It may depend on an interface that was not mappable).");
             il.Emit(OpCodes.Newobj, typeof(NotImplementedException).GetConstructor(new Type[] { typeof(string) })!);
             il.Emit(OpCodes.Throw);
         };
@@ -239,9 +240,10 @@ namespace Nanoray.Pintail
     /// <typeparam name="Context">The context type used to describe the current proxy process. Use <see cref="Nothing"/> if not needed.</typeparam>
     public sealed class ProxyManager<Context>: IProxyManager<Context>
     {
-		internal readonly ModuleBuilder ModuleBuilder;
+        internal readonly ModuleBuilder ModuleBuilder;
         internal readonly ProxyManagerConfiguration<Context> Configuration;
-		private readonly IDictionary<ProxyInfo<Context>, IProxyFactory<Context>> Factories = new Dictionary<ProxyInfo<Context>, IProxyFactory<Context>>();
+        private readonly IDictionary<ProxyInfo<Context>, IProxyFactory<Context>> Factories = new Dictionary<ProxyInfo<Context>, IProxyFactory<Context>>();
+        private readonly ConcurrentDictionary<string, List<Type>> InterfaceMappabilityCache = new();
 
         /// <summary>
         /// Constructs a <see cref="ProxyManager{Context}"/>.
@@ -249,10 +251,10 @@ namespace Nanoray.Pintail
         /// <param name="moduleBuilder">The <see cref="System.Reflection.Emit.ModuleBuilder"/> to use for creating the proxy types in.</param>
         /// <param name="configuration">Configuration to use for this <see cref="ProxyManager{Context}"/>. Defaults to `null`, which means that the default configuration will be used.</param>
         public ProxyManager(ModuleBuilder moduleBuilder, ProxyManagerConfiguration<Context>? configuration = null)
-		{
-			this.ModuleBuilder = moduleBuilder;
+        {
+            this.ModuleBuilder = moduleBuilder;
             this.Configuration = configuration ?? new();
-		}
+        }
 
         /// <inheritdoc/>
         public IProxyFactory<Context>? GetProxyFactory(ProxyInfo<Context> proxyInfo)
@@ -267,9 +269,9 @@ namespace Nanoray.Pintail
 
         /// <inheritdoc/>
         public IProxyFactory<Context> ObtainProxyFactory(ProxyInfo<Context> proxyInfo)
-		{
-			lock (this.Factories)
-			{
+        {
+            lock (this.Factories)
+            {
                 if (!this.Factories.TryGetValue(proxyInfo, out IProxyFactory<Context>? factory))
                 {
                     if (proxyInfo.Target.Type == proxyInfo.Proxy.Type)
@@ -294,7 +296,8 @@ namespace Nanoray.Pintail
                             this.Configuration.NoMatchingMethodHandler,
                             this.Configuration.ProxyPrepareBehavior,
                             this.Configuration.EnumMappingBehavior,
-                            this.Configuration.ProxyObjectInterfaceMarking
+                            this.Configuration.ProxyObjectInterfaceMarking,
+                            this.InterfaceMappabilityCache
                         );
                         factory = newFactory;
                         this.Factories[proxyInfo] = factory;
@@ -310,7 +313,7 @@ namespace Nanoray.Pintail
                     }
                     else
                     {
-                        var newFactory = new ReconstructingProxyFactory<Context>(proxyInfo, this.Configuration.EnumMappingBehavior);
+                        var newFactory = new ReconstructingProxyFactory<Context>(proxyInfo, this.Configuration.EnumMappingBehavior, this.InterfaceMappabilityCache);
                         factory = newFactory;
                         this.Factories[proxyInfo] = factory;
                         try
@@ -326,6 +329,6 @@ namespace Nanoray.Pintail
                 }
                 return factory;
             }
-		}
-	}
+        }
+    }
 }
