@@ -132,8 +132,10 @@ namespace Nanoray.Pintail
             var allTargetMethods = this.ProxyInfo.Target.Type.FindInterfaceMethods(filter).ToHashSet().ToList();
             var allProxyMethods = this.ProxyInfo.Proxy.Type.FindInterfaceMethods(filter).ToHashSet();
 
+#if DEBUG
             Console.WriteLine($"Looking at {allProxyMethods.Count} proxy methods and {allTargetMethods.Count} target methods for proxy {this.ProxyInfo.Proxy.Type.FullName} and target {this.ProxyInfo.Target.Type.FullName}");
             Console.WriteLine(string.Join(", ", allProxyMethods.Select(a => a.DeclaringType!.ToString() + '.' + a.Name.ToString())));
+#endif
 
             // proxy methods
             IList<ProxyInfo<Context>> relatedProxyInfos = new List<ProxyInfo<Context>>();
@@ -160,7 +162,9 @@ namespace Nanoray.Pintail
 
                 if (candidates.Any())
                 {
+#if DEBUG
                     Console.WriteLine($"Found {candidates.Count} candidates for {proxyMethod.DeclaringType}.{proxyMethod.Name}");
+#endif
                     var (targetMethod, positionConversions) = TypeUtilities.RankMethods(candidates, proxyMethod).First();
 
                     this.ProxyMethod(manager, proxyBuilder, proxyMethod, targetMethod, targetField, glueField, proxyInfosField, positionConversions, relatedProxyInfos);
@@ -172,8 +176,9 @@ namespace Nanoray.Pintail
                 proxyMethodLoopContinue:;
             }
 
+#if DEBUG
             Console.WriteLine($"Trying to save! {proxyBuilder.FullName}");
-            Console.WriteLine(proxyBuilder.ToString());
+#endif
             // save info
             this.BuiltProxyType = proxyBuilder.CreateType();
             var actualProxyInfosField = this.BuiltProxyType!.GetField(ProxyInfosFieldName, BindingFlags.NonPublic | BindingFlags.Static)!;
@@ -182,7 +187,9 @@ namespace Nanoray.Pintail
 
         private void ProxyMethod(ProxyManager<Context> manager, TypeBuilder proxyBuilder, MethodInfo proxy, MethodInfo target, FieldBuilder instanceField, FieldBuilder glueField, FieldBuilder proxyInfosField, TypeUtilities.PositionConversion?[] positionConversions, IList<ProxyInfo<Context>> relatedProxyInfos)
         {
+#if DEBUG
             Console.WriteLine($"Proxying {proxy.DeclaringType}.{proxy.Name}[{string.Join(", ", proxy.GetParameters().Select(a => a.Name))}] to {target.DeclaringType}.{target.Name}");
+#endif
             MethodBuilder methodBuilder = proxyBuilder.DefineMethod(
                 name: proxy.Name,
                 attributes: MethodAttributes.Public | MethodAttributes.Final | MethodAttributes.Virtual);
@@ -460,8 +467,6 @@ namespace Nanoray.Pintail
                     il.Emit(OpCodes.Ldloc, resultProxyLocal!);
                 il.Emit(OpCodes.Ret);
             }
-
-            Console.WriteLine($"GOT HERE? {methodBuilder}.");
         }
 
         /// <inheritdoc/>
