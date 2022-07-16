@@ -12,8 +12,6 @@ namespace Nanoray.Pintail
 {
     internal class InterfaceOrDelegateProxyFactory<Context>: IProxyFactory<Context>
     {
-        private int counter = 0;
-
         private static readonly string TargetFieldName = "__Target";
         private static readonly string GlueFieldName = "__Glue";
         private static readonly string ProxyInfosFieldName = "__ProxyInfos";
