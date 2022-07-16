@@ -130,6 +130,9 @@ namespace Nanoray.Pintail
             var allTargetMethods = this.ProxyInfo.Target.Type.FindInterfaceMethods(filter).ToHashSet().ToList();
             var allProxyMethods = this.ProxyInfo.Proxy.Type.FindInterfaceMethods(filter).ToHashSet();
 
+            Console.WriteLine($"Looking at {allProxyMethods.Count} proxy methods and {allTargetMethods.Count} target methods for proxy {this.ProxyInfo.Proxy.Type.FullName} and target {this.ProxyInfo.Target.Type.FullName}");
+            Console.WriteLine(string.Join(", ", allProxyMethods.Select(a => a.DeclaringType!.ToString() + '.' + a.Name.ToString())));
+
             // proxy methods
             IList<ProxyInfo<Context>> relatedProxyInfos = new List<ProxyInfo<Context>>();
             foreach (MethodInfo proxyMethod in allProxyMethods)
@@ -155,20 +158,10 @@ namespace Nanoray.Pintail
 
                 if (candidates.Any())
                 {
-                    List<Exception> exceptions = new();
-                    foreach (var (targetMethod, positionConversions) in TypeUtilities.RankMethods(candidates, proxyMethod))
-                    {
-                        try
-                        {
-                            this.ProxyMethod(manager, proxyBuilder, proxyMethod, targetMethod, targetField, glueField, proxyInfosField, positionConversions, relatedProxyInfos);
-                            goto proxyMethodLoopContinue;
-                        }
-                        catch (Exception ex)
-                        {
-                            exceptions.Add(ex);
-                        }
-                    }
-                    throw new AggregateException($"Errors generated while attempting to map {proxyMethod.Name}", exceptions);
+                    Console.WriteLine($"Found {candidates.Count} candidates for {proxyMethod.DeclaringType}.{proxyMethod.Name}");
+                    var (targetMethod, positionConversions) = TypeUtilities.RankMethods(candidates, proxyMethod).First();
+
+                    this.ProxyMethod(manager, proxyBuilder, proxyMethod, targetMethod, targetField, glueField, proxyInfosField, positionConversions, relatedProxyInfos);
                 }
                 else
                 {
