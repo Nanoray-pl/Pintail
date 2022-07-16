@@ -127,8 +127,8 @@ namespace Nanoray.Pintail
             Func<MethodInfo, bool> filter = this.ProxyInfo.Proxy.Type.IsAssignableTo(typeof(Delegate)) ? (f => f.Name == "Invoke") : (_) => true;
 
             // Groupby might make this more efficient.
-            var allTargetMethods = this.ProxyInfo.Target.Type.FindInterfaceMethods(filter).ToList();
-            var allProxyMethods = this.ProxyInfo.Proxy.Type.FindInterfaceMethods(filter);
+            var allTargetMethods = this.ProxyInfo.Target.Type.FindInterfaceMethods(filter).ToHashSet().ToList();
+            var allProxyMethods = this.ProxyInfo.Proxy.Type.FindInterfaceMethods(filter).ToHashSet();
 
             // proxy methods
             IList<ProxyInfo<Context>> relatedProxyInfos = new List<ProxyInfo<Context>>();
@@ -185,6 +185,7 @@ namespace Nanoray.Pintail
 
         private void ProxyMethod(ProxyManager<Context> manager, TypeBuilder proxyBuilder, MethodInfo proxy, MethodInfo target, FieldBuilder instanceField, FieldBuilder glueField, FieldBuilder proxyInfosField, TypeUtilities.PositionConversion?[] positionConversions, IList<ProxyInfo<Context>> relatedProxyInfos)
         {
+            Console.WriteLine($"Proxying {proxy.DeclaringType}.{proxy.Name} to {target.DeclaringType}.{target.Name}");
             MethodBuilder methodBuilder = proxyBuilder.DefineMethod(proxy.Name, MethodAttributes.Public | MethodAttributes.Final | MethodAttributes.Virtual);
 
             // set up generic arguments

@@ -5,15 +5,6 @@ using System.Text;
 
 namespace Nanoray.Pintail.Tests.Provider
 {
-    public interface IProxiedInput
-    {
-        string teststring { get; set; }
-    }
-
-    public interface IProxiedInput2
-    {
-        string otherteststring { get; set; }
-    }
 
     public interface IInputWithGeneric<T>
     {

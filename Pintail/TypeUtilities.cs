@@ -311,6 +311,12 @@ namespace Nanoray.Pintail
             }
         }
 
+        internal static IEnumerable<MethodInfo> FindFlattenedMethods(this Type baseType, Func<MethodInfo, bool>? filter = null)
+        {
+            filter ??= (_) => true;
+            return baseType.GetMethods(BindingFlags.Public | BindingFlags.FlattenHierarchy).Where(filter);
+        }
+
         internal static IEnumerable<KeyValuePair<MethodInfo, PositionConversion?[]>> RankMethods(
             Dictionary<MethodInfo, PositionConversion?[]> candidates,
             MethodInfo proxyMethod
