@@ -141,7 +141,10 @@ namespace Nanoray.Pintail.Tests.Provider
 
         public R MapperMethod<T, R>(T t, Func<T, R> mapper)
             => mapper(t);
+        public string InMethod(in string str)
+            => str;
 
+        public KeyValuePair<int, int> InStructMethod(in KeyValuePair<int, int> test) => test;
         //public string? IsAssignableTest(object? anyObj)
         //    => anyObj?.ToString();
 

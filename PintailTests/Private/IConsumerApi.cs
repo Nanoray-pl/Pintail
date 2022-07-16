@@ -147,6 +147,10 @@ namespace Nanoray.Pintail.Tests.Consumer
         string this[string key] { get; }
         R MapperMethod<T, R>(T t, Func<T, R> mapper);
         //object? IsAssignableTest(string? anyObj);
+
+        string InMethod(in string str);
+
+        KeyValuePair<int, int> InStructMethod(in KeyValuePair<int, int> test);
     }
 
     public interface IComplexConsumerApi: ISimpleConsumerApi

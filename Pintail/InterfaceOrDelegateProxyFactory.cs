@@ -12,6 +12,8 @@ namespace Nanoray.Pintail
 {
     internal class InterfaceOrDelegateProxyFactory<Context>: IProxyFactory<Context>
     {
+        private int counter = 0;
+
         private static readonly string TargetFieldName = "__Target";
         private static readonly string GlueFieldName = "__Glue";
         private static readonly string ProxyInfosFieldName = "__ProxyInfos";
@@ -170,6 +172,8 @@ namespace Nanoray.Pintail
                 proxyMethodLoopContinue:;
             }
 
+            Console.WriteLine($"Trying to save! {proxyBuilder.FullName}");
+            Console.WriteLine(proxyBuilder.ToString());
             // save info
             this.BuiltProxyType = proxyBuilder.CreateType();
             var actualProxyInfosField = this.BuiltProxyType!.GetField(ProxyInfosFieldName, BindingFlags.NonPublic | BindingFlags.Static)!;
@@ -178,8 +182,10 @@ namespace Nanoray.Pintail
 
         private void ProxyMethod(ProxyManager<Context> manager, TypeBuilder proxyBuilder, MethodInfo proxy, MethodInfo target, FieldBuilder instanceField, FieldBuilder glueField, FieldBuilder proxyInfosField, TypeUtilities.PositionConversion?[] positionConversions, IList<ProxyInfo<Context>> relatedProxyInfos)
         {
-            Console.WriteLine($"Proxying {proxy.DeclaringType}.{proxy.Name} to {target.DeclaringType}.{target.Name}");
-            MethodBuilder methodBuilder = proxyBuilder.DefineMethod(proxy.Name, MethodAttributes.Public | MethodAttributes.Final | MethodAttributes.Virtual);
+            Console.WriteLine($"Proxying {proxy.DeclaringType}.{proxy.Name}[{string.Join(", ", proxy.GetParameters().Select(a => a.Name))}] to {target.DeclaringType}.{target.Name}");
+            MethodBuilder methodBuilder = proxyBuilder.DefineMethod(
+                name: proxy.Name,
+                attributes: MethodAttributes.Public | MethodAttributes.Final | MethodAttributes.Virtual);
 
             // set up generic arguments
             Type[] proxyGenericArguments = proxy.GetGenericArguments();
@@ -255,8 +261,19 @@ namespace Nanoray.Pintail
             }
 
             Type returnType = proxy.ReturnType.IsGenericMethodParameter ? genericTypeParameterBuilders[proxy.ReturnType.GenericParameterPosition] : proxy.ReturnType;
-            methodBuilder.SetReturnType(returnType);
-            methodBuilder.SetParameters(argTypes);
+
+            // we must set the constraints correctly
+            // or in params fail.
+            // see: https://stackoverflow.com/questions/56564992/when-implementing-an-interface-that-has-a-method-with-in-parameter-by-typebuil
+            var param = proxy.GetParameters();
+            methodBuilder.SetSignature(
+                returnType: returnType,
+                returnTypeRequiredCustomModifiers: proxy.ReturnParameter.GetRequiredCustomModifiers(),
+                returnTypeOptionalCustomModifiers: proxy.ReturnParameter.GetOptionalCustomModifiers(),
+                parameterTypes: argTypes,
+                parameterTypeRequiredCustomModifiers: param.Select(p => p.GetRequiredCustomModifiers()).ToArray(),
+                parameterTypeOptionalCustomModifiers: param.Select(p => p.GetOptionalCustomModifiers()).ToArray());
+
             for (int i = 0; i < argTypes.Length; i++)
                 methodBuilder.DefineParameter(i, targetParameters[i].Attributes, targetParameters[i].Name);
 
@@ -443,6 +460,8 @@ namespace Nanoray.Pintail
                     il.Emit(OpCodes.Ldloc, resultProxyLocal!);
                 il.Emit(OpCodes.Ret);
             }
+
+            Console.WriteLine($"GOT HERE? {methodBuilder}.");
         }
 
         /// <inheritdoc/>
