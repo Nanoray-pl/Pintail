@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Text;
 
 namespace Nanoray.Pintail.Tests.Consumer
 {
@@ -72,7 +73,6 @@ namespace Nanoray.Pintail.Tests.Consumer
     public class ProxiedInput2: IProxiedInput2
     {
         public string otherteststring { get; set; }
-
         public ProxiedInput2(string otherteststring)
         {
             this.otherteststring = otherteststring;
@@ -147,6 +147,10 @@ namespace Nanoray.Pintail.Tests.Consumer
         string this[string key] { get; }
         R MapperMethod<T, R>(T t, Func<T, R> mapper);
         //object? IsAssignableTest(string? anyObj);
+
+        string InMethod(in string str);
+
+        KeyValuePair<int, int> InStructMethod(in KeyValuePair<int, int> test);
     }
 
     public interface IComplexConsumerApi: ISimpleConsumerApi
@@ -188,6 +192,19 @@ namespace Nanoray.Pintail.Tests.Consumer
 
         void FireApiResultEvent(IApiResult value);
         event Action<IApiResult>? ApiResultEvent;
+
+
+        Type MethodWithOverload(object value);
+        Type MethodWithOverload(int value);
+        Type MethodWithOverload(StringBuilder value);
+        Type MethodWithOverload(DayOfWeek value);
+
+        Type MethodWithOverload(out int value);
+
+        string MethodWithOverload(double value);
+        string MethodWithOverload(IProxiedInput proxy);
+        string MethodWithOverload(Func<IProxiedInput> callback);
+        string MethodWithOverload(Func<IProxiedInput2> callback);
     }
 
     public interface IProxyInputA
@@ -222,11 +239,11 @@ namespace Nanoray.Pintail.Tests.Consumer
 
     public interface IConsumerWithTwoProxiedInputs
     {
-        public void MethodWithTwoInputs(IProxyInputA a, IProxyInputB b);
+        void MethodWithTwoInputs(IProxyInputA a, IProxyInputB b);
 
-        public void MethodWithNoOverload(IProxyInputA a);
+        void MethodWithNoOverload(IProxyInputA a);
 
-        public string MethodWithProxiedOverload(IProxyInputA value);
-        public string MethodWithProxiedOverload(IProxyInputB value);
+        string MethodWithProxiedOverload(IProxyInputA value);
+        string MethodWithProxiedOverload(IProxyInputB value);
     }
 }

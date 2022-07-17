@@ -128,7 +128,12 @@ namespace Nanoray.Pintail
 
             // Groupby might make this more efficient.
             var allTargetMethods = this.ProxyInfo.Target.Type.FindInterfaceMethods(filter).ToList();
-            var allProxyMethods = this.ProxyInfo.Proxy.Type.FindInterfaceMethods(filter);
+            var allProxyMethods = this.ProxyInfo.Proxy.Type.FindInterfaceMethods(filter).ToList();
+
+#if DEBUG
+            Console.WriteLine($"Looking at {allProxyMethods.Count} proxy methods and {allTargetMethods.Count} target methods for proxy {this.ProxyInfo.Proxy.Type.FullName} and target {this.ProxyInfo.Target.Type.FullName}");
+            Console.WriteLine(string.Join(", ", allProxyMethods.Select(a => a.DeclaringType!.ToString() + '.' + a.Name.ToString())));
+#endif
 
             // proxy methods
             IList<ProxyInfo<Context>> relatedProxyInfos = new List<ProxyInfo<Context>>();
@@ -155,20 +160,12 @@ namespace Nanoray.Pintail
 
                 if (candidates.Any())
                 {
-                    List<Exception> exceptions = new();
-                    foreach (var (targetMethod, positionConversions) in TypeUtilities.RankMethods(candidates, proxyMethod))
-                    {
-                        try
-                        {
-                            this.ProxyMethod(manager, proxyBuilder, proxyMethod, targetMethod, targetField, glueField, proxyInfosField, positionConversions, relatedProxyInfos);
-                            goto proxyMethodLoopContinue;
-                        }
-                        catch (Exception ex)
-                        {
-                            exceptions.Add(ex);
-                        }
-                    }
-                    throw new AggregateException($"Errors generated while attempting to map {proxyMethod.Name}", exceptions);
+#if DEBUG
+                    Console.WriteLine($"Found {candidates.Count} candidates for {proxyMethod.DeclaringType}.{proxyMethod.Name}");
+#endif
+                    var (targetMethod, positionConversions) = TypeUtilities.RankMethods(candidates, proxyMethod).First();
+
+                    this.ProxyMethod(manager, proxyBuilder, proxyMethod, targetMethod, targetField, glueField, proxyInfosField, positionConversions, relatedProxyInfos);
                 }
                 else
                 {
@@ -177,6 +174,9 @@ namespace Nanoray.Pintail
                 proxyMethodLoopContinue:;
             }
 
+#if DEBUG
+            Console.WriteLine($"Trying to save! {proxyBuilder.FullName}");
+#endif
             // save info
             this.BuiltProxyType = proxyBuilder.CreateType();
             var actualProxyInfosField = this.BuiltProxyType!.GetField(ProxyInfosFieldName, BindingFlags.NonPublic | BindingFlags.Static)!;
@@ -185,7 +185,13 @@ namespace Nanoray.Pintail
 
         private void ProxyMethod(ProxyManager<Context> manager, TypeBuilder proxyBuilder, MethodInfo proxy, MethodInfo target, FieldBuilder instanceField, FieldBuilder glueField, FieldBuilder proxyInfosField, TypeUtilities.PositionConversion?[] positionConversions, IList<ProxyInfo<Context>> relatedProxyInfos)
         {
-            MethodBuilder methodBuilder = proxyBuilder.DefineMethod(proxy.Name, MethodAttributes.Public | MethodAttributes.Final | MethodAttributes.Virtual);
+#if DEBUG
+            Console.WriteLine($"Proxying {proxy.DeclaringType}.{proxy.Name}[{string.Join(", ", proxy.GetParameters().Select(a => a.Name))}] to {target.DeclaringType}.{target.Name}");
+#endif
+            MethodBuilder methodBuilder = proxyBuilder.DefineMethod(
+                name: proxy.Name,
+                attributes: MethodAttributes.Public | MethodAttributes.Final | MethodAttributes.Virtual
+            );
 
             // set up generic arguments
             Type[] proxyGenericArguments = proxy.GetGenericArguments();
@@ -261,8 +267,20 @@ namespace Nanoray.Pintail
             }
 
             Type returnType = proxy.ReturnType.IsGenericMethodParameter ? genericTypeParameterBuilders[proxy.ReturnType.GenericParameterPosition] : proxy.ReturnType;
-            methodBuilder.SetReturnType(returnType);
-            methodBuilder.SetParameters(argTypes);
+
+            // we must set the constraints correctly
+            // or in params fail.
+            // see: https://stackoverflow.com/questions/56564992/when-implementing-an-interface-that-has-a-method-with-in-parameter-by-typebuil
+            var param = proxy.GetParameters();
+            methodBuilder.SetSignature(
+                returnType: returnType,
+                returnTypeRequiredCustomModifiers: proxy.ReturnParameter.GetRequiredCustomModifiers(),
+                returnTypeOptionalCustomModifiers: proxy.ReturnParameter.GetOptionalCustomModifiers(),
+                parameterTypes: argTypes,
+                parameterTypeRequiredCustomModifiers: param.Select(p => p.GetRequiredCustomModifiers()).ToArray(),
+                parameterTypeOptionalCustomModifiers: param.Select(p => p.GetOptionalCustomModifiers()).ToArray()
+            );
+
             for (int i = 0; i < argTypes.Length; i++)
                 methodBuilder.DefineParameter(i, targetParameters[i].Attributes, targetParameters[i].Name);
 

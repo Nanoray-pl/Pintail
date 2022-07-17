@@ -17,6 +17,7 @@ namespace Nanoray.Pintail.Tests.Provider
         {
             public override string sigh { get; } = "helloworld";
         }
+
         public abstract InnerClass[]? inner { get; }
 
         public abstract string? Name { get; }
@@ -141,7 +142,10 @@ namespace Nanoray.Pintail.Tests.Provider
 
         public R MapperMethod<T, R>(T t, Func<T, R> mapper)
             => mapper(t);
+        public string InMethod(in string str)
+            => str;
 
+        public KeyValuePair<int, int> InStructMethod(in KeyValuePair<int, int> test) => test;
         //public string? IsAssignableTest(object? anyObj)
         //    => anyObj?.ToString();
 
@@ -245,6 +249,54 @@ namespace Nanoray.Pintail.Tests.Provider
             => ApiResultEvent?.Invoke(value);
 
         public event Action<IApiResult>? ApiResultEvent;
+
+ #region OVERLOADS
+        // base object.
+        public Type MethodWithOverload(object value)
+            => typeof(object);
+
+        // value type.
+        public Type MethodWithOverload(int value)
+            => typeof(int);
+
+        // reference type
+        public Type MethodWithOverload(StringBuilder value)
+            => typeof(StringBuilder);
+
+        // enum
+        public Type MethodWithOverload(DayOfWeek value)
+            => typeof(DayOfWeek);
+
+        // out params.
+        public Type MethodWithOverload(out int value)
+        {
+            value = 5;
+            return typeof(int);
+        }
+
+        // different return type.
+        public string MethodWithOverload(double value)
+            => value.ToString();
+
+        public string MethodWithOverload(IProxiedInput proxy)
+            => "proxy";
+
+        public string MethodWithOverload(Func<IProxiedInput> callback)
+            => callback().teststring;
+
+        public string MethodWithOverload(Func<IProxiedInput2> callback)
+            => callback().otherteststring;
+#endregion
+    }
+
+    public interface IProxiedInput
+    {
+        string teststring { get; set;}
+    }
+
+    public interface IProxiedInput2
+    {
+        string otherteststring { get; set;}
     }
 
     public interface IProxyInputA

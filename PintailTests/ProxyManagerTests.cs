@@ -445,7 +445,6 @@ namespace Nanoray.Pintail.Tests
             var manager = this.CreateProxyManager();
             var providerApi = new SimpleProviderApiWithOverloads();
             var consumerApi = manager.ObtainProxy<ISimpleConsumerApiWithOverloads>(providerApi)!;
-
             Type baseType = consumerApi.MethodWithOverload(new object());
             Assert.AreSame(baseType, typeof(object));
 
@@ -472,7 +471,6 @@ namespace Nanoray.Pintail.Tests
             var manager = this.CreateProxyManager();
             var providerApi = new ComplexProviderApiWithOverloads();
             var consumerApi = manager.ObtainProxy<IComplexConsumerApiWithOverloads>(providerApi)!;
-
             ProxiedInput proxiedInput = new("HIIIIII!");
             ProxiedInput2 proxiedInput2 = new("BYEEEEE!");
 
@@ -610,6 +608,6 @@ namespace Nanoray.Pintail.Tests
 
             Assert.AreEqual("Hi!", consumerApi!.Name);
             Assert.AreEqual("sigh", consumerApi.inner[0].sigh);
-        }
+       }
     }
 }
