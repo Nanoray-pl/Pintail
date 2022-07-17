@@ -11,7 +11,7 @@
 		<PackageTags>proxy; proxying; duck typing</PackageTags>
 		<Authors>Shockah</Authors>
 		<GeneratePackageOnBuild>True</GeneratePackageOnBuild>
-		<Version>2.2.0</Version>
+		<Version>2.2.1</Version>
 		<PackageReadmeFile>README.md</PackageReadmeFile>
 		<Description>.NET type proxying / duck typing library, focusing on working between multiple assemblies without hiding this fact from them.</Description>
 		<Copyright>Nanoray</Copyright>
@@ -23,7 +23,7 @@
     </PropertyGroup>
 	<ItemGroup>
 	    <None Include="..\.editorconfig" Link=".editorconfig" />
-	    <None Include="..\README.md">
+	    <None Include="..\docs\README.md">
 	        <Pack>True</Pack>
 	        <PackagePath>\</PackagePath>
 	    </None>
