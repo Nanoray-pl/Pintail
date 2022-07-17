@@ -128,7 +128,7 @@ namespace Nanoray.Pintail
 
             // Groupby might make this more efficient.
             var allTargetMethods = this.ProxyInfo.Target.Type.FindInterfaceMethods(filter).ToList();
-            var allProxyMethods = this.ProxyInfo.Proxy.Type.FindInterfaceMethods(filter);
+            var allProxyMethods = this.ProxyInfo.Proxy.Type.FindInterfaceMethods(filter).ToList();
 
 #if DEBUG
             Console.WriteLine($"Looking at {allProxyMethods.Count} proxy methods and {allTargetMethods.Count} target methods for proxy {this.ProxyInfo.Proxy.Type.FullName} and target {this.ProxyInfo.Target.Type.FullName}");
@@ -190,7 +190,8 @@ namespace Nanoray.Pintail
 #endif
             MethodBuilder methodBuilder = proxyBuilder.DefineMethod(
                 name: proxy.Name,
-                attributes: MethodAttributes.Public | MethodAttributes.Final | MethodAttributes.Virtual);
+                attributes: MethodAttributes.Public | MethodAttributes.Final | MethodAttributes.Virtual
+            );
 
             // set up generic arguments
             Type[] proxyGenericArguments = proxy.GetGenericArguments();
@@ -277,7 +278,8 @@ namespace Nanoray.Pintail
                 returnTypeOptionalCustomModifiers: proxy.ReturnParameter.GetOptionalCustomModifiers(),
                 parameterTypes: argTypes,
                 parameterTypeRequiredCustomModifiers: param.Select(p => p.GetRequiredCustomModifiers()).ToArray(),
-                parameterTypeOptionalCustomModifiers: param.Select(p => p.GetOptionalCustomModifiers()).ToArray());
+                parameterTypeOptionalCustomModifiers: param.Select(p => p.GetOptionalCustomModifiers()).ToArray()
+            );
 
             for (int i = 0; i < argTypes.Length; i++)
                 methodBuilder.DefineParameter(i, targetParameters[i].Attributes, targetParameters[i].Name);

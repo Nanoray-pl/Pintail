@@ -17,6 +17,7 @@ namespace Nanoray.Pintail.Tests.Provider
         {
             public override string sigh { get; } = "helloworld";
         }
+
         public abstract InnerClass[]? inner { get; }
 
         public abstract string? Name { get; }
@@ -290,12 +291,12 @@ namespace Nanoray.Pintail.Tests.Provider
 
     public interface IProxiedInput
     {
-        public string teststring { get; set;}
+        string teststring { get; set;}
     }
 
     public interface IProxiedInput2
     {
-        public string otherteststring { get; set;}
+        string otherteststring { get; set;}
     }
 
     public interface IProxyInputA
