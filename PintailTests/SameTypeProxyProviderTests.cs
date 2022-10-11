@@ -8,7 +8,7 @@ namespace Nanoray.Pintail.Tests
     public class SameTypeProxyProviderTests
     {
         [Test]
-        public void TestCanProxy_ReturnsTrue_WhenSameType()
+        public void TestCanProxy_ShouldReturnTrue_WhenSameType()
         {
             IProxyProvider provider = new SameTypeProxyProvider();
 
@@ -19,7 +19,7 @@ namespace Nanoray.Pintail.Tests
         }
 
         [Test]
-        public void TestCanProxy_ReturnsFalse_WhenDifferentType()
+        public void TestCanProxy_ShouldReturnFalse_WhenDifferentType()
         {
             IProxyProvider provider = new SameTypeProxyProvider();
 
@@ -30,7 +30,7 @@ namespace Nanoray.Pintail.Tests
         }
 
         [Test]
-        public void TestObtainProxy_ReturnsSameValue()
+        public void TestObtainProxy_ShouldReturnSameValue()
         {
             IProxyProvider provider = new SameTypeProxyProvider();
 

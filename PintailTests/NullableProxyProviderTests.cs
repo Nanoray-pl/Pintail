@@ -26,7 +26,7 @@ namespace Nanoray.Pintail.Tests
         }
 
         [Test]
-        public void TestCanProxy_ReturnsTrue_WhenSameNullable()
+        public void TestCanProxy_ShouldReturnTrue_WhenSameNullable()
         {
             IProxyProvider provider = new NullableProxyProvider();
             IProxyProvider rootProvider = new CompoundProxyProvider(
@@ -39,7 +39,7 @@ namespace Nanoray.Pintail.Tests
         }
 
         [Test]
-        public void TestCanProxy_ReturnsTrue_WhenProxyableNullable()
+        public void TestCanProxy_ShouldReturnTrue_WhenProxyableNullable()
         {
             IProxyProvider provider = new NullableProxyProvider();
             IProxyProvider rootProvider = new CompoundProxyProvider(
@@ -52,7 +52,7 @@ namespace Nanoray.Pintail.Tests
         }
 
         [Test]
-        public void TestCanProxy_ReturnsFalse_WhenUnproxyableNullable()
+        public void TestCanProxy_ShouldReturnFalse_WhenUnproxyableNullable()
         {
             IProxyProvider provider = new NullableProxyProvider();
             IProxyProvider rootProvider = new CompoundProxyProvider(
@@ -64,7 +64,7 @@ namespace Nanoray.Pintail.Tests
         }
 
         [Test]
-        public void TestObtainProxy_ReturnsValidResults()
+        public void TestObtainProxy_ShouldReturnValidResults()
         {
             IProxyProvider provider = new NullableProxyProvider();
             IProxyProvider rootProvider = new CompoundProxyProvider(

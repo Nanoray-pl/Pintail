@@ -31,7 +31,7 @@ namespace Nanoray.Pintail.Tests
         }
 
         [Test]
-        public void TestCanProxy_ReturnsTrue_WhenSameEnum()
+        public void TestCanProxy_ShouldReturnTrue_WhenSameEnum()
         {
             IProxyProvider provider = new NumericEnumProxyProvider();
 
@@ -39,7 +39,7 @@ namespace Nanoray.Pintail.Tests
         }
 
         [Test]
-        public void TestCanProxy_ReturnsTrue_WhenSameEnumUnderlyingType()
+        public void TestCanProxy_ShouldReturnTrue_WhenSameEnumUnderlyingType()
         {
             IProxyProvider provider = new NumericEnumProxyProvider();
 
@@ -47,7 +47,7 @@ namespace Nanoray.Pintail.Tests
         }
 
         [Test]
-        public void TestCanProxy_ReturnsFalse_WhenDifferentEnumUnderlyingType()
+        public void TestCanProxy_ShouldReturnFalse_WhenDifferentEnumUnderlyingType()
         {
             IProxyProvider provider = new NumericEnumProxyProvider();
 
@@ -55,7 +55,7 @@ namespace Nanoray.Pintail.Tests
         }
 
         [Test]
-        public void TestObtainProxy_ReturnsSameNumericValue()
+        public void TestObtainProxy_ShouldReturnSameNumericValue()
         {
             IProxyProvider provider = new NumericEnumProxyProvider();
 
