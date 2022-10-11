@@ -1,4 +1,5 @@
 using System;
+using System.Diagnostics.CodeAnalysis;
 
 namespace Nanoray.Pintail
 {
@@ -11,22 +12,18 @@ namespace Nanoray.Pintail
             this.Wrapped = wrapped;
         }
 
-        public bool CanProxy<TGenericOriginal, TGenericProxy>(TGenericOriginal original, IProxyProvider? rootProvider)
+        bool IProxyProvider.CanProxy<TGenericOriginal, TGenericProxy>(TGenericOriginal original, [NotNullWhen(true)] out IProxyProcessor<TGenericOriginal, TGenericProxy>? processor, IProxyProvider? rootProvider)
         {
+            processor = null;
             if (!typeof(TGenericOriginal).IsAssignableTo(typeof(TSpecificOriginal)))
                 return false;
             if (!typeof(TGenericProxy).IsAssignableFrom(typeof(TSpecificProxy)))
                 return false;
-            return Wrapped.CanProxy((TSpecificOriginal)(object)original, rootProvider);
-        }
 
-        public TGenericProxy ObtainProxy<TGenericOriginal, TGenericProxy>(TGenericOriginal original, IProxyProvider? rootProvider)
-        {
-            if (!typeof(TGenericOriginal).IsAssignableTo(typeof(TSpecificOriginal)))
-                throw new ArgumentException($"Provided object of type {typeof(TGenericOriginal).Name} cannot be proxied to type {typeof(TGenericProxy).Name}");
-            if (!typeof(TGenericProxy).IsAssignableFrom(typeof(TSpecificProxy)))
-                throw new ArgumentException($"Provided object of type {typeof(TGenericOriginal).Name} cannot be proxied to type {typeof(TGenericProxy).Name}");
-            return (TGenericProxy)(object)Wrapped.ObtainProxy((TSpecificOriginal)(object)original, rootProvider);
+            bool result = Wrapped.CanProxy((TSpecificOriginal)(object)original, out var specificProcessor, rootProvider);
+            if (result && specificProcessor is not null)
+                processor = (IProxyProcessor<TGenericOriginal, TGenericProxy>)specificProcessor;
+            return result;
         }
     }
 }

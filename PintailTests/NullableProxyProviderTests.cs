@@ -30,12 +30,12 @@ namespace Nanoray.Pintail.Tests
         {
             IProxyProvider provider = new NullableProxyProvider();
             IProxyProvider rootProvider = new CompoundProxyProvider(
-                new SameTypeProxyProvider(),
+                SameTypeProxyProvider.Instance,
                 new NumericEnumProxyProvider()
             );
 
-            Assert.True(provider.CanProxy<int?, int?>(null, rootProvider));
-            Assert.True(provider.CanProxy<int?, int?>(123, rootProvider));
+            Assert.True(provider.CanProxy<int?, int?>(null, out _, rootProvider));
+            Assert.True(provider.CanProxy<int?, int?>(123, out _, rootProvider));
         }
 
         [Test]
@@ -43,12 +43,12 @@ namespace Nanoray.Pintail.Tests
         {
             IProxyProvider provider = new NullableProxyProvider();
             IProxyProvider rootProvider = new CompoundProxyProvider(
-                new SameTypeProxyProvider(),
+                SameTypeProxyProvider.Instance,
                 new NumericEnumProxyProvider()
             );
 
-            Assert.True(provider.CanProxy<IntA?, IntB?>(null, rootProvider));
-            Assert.True(provider.CanProxy<IntA?, IntB?>(IntA.Three, rootProvider));
+            Assert.True(provider.CanProxy<IntA?, IntB?>(null, out _, rootProvider));
+            Assert.True(provider.CanProxy<IntA?, IntB?>(IntA.Three, out _, rootProvider));
         }
 
         [Test]
@@ -56,24 +56,27 @@ namespace Nanoray.Pintail.Tests
         {
             IProxyProvider provider = new NullableProxyProvider();
             IProxyProvider rootProvider = new CompoundProxyProvider(
-                new SameTypeProxyProvider(),
+                SameTypeProxyProvider.Instance,
                 new NumericEnumProxyProvider()
             );
 
-            Assert.False(provider.CanProxy<IntA?, int?>(IntA.Three, rootProvider));
+            Assert.False(provider.CanProxy<IntA?, int?>(IntA.Three, out _, rootProvider));
         }
 
         [Test]
-        public void TestObtainProxy_ShouldReturnValidResults()
+        public void TestCanProxyProcessorObtainProxy_ShouldReturnValidResults()
         {
             IProxyProvider provider = new NullableProxyProvider();
             IProxyProvider rootProvider = new CompoundProxyProvider(
-                new SameTypeProxyProvider(),
+                SameTypeProxyProvider.Instance,
                 new NumericEnumProxyProvider()
             );
 
-            Assert.IsNull(provider.ObtainProxy<int?, int?>(null, rootProvider));
-            Assert.AreEqual(new Nullable<IntB>(IntB.Zero), provider.ObtainProxy<IntA?, IntB?>(IntA.Zero, rootProvider));
+            Assert.True(provider.CanProxy<int?, int?>(null, out var intProcessor, rootProvider));
+            Assert.IsNull(intProcessor!.ObtainProxy());
+
+            Assert.True(provider.CanProxy<IntA?, IntB?>(IntA.Zero, out var intbProcessor, rootProvider));
+            Assert.AreEqual(new Nullable<IntB>(IntB.Zero), intbProcessor!.ObtainProxy());
         }
     }
 }

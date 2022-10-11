@@ -35,7 +35,7 @@ namespace Nanoray.Pintail.Tests
         {
             IProxyProvider provider = new NumericEnumProxyProvider();
 
-            Assert.True(provider.CanProxy<IntA, IntA>(IntA.Zero));
+            Assert.True(provider.CanProxy<IntA, IntA>(IntA.Zero, out _));
         }
 
         [Test]
@@ -43,7 +43,7 @@ namespace Nanoray.Pintail.Tests
         {
             IProxyProvider provider = new NumericEnumProxyProvider();
 
-            Assert.True(provider.CanProxy<IntB, IntA>(IntB.FourthFlag));
+            Assert.True(provider.CanProxy<IntB, IntA>(IntB.FourthFlag, out _));
         }
 
         [Test]
@@ -51,16 +51,19 @@ namespace Nanoray.Pintail.Tests
         {
             IProxyProvider provider = new NumericEnumProxyProvider();
 
-            Assert.False(provider.CanProxy<IntA, LongA>(IntA.Zero));
+            Assert.False(provider.CanProxy<IntA, LongA>(IntA.Zero, out _));
         }
 
         [Test]
-        public void TestObtainProxy_ShouldReturnSameNumericValue()
+        public void TestCanProxyProcessorObtainProxy_ShouldReturnSameNumericValue()
         {
             IProxyProvider provider = new NumericEnumProxyProvider();
 
-            Assert.AreEqual(IntB.Zero, provider.ObtainProxy<IntA, IntB>(IntA.Zero));
-            Assert.AreEqual((IntB)999, provider.ObtainProxy<IntA, IntB>((IntA)999));
+            Assert.True(provider.CanProxy<IntA, IntB>(IntA.Zero, out var intbProcessor));
+            Assert.AreEqual(IntB.Zero, intbProcessor!.ObtainProxy());
+
+            Assert.True(provider.CanProxy<IntA, IntB>((IntA)999, out intbProcessor));
+            Assert.AreEqual((IntB)999, intbProcessor!.ObtainProxy());
         }
     }
 }

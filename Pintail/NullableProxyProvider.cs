@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
 using System.Linq.Expressions;
 using System.Reflection;
 using System.Reflection.Emit;
@@ -8,11 +9,22 @@ namespace Nanoray.Pintail
 {
     public class NullableProxyProvider : IProxyProvider
     {
-        private Dictionary<(Type, Type), Delegate> CanProxyFunctions { get; } = new();
-        private Dictionary<(Type, Type), Delegate> ObtainProxyFunctions { get; } = new();
+        private delegate bool CanProxyDelegate<TOriginal, TProxy>(NullableProxyProvider self, TOriginal original, [NotNullWhen(true)] out IProxyProcessor<TOriginal, TProxy>? processor, IProxyProvider? rootProvider);
 
-        bool IProxyProvider.CanProxy<TOriginal, TProxy>(TOriginal original, IProxyProvider? rootProvider)
+        public static double DefaultPriority { get; private set; } = 0.8;
+
+        public double Priority { get; private init; }
+
+        private Dictionary<(Type, Type), Delegate> CanProxyFunctions { get; } = new();
+
+        public NullableProxyProvider(double? priority = null)
         {
+            this.Priority = priority is null ? DefaultPriority : priority.Value;
+        }
+
+        bool IProxyProvider.CanProxy<TOriginal, TProxy>(TOriginal original, [NotNullWhen(true)] out IProxyProcessor<TOriginal, TProxy>? processor, IProxyProvider? rootProvider)
+        {
+            processor = null;
             if (!typeof(TOriginal).IsGenericType || !typeof(TProxy).IsGenericType)
                 return false;
             if (typeof(TOriginal).IsGenericTypeDefinition || typeof(TProxy).IsGenericTypeDefinition)
@@ -22,37 +34,29 @@ namespace Nanoray.Pintail
 
             var originalValueType = typeof(TOriginal).GenericTypeArguments[0];
             var proxyValueType = typeof(TProxy).GenericTypeArguments[0];
-            var canProxyFunction = (Func<TOriginal, IProxyProvider?, bool>)ObtainCanProxyFunction(originalValueType, proxyValueType);
-            return canProxyFunction(original, rootProvider);
+
+            var canProxyFunction = (CanProxyDelegate<TOriginal, TProxy>)ObtainCanProxyFunction(originalValueType, proxyValueType);
+            return canProxyFunction(this, original, out processor, rootProvider);
         }
 
-        TProxy IProxyProvider.ObtainProxy<TOriginal, TProxy>(TOriginal original, IProxyProvider? rootProvider)
-        {
-            var originalValueType = typeof(TOriginal).GenericTypeArguments[0];
-            var proxyValueType = typeof(TProxy).GenericTypeArguments[0];
-            var obtainProxyFunction = (Func<TOriginal, IProxyProvider?, TProxy>)ObtainObtainProxyFunction(originalValueType, proxyValueType);
-            return obtainProxyFunction(original, rootProvider);
-        }
-
-        private static bool CanProxy<TOriginal, TProxy>(TOriginal? original, IProxyProvider? rootProvider = null)
+        private bool CanProxy<TOriginal, TProxy>(TOriginal? original, [NotNullWhen(true)] out IProxyProcessor<TOriginal?, TProxy?>? processor, IProxyProvider? rootProvider)
             where TOriginal : struct
             where TProxy : struct
         {
-            if (original.HasValue)
-                return rootProvider?.CanProxy<TOriginal, TProxy>(original.Value, rootProvider) ?? false;
-            else
+            if (original is null)
+            {
+                processor = new DelegateProxyProcessor<TOriginal?, TProxy?>(Priority, original, _ => null);
                 return true;
-        }
+            }
+            if (rootProvider is null)
+            {
+                processor = null;
+                return false;
+            }
 
-        private static TProxy? ObtainProxy<TOriginal, TProxy>(TOriginal? original, IProxyProvider? rootProvider = null)
-            where TOriginal : struct
-            where TProxy : struct
-        {
-            if (original.HasValue)
-                return rootProvider?.ObtainProxy<TOriginal, TProxy>(original.Value, rootProvider)
-                    ?? throw new ArgumentException($"{typeof(NullableProxyProvider).Name} cannot proxy values on its own without a `{nameof(rootProvider)}`.");
-            else
-                return null;
+            var canProxyValueResult = rootProvider.CanProxy<TOriginal, TProxy>(original.Value, out var valueProcessor, rootProvider);
+            processor = canProxyValueResult && valueProcessor is not null ? new DelegateProxyProcessor<TOriginal?, TProxy?>(Priority, original, _ => valueProcessor.ObtainProxy()) : null;
+            return canProxyValueResult;
         }
 
         private Delegate ObtainCanProxyFunction(Type originalValueType, Type proxyValueType)
@@ -68,65 +72,31 @@ namespace Nanoray.Pintail
             }
         }
 
-        private Delegate ObtainObtainProxyFunction(Type originalValueType, Type proxyValueType)
-        {
-            lock (ObtainProxyFunctions)
-            {
-                if (!ObtainProxyFunctions.TryGetValue((originalValueType, proxyValueType), out var @delegate))
-                {
-                    @delegate = MakeObtainProxyFunction(originalValueType, proxyValueType);
-                    ObtainProxyFunctions[(originalValueType, proxyValueType)] = @delegate;
-                }
-                return @delegate;
-            }
-        }
-
         private Delegate MakeCanProxyFunction(Type originalValueType, Type proxyValueType)
         {
             var selfType = GetType();
             var originalNullableType = typeof(Nullable<>).MakeGenericType(originalValueType);
             var proxyNullableType = typeof(Nullable<>).MakeGenericType(proxyValueType);
-            var genericProxyProviderType = typeof(IProxyProvider);
+            var processorRawType = typeof(IProxyProcessor<int, int>).GetGenericTypeDefinition();
+            var nullableProcessorType = processorRawType.MakeGenericType(originalNullableType, proxyNullableType);
+            var proxyProviderType = typeof(IProxyProvider);
+            var delegateRawType = typeof(CanProxyDelegate<int, int>).GetGenericTypeDefinition();
+            var delegateType = delegateRawType.MakeGenericType(originalNullableType, proxyNullableType);
 
-            var originalNullableParameter = Expression.Parameter(originalNullableType, "original");
-            var rootProviderParameter = Expression.Parameter(genericProxyProviderType, "rootProvider");
-
-            var canProxyRawMethod = selfType.GetMethod(nameof(CanProxy), BindingFlags.NonPublic | BindingFlags.Static)!;
+            var canProxyRawMethod = selfType.GetMethod(nameof(CanProxy), BindingFlags.NonPublic | BindingFlags.Instance)!;
             var canProxyTypedMethod = canProxyRawMethod.MakeGenericMethod(originalValueType, proxyValueType);
 
-            return Expression.Lambda(
-                Expression.Call(
-                    canProxyTypedMethod,
-                    originalNullableParameter,
-                    rootProviderParameter
-                ),
-                originalNullableParameter,
-                rootProviderParameter
-            ).Compile();
-        }
+            var method = new DynamicMethod("CanProxy", typeof(bool), new Type[] { selfType, originalNullableType, nullableProcessorType.MakeByRefType(), proxyProviderType });
+            var il = method.GetILGenerator();
 
-        private Delegate MakeObtainProxyFunction(Type originalValueType, Type proxyValueType)
-        {
-            var selfType = GetType();
-            var originalNullableType = typeof(Nullable<>).MakeGenericType(originalValueType);
-            var proxyNullableType = typeof(Nullable<>).MakeGenericType(proxyValueType);
-            var genericProxyProviderType = typeof(IProxyProvider);
+            il.Emit(OpCodes.Ldarg_0); // load `this`
+            il.Emit(OpCodes.Ldarg_1); // load `original`
+            il.Emit(OpCodes.Ldarg_2); // load `processor`
+            il.Emit(OpCodes.Ldarg_3); // load `rootProvider`
+            il.Emit(OpCodes.Call, canProxyTypedMethod);
+            il.Emit(OpCodes.Ret);
 
-            var originalNullableParameter = Expression.Parameter(originalNullableType, "original");
-            var rootProviderParameter = Expression.Parameter(genericProxyProviderType, "rootProvider");
-
-            var obtainProxyRawMethod = selfType.GetMethod(nameof(ObtainProxy), BindingFlags.NonPublic | BindingFlags.Static)!;
-            var obtainProxyTypedMethod = obtainProxyRawMethod.MakeGenericMethod(originalValueType, proxyValueType);
-
-            return Expression.Lambda(
-                Expression.Call(
-                    obtainProxyTypedMethod,
-                    originalNullableParameter,
-                    rootProviderParameter
-                ),
-                originalNullableParameter,
-                rootProviderParameter
-            ).Compile();
+            return method.CreateDelegate(delegateType);
         }
     }
 }

@@ -1,6 +1,6 @@
 using System;
 using System.Collections.Generic;
-using System.Linq;
+using System.Diagnostics.CodeAnalysis;
 
 namespace Nanoray.Pintail
 {
@@ -18,11 +18,19 @@ namespace Nanoray.Pintail
             this.Providers = new(providers);
         }
 
-        public bool CanProxy<TOriginal, TProxy>(TOriginal original, IProxyProvider? rootProvider = null)
-            => Providers.Any(provider => provider.CanProxy<TOriginal, TProxy>(original, rootProvider));
+        bool IProxyProvider.CanProxy<TOriginal, TProxy>(TOriginal original, [NotNullWhen(true)] out IProxyProcessor<TOriginal, TProxy>? processor, IProxyProvider? rootProvider)
+        {
+            foreach (var provider in Providers)
+            {
+                if (provider.CanProxy<TOriginal, TProxy>(original, out var providerProcessor, rootProvider))
+                {
+                    processor = providerProcessor;
+                    return true;
+                }
+            }
 
-        public TProxy ObtainProxy<TOriginal, TProxy>(TOriginal original, IProxyProvider? rootProvider = null)
-            => Providers.First(provider => provider.CanProxy<TOriginal, TProxy>(original, rootProvider))
-                .ObtainProxy<TOriginal, TProxy>(original, rootProvider);
+            processor = null;
+            return false;
+        }
     }
 }

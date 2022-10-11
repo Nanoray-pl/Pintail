@@ -1,4 +1,5 @@
 using System;
+using System.Diagnostics.CodeAnalysis;
 
 namespace Nanoray.Pintail
 {
@@ -11,10 +12,7 @@ namespace Nanoray.Pintail
             this.Wrapped = wrapped;
         }
 
-        public bool CanProxy(TSpecificOriginal original, IProxyProvider? rootProvider)
-            => Wrapped.CanProxy<TSpecificOriginal, TSpecificProxy>(original, rootProvider);
-
-        public TSpecificProxy ObtainProxy(TSpecificOriginal original, IProxyProvider? rootProvider)
-            => Wrapped.ObtainProxy<TSpecificOriginal, TSpecificProxy>(original, rootProvider);
+        bool IProxyProvider<TSpecificOriginal, TSpecificProxy>.CanProxy(TSpecificOriginal original, [NotNullWhen(true)] out IProxyProcessor<TSpecificOriginal, TSpecificProxy>? processor, IProxyProvider? rootProvider)
+            => Wrapped.CanProxy<TSpecificOriginal, TSpecificProxy>(original, out processor, rootProvider);
     }
 }
