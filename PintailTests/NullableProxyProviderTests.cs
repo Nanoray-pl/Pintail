@@ -1,5 +1,3 @@
-using System;
-using System.Text;
 using NUnit.Framework;
 
 namespace Nanoray.Pintail.Tests
@@ -76,7 +74,7 @@ namespace Nanoray.Pintail.Tests
             Assert.IsNull(intProcessor!.ObtainProxy());
 
             Assert.True(provider.CanProxy<IntA?, IntB?>(IntA.Zero, out var intbProcessor, rootProvider));
-            Assert.AreEqual(new Nullable<IntB>(IntB.Zero), intbProcessor!.ObtainProxy());
+            Assert.AreEqual(new IntB?(IntB.Zero), intbProcessor!.ObtainProxy());
         }
     }
 }

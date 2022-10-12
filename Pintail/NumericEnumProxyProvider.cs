@@ -1,4 +1,3 @@
-using System;
 using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
 
@@ -17,15 +16,15 @@ namespace Nanoray.Pintail
 
         bool IProxyProvider.CanProxy<TOriginal, TProxy>(TOriginal original, [NotNullWhen(true)] out IProxyProcessor<TOriginal, TProxy>? processor, IProxyProvider? rootProvider)
         {
-            var result = CanProxy<TOriginal, TProxy>(original, rootProvider);
-            processor = result ? new DelegateProxyProcessor<TOriginal, TProxy>(Priority, original, o => ObtainProxy<TOriginal, TProxy>(o, rootProvider)) : null;
+            bool result = CanProxy<TOriginal, TProxy>();
+            processor = result ? new DelegateProxyProcessor<TOriginal, TProxy>(this.Priority, original, ObtainProxy<TOriginal, TProxy>) : null;
             return result;
         }
 
-        private static bool CanProxy<TOriginal, TProxy>(TOriginal original, IProxyProvider? rootProvider)
+        private static bool CanProxy<TOriginal, TProxy>()
             => typeof(TOriginal).IsEnum && typeof(TProxy).IsEnum && typeof(TOriginal).GetEnumUnderlyingType() == typeof(TProxy).GetEnumUnderlyingType();
 
-        private static TProxy ObtainProxy<TOriginal, TProxy>(TOriginal original, IProxyProvider? rootProvider)
+        private static TProxy ObtainProxy<TOriginal, TProxy>(TOriginal original)
             => Unsafe.As<TOriginal, TProxy>(ref original);
     }
 }

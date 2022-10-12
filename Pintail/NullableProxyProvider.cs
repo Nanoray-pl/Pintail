@@ -1,7 +1,6 @@
 using System;
 using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
-using System.Linq.Expressions;
 using System.Reflection;
 using System.Reflection.Emit;
 
@@ -35,7 +34,7 @@ namespace Nanoray.Pintail
             var originalValueType = typeof(TOriginal).GenericTypeArguments[0];
             var proxyValueType = typeof(TProxy).GenericTypeArguments[0];
 
-            var canProxyFunction = (CanProxyDelegate<TOriginal, TProxy>)ObtainCanProxyFunction(originalValueType, proxyValueType);
+            var canProxyFunction = (CanProxyDelegate<TOriginal, TProxy>)this.ObtainCanProxyFunction(originalValueType, proxyValueType);
             return canProxyFunction(this, original, out processor, rootProvider);
         }
 
@@ -45,7 +44,7 @@ namespace Nanoray.Pintail
         {
             if (original is null)
             {
-                processor = new DelegateProxyProcessor<TOriginal?, TProxy?>(Priority, original, _ => null);
+                processor = new DelegateProxyProcessor<TOriginal?, TProxy?>(this.Priority, original, _ => null);
                 return true;
             }
             if (rootProvider is null)
@@ -54,19 +53,19 @@ namespace Nanoray.Pintail
                 return false;
             }
 
-            var canProxyValueResult = rootProvider.CanProxy<TOriginal, TProxy>(original.Value, out var valueProcessor, rootProvider);
-            processor = canProxyValueResult && valueProcessor is not null ? new DelegateProxyProcessor<TOriginal?, TProxy?>(Priority, original, _ => valueProcessor.ObtainProxy()) : null;
+            bool canProxyValueResult = rootProvider.CanProxy<TOriginal, TProxy>(original.Value, out var valueProcessor, rootProvider);
+            processor = canProxyValueResult && valueProcessor is not null ? new DelegateProxyProcessor<TOriginal?, TProxy?>(this.Priority, original, _ => valueProcessor.ObtainProxy()) : null;
             return canProxyValueResult;
         }
 
         private Delegate ObtainCanProxyFunction(Type originalValueType, Type proxyValueType)
         {
-            lock (CanProxyFunctions)
+            lock (this.CanProxyFunctions)
             {
-                if (!CanProxyFunctions.TryGetValue((originalValueType, proxyValueType), out var @delegate))
+                if (!this.CanProxyFunctions.TryGetValue((originalValueType, proxyValueType), out var @delegate))
                 {
-                    @delegate = MakeCanProxyFunction(originalValueType, proxyValueType);
-                    CanProxyFunctions[(originalValueType, proxyValueType)] = @delegate;
+                    @delegate = this.MakeCanProxyFunction(originalValueType, proxyValueType);
+                    this.CanProxyFunctions[(originalValueType, proxyValueType)] = @delegate;
                 }
                 return @delegate;
             }
@@ -74,7 +73,7 @@ namespace Nanoray.Pintail
 
         private Delegate MakeCanProxyFunction(Type originalValueType, Type proxyValueType)
         {
-            var selfType = GetType();
+            var selfType = this.GetType();
             var originalNullableType = typeof(Nullable<>).MakeGenericType(originalValueType);
             var proxyNullableType = typeof(Nullable<>).MakeGenericType(proxyValueType);
             var nullableProcessorType = typeof(IProxyProcessor<,>).MakeGenericType(originalNullableType, proxyNullableType);

@@ -1,5 +1,5 @@
-using System;
 using System.Diagnostics.CodeAnalysis;
+using System.Runtime.CompilerServices;
 
 namespace Nanoray.Pintail
 {
@@ -20,7 +20,7 @@ namespace Nanoray.Pintail
             if (!typeof(TGenericProxy).IsAssignableFrom(typeof(TSpecificProxy)))
                 return false;
 
-            bool result = Wrapped.CanProxy((TSpecificOriginal)(object)original, out var specificProcessor, rootProvider);
+            bool result = this.Wrapped.CanProxy(Unsafe.As<TGenericOriginal, TSpecificOriginal>(ref original), out var specificProcessor, rootProvider);
             if (result && specificProcessor is not null)
                 processor = (IProxyProcessor<TGenericOriginal, TGenericProxy>)specificProcessor;
             return result;

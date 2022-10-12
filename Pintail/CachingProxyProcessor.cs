@@ -1,14 +1,12 @@
-using System;
-
 namespace Nanoray.Pintail
 {
     public class CachingProxyProcessor<TOriginal, TProxy> : IProxyProcessor<TOriginal, TProxy>
     {
         public double Priority
-            => Wrapped.Priority;
+            => this.Wrapped.Priority;
 
         public TOriginal Original
-            => Wrapped.Original;
+            => this.Wrapped.Original;
 
         private IProxyProcessor<TOriginal, TProxy> Wrapped { get; init; }
         private object Lock { get; init; } = new object();
@@ -22,14 +20,14 @@ namespace Nanoray.Pintail
 
         public TProxy ObtainProxy()
         {
-            lock (Lock)
+            lock (this.Lock)
             {
-                if (IsCached)
-                    return CachedProxy!;
+                if (this.IsCached)
+                    return this.CachedProxy!;
 
-                var proxy = Wrapped.ObtainProxy();
-                CachedProxy = proxy;
-                IsCached = true;
+                var proxy = this.Wrapped.ObtainProxy();
+                this.CachedProxy = proxy;
+                this.IsCached = true;
                 return proxy;
             }
         }

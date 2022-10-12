@@ -1,4 +1,3 @@
-using System;
 using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
 
@@ -20,7 +19,7 @@ namespace Nanoray.Pintail
 
         bool IProxyProvider.CanProxy<TOriginal, TProxy>(TOriginal original, [NotNullWhen(true)] out IProxyProcessor<TOriginal, TProxy>? processor, IProxyProvider? rootProvider)
         {
-            foreach (var provider in Providers)
+            foreach (var provider in this.Providers)
             {
                 if (provider.CanProxy<TOriginal, TProxy>(original, out var providerProcessor, rootProvider))
                 {

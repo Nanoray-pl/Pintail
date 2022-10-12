@@ -16,6 +16,6 @@ namespace Nanoray.Pintail
         }
 
         public TProxy ObtainProxy()
-            => ProxyDelegate(Original);
+            => this.ProxyDelegate(this.Original);
     }
 }
