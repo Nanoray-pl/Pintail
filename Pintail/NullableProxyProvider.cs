@@ -77,11 +77,9 @@ namespace Nanoray.Pintail
             var selfType = GetType();
             var originalNullableType = typeof(Nullable<>).MakeGenericType(originalValueType);
             var proxyNullableType = typeof(Nullable<>).MakeGenericType(proxyValueType);
-            var processorRawType = typeof(IProxyProcessor<int, int>).GetGenericTypeDefinition();
-            var nullableProcessorType = processorRawType.MakeGenericType(originalNullableType, proxyNullableType);
+            var nullableProcessorType = typeof(IProxyProcessor<,>).MakeGenericType(originalNullableType, proxyNullableType);
             var proxyProviderType = typeof(IProxyProvider);
-            var delegateRawType = typeof(CanProxyDelegate<int, int>).GetGenericTypeDefinition();
-            var delegateType = delegateRawType.MakeGenericType(originalNullableType, proxyNullableType);
+            var delegateType = typeof(CanProxyDelegate<,>).MakeGenericType(originalNullableType, proxyNullableType);
 
             var canProxyRawMethod = selfType.GetMethod(nameof(CanProxy), BindingFlags.NonPublic | BindingFlags.Instance)!;
             var canProxyTypedMethod = canProxyRawMethod.MakeGenericMethod(originalValueType, proxyValueType);
