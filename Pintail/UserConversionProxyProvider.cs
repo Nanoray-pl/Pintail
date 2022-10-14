@@ -6,14 +6,6 @@ using System.Reflection.Emit;
 
 namespace Nanoray.Pintail
 {
-    public enum UserConversionProxyProviderConversionType
-    {
-        None = 0,
-        Implicit = 1 << 0,
-        Explicit = 1 << 1,
-        Any = Implicit | Explicit
-    }
-
     public sealed class UserConversionProxyProvider : IProxyProvider
     {
         private enum LookupConversionType
@@ -21,36 +13,37 @@ namespace Nanoray.Pintail
             Implicit, Explicit
         }
 
-        public static double DefaultPriority { get; private set; } = 0.75;
+        public static double DefaultImplicitPriority { get; private set; } = 0.85;
+        public static double DefaultExplicitPriority { get; private set; } = 0.75;
 
-        public UserConversionProxyProviderConversionType ConversionType { get; private init; }
-        public double Priority { get; private init; }
+        public double ImplicitPriority { get; private init; }
+        public double ExplicitPriority { get; private init; }
 
-        private Dictionary<(Type, Type), Delegate?> ConversionFunctions { get; } = new();
+        private Dictionary<(Type, Type), (Delegate? Delegate, double Priority)> ConversionFunctions { get; } = new();
 
-        public UserConversionProxyProvider(UserConversionProxyProviderConversionType conversionType, double? priority = null)
+        public UserConversionProxyProvider(double? implicitPriority = null, double? explicitPriority = null)
         {
-            this.ConversionType = conversionType;
-            this.Priority = priority is null ? DefaultPriority : priority.Value;
+            this.ImplicitPriority = implicitPriority is null ? DefaultImplicitPriority : implicitPriority.Value;
+            this.ExplicitPriority = explicitPriority is null ? DefaultExplicitPriority : explicitPriority.Value;
         }
 
         bool IProxyProvider.CanProxy<TOriginal, TProxy>(TOriginal original, [NotNullWhen(true)] out IProxyProcessor<TOriginal, TProxy>? processor, IProxyProvider? rootProvider)
         {
-            Func<TOriginal, TProxy>? conversionFunction = null;
+            (Func<TOriginal, TProxy> Function, double Priority)? conversionFunction = null;
 
             lock (this.ConversionFunctions)
             {
                 if (!this.ConversionFunctions.TryGetValue((typeof(TOriginal), typeof(TProxy)), out var @delegate))
                 {
-                    if (((int)this.ConversionType & (int)UserConversionProxyProviderConversionType.Implicit) != 0)
-                        @delegate = this.MakeConversionFunction<TOriginal, TProxy>(LookupConversionType.Implicit);
-                    if (@delegate is null && ((int)this.ConversionType & (int)UserConversionProxyProviderConversionType.Explicit) != 0)
-                        @delegate = this.MakeConversionFunction<TOriginal, TProxy>(LookupConversionType.Explicit);
+                    if (this.ImplicitPriority > 0)
+                        @delegate = (this.MakeConversionFunction<TOriginal, TProxy>(LookupConversionType.Implicit), this.ImplicitPriority);
+                    if (@delegate.Delegate is null && this.ExplicitPriority > 0)
+                        @delegate = (this.MakeConversionFunction<TOriginal, TProxy>(LookupConversionType.Explicit), this.ExplicitPriority);
                     this.ConversionFunctions[(typeof(TOriginal), typeof(TProxy))] = @delegate;
                 }
 
-                if (@delegate is not null)
-                    conversionFunction = (Func<TOriginal, TProxy>)@delegate;
+                if (@delegate.Delegate is not null)
+                    conversionFunction = ((Func<TOriginal, TProxy>)@delegate.Delegate, @delegate.Priority);
             }
 
             if (conversionFunction is null)
@@ -59,7 +52,7 @@ namespace Nanoray.Pintail
                 return false;
             }
 
-            processor = new DelegateProxyProcessor<TOriginal, TProxy>(this.Priority, original, conversionFunction);
+            processor = new DelegateProxyProcessor<TOriginal, TProxy>(conversionFunction.Value.Priority, original, conversionFunction.Value.Function);
             return true;
         }
 

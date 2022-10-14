@@ -38,7 +38,7 @@ namespace Nanoray.Pintail.Tests
         [Test]
         public void TestCanProxy_ShouldReturnTrue_WhenImplicitOperatorExistsAndIsSetup()
         {
-            IProxyProvider provider = new UserConversionProxyProvider(UserConversionProxyProviderConversionType.Implicit);
+            IProxyProvider provider = new UserConversionProxyProvider(explicitPriority: 0);
 
             Assert.True(provider.CanProxy<BasicStruct, ImplicitStruct>(new() { X = 2, Y = 3 }, out _));
             Assert.True(provider.CanProxy<ImplicitStruct, BasicStruct>(new() { X = 5, Y = 7 }, out _));
@@ -47,7 +47,7 @@ namespace Nanoray.Pintail.Tests
         [Test]
         public void TestCanProxy_ShouldReturnTrue_WhenExplicitOperatorExistsAndIsSetup()
         {
-            IProxyProvider provider = new UserConversionProxyProvider(UserConversionProxyProviderConversionType.Explicit);
+            IProxyProvider provider = new UserConversionProxyProvider(implicitPriority: 0);
 
             Assert.True(provider.CanProxy<BasicStruct, ExplicitStruct>(new() { X = 2, Y = 3 }, out _));
             Assert.True(provider.CanProxy<ExplicitStruct, BasicStruct>(new() { X = 5, Y = 7 }, out _));
@@ -56,7 +56,7 @@ namespace Nanoray.Pintail.Tests
         [Test]
         public void TestCanProxy_ShouldReturnFalse_WhenImplicitOperatorDoesNotExistButIsSetup()
         {
-            IProxyProvider provider = new UserConversionProxyProvider(UserConversionProxyProviderConversionType.Implicit);
+            IProxyProvider provider = new UserConversionProxyProvider(explicitPriority: 0);
 
             Assert.False(provider.CanProxy<BasicStruct, ExplicitStruct>(new() { X = 2, Y = 3 }, out _));
             Assert.False(provider.CanProxy<ExplicitStruct, BasicStruct>(new() { X = 5, Y = 7 }, out _));
@@ -65,7 +65,7 @@ namespace Nanoray.Pintail.Tests
         [Test]
         public void TestCanProxy_ShouldReturnFalse_WhenExplicitOperatorDoesNotExistButIsSetup()
         {
-            IProxyProvider provider = new UserConversionProxyProvider(UserConversionProxyProviderConversionType.Explicit);
+            IProxyProvider provider = new UserConversionProxyProvider(implicitPriority: 0);
 
             Assert.False(provider.CanProxy<BasicStruct, ImplicitStruct>(new() { X = 2, Y = 3 }, out _));
             Assert.False(provider.CanProxy<ImplicitStruct, BasicStruct>(new() { X = 5, Y = 7 }, out _));
@@ -74,7 +74,7 @@ namespace Nanoray.Pintail.Tests
         [Test]
         public void TestCanProxy_ShouldReturnTrue_WhenAnyOperatorExistsAndIsSetup()
         {
-            IProxyProvider provider = new UserConversionProxyProvider(UserConversionProxyProviderConversionType.Any);
+            IProxyProvider provider = new UserConversionProxyProvider();
 
             Assert.True(provider.CanProxy<BasicStruct, ImplicitStruct>(new() { X = 2, Y = 3 }, out _));
             Assert.True(provider.CanProxy<ImplicitStruct, BasicStruct>(new() { X = 5, Y = 7 }, out _));
@@ -85,7 +85,7 @@ namespace Nanoray.Pintail.Tests
         [Test]
         public void TestCanProxy_ShouldReturnFalse_WhenOperatorDoesNotExist()
         {
-            IProxyProvider provider = new UserConversionProxyProvider(UserConversionProxyProviderConversionType.Any);
+            IProxyProvider provider = new UserConversionProxyProvider();
 
             Assert.False(provider.CanProxy<ImplicitStruct, ExplicitStruct>(new() { X = 2, Y = 3 }, out _));
             Assert.False(provider.CanProxy<ExplicitStruct, ImplicitStruct>(new() { X = 5, Y = 7 }, out _));
@@ -94,7 +94,7 @@ namespace Nanoray.Pintail.Tests
         [Test]
         public void TestCanProxyProcessorObtainProxy_ShouldReturnValidResults()
         {
-            IProxyProvider provider = new UserConversionProxyProvider(UserConversionProxyProviderConversionType.Any);
+            IProxyProvider provider = new UserConversionProxyProvider();
 
             Assert.True(provider.CanProxy<BasicStruct, ImplicitStruct>(new() { X = 2, Y = 3 }, out var implicitStructProcessor));
             Assert.AreEqual(2, implicitStructProcessor!.ObtainProxy().X);
