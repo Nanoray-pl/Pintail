@@ -23,7 +23,7 @@ namespace Nanoray.Pintail
         private static readonly MethodInfo GetTypeFromHandleMethod = typeof(Type).GetMethod(nameof(Type.GetTypeFromHandle))!;
 
         public ProxyInfo<Context> ProxyInfo { get; private set; }
-        private readonly INoMatchingMethodHandler<Context> NoMatchingMethodHandler;
+        private readonly ProxyManagerNoMatchingMethodHandler<Context> NoMatchingMethodHandler;
         private readonly ProxyManagerProxyPrepareBehavior ProxyPrepareBehavior;
         private readonly ProxyManagerEnumMappingBehavior EnumMappingBehavior;
         private readonly ProxyObjectInterfaceMarking ProxyObjectInterfaceMarking;
@@ -34,7 +34,7 @@ namespace Nanoray.Pintail
 
         internal InterfaceOrDelegateProxyFactory(
             ProxyInfo<Context> proxyInfo,
-            INoMatchingMethodHandler<Context> noMatchingMethodHandler,
+            ProxyManagerNoMatchingMethodHandler<Context> noMatchingMethodHandler,
             ProxyManagerProxyPrepareBehavior proxyPrepareBehavior,
             ProxyManagerEnumMappingBehavior enumMappingBehavior,
             ProxyObjectInterfaceMarking proxyObjectInterfaceMarking,
@@ -169,7 +169,7 @@ namespace Nanoray.Pintail
                 }
                 else
                 {
-                    this.NoMatchingMethodHandler.HandleNoMatchingMethod(proxyBuilder, this.ProxyInfo, targetField, glueField, proxyInfosField, proxyMethod);
+                    this.NoMatchingMethodHandler(proxyBuilder, this.ProxyInfo, targetField, glueField, proxyInfosField, proxyMethod);
                 }
                 proxyMethodLoopContinue:;
             }

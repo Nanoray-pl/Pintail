@@ -298,7 +298,7 @@ namespace Nanoray.Pintail.Tests
         public void TestNonExistentApiMethodByThrowingOnPrepare()
         {
             var manager = this.CreateProxyManager(new(
-                noMatchingMethodHandler: new ThrowingDuringProxyingNoMatchingMethodHandler<Nothing>()
+                noMatchingMethodHandler: ProxyManagerConfiguration<Nothing>.ThrowExceptionNoMatchingMethodHandler
             ));
             var providerApi = new SimpleProviderApi();
             Assert.Throws<ArgumentException>(() => manager.ObtainProxy<IInvalidConsumerApi>(providerApi));
@@ -308,7 +308,7 @@ namespace Nanoray.Pintail.Tests
         public void TestNonExistentApiMethodByThrowingImplementation()
         {
             var manager = this.CreateProxyManager(new(
-                noMatchingMethodHandler: new ThrowingImplementationNoMatchingMethodHandler<Nothing>()
+                noMatchingMethodHandler: ProxyManagerConfiguration<Nothing>.ThrowingImplementationNoMatchingMethodHandler
             ));
             var providerApi = new SimpleProviderApi();
             IInvalidConsumerApi consumerApi = null!;

@@ -1,6 +1,8 @@
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.Linq;
+using System.Reflection;
 using System.Reflection.Emit;
 using System.Security.Cryptography;
 using System.Text;
@@ -12,6 +14,12 @@ namespace Nanoray.Pintail
     /// </summary>
     /// <typeparam name="Context">The context type used to describe the current proxy process. Use <see cref="Nothing"/> if not needed.</typeparam>
     public delegate string ProxyManagerTypeNameProvider<Context>(ModuleBuilder moduleBuilder, ProxyInfo<Context> proxyInfo);
+
+    /// <summary>
+    /// A type which defines the behavior to use if a given proxy method could not be implemented when using <see cref="ProxyManager{Context}"/>.
+    /// </summary>
+    /// <typeparam name="Context">The context type used to describe the current proxy process. Use <see cref="Nothing"/> if not needed.</typeparam>
+    public delegate void ProxyManagerNoMatchingMethodHandler<Context>(TypeBuilder proxyBuilder, ProxyInfo<Context> proxyInfo, FieldBuilder targetField, FieldBuilder glueField, FieldBuilder proxyInfosField, MethodInfo proxyMethod);
 
     /// <summary>
     /// Defines when proxy factories for interfaces and delegates should be created and prepared.
@@ -135,6 +143,41 @@ namespace Nanoray.Pintail
         });
 
         /// <summary>
+        /// The default <see cref="ProxyManagerNoMatchingMethodHandler{Context}"/> implementation.<br/>
+        /// If a method cannot be implemented, <see cref="ArgumentException"/> will be thrown right away.
+        /// </summary>
+        public static readonly ProxyManagerNoMatchingMethodHandler<Context> ThrowExceptionNoMatchingMethodHandler = (proxyBuilder, proxyInfo, _, _, _, proxyMethod)
+            => throw new ArgumentException($"The {proxyInfo.Proxy.Type.GetShortName()} interface defines method {proxyMethod.Name} which doesn't exist in the API or depends on an interface that cannot be mapped!");
+
+        /// <summary>
+        /// If a method cannot be implemented, a blank implementation will be created instead, which will throw <see cref="NotImplementedException"/> when called.
+        /// </summary>
+        public static readonly ProxyManagerNoMatchingMethodHandler<Context> ThrowingImplementationNoMatchingMethodHandler = (proxyBuilder, proxyInfo, _, _, _, proxyMethod) =>
+        {
+            MethodBuilder methodBuilder = proxyBuilder.DefineMethod(proxyMethod.Name, MethodAttributes.Public | MethodAttributes.Final | MethodAttributes.Virtual);
+
+            Type[] proxyGenericArguments = proxyMethod.GetGenericArguments();
+            string[] genericArgNames = proxyGenericArguments.Select(a => a.Name).ToArray();
+            GenericTypeParameterBuilder[] genericTypeParameterBuilders = proxyGenericArguments.Length == 0 ? Array.Empty<GenericTypeParameterBuilder>() : methodBuilder.DefineGenericParameters(genericArgNames);
+            for (int i = 0; i < proxyGenericArguments.Length; i++)
+                genericTypeParameterBuilders[i].SetGenericParameterAttributes(proxyGenericArguments[i].GenericParameterAttributes);
+
+            Type returnType = proxyMethod.ReturnType.IsGenericMethodParameter ? genericTypeParameterBuilders[proxyMethod.ReturnType.GenericParameterPosition] : proxyMethod.ReturnType;
+            methodBuilder.SetReturnType(returnType);
+
+            Type[] argTypes = proxyMethod.GetParameters()
+                .Select(a => a.ParameterType)
+                .Select(t => t.IsGenericMethodParameter ? genericTypeParameterBuilders[t.GenericParameterPosition] : t)
+                .ToArray();
+            methodBuilder.SetParameters(argTypes);
+
+            ILGenerator il = methodBuilder.GetILGenerator();
+            il.Emit(OpCodes.Ldstr, $"The {proxyInfo.Proxy.Type.GetShortName()} interface defines method {proxyMethod.Name} which doesn't exist in the API. (It may depend on an interface that was not mappable).");
+            il.Emit(OpCodes.Newobj, typeof(NotImplementedException).GetConstructor(new Type[] { typeof(string) })!);
+            il.Emit(OpCodes.Throw);
+        };
+
+        /// <summary>
         /// The type name provider to use.
         /// </summary>
         public readonly ProxyManagerTypeNameProvider<Context> TypeNameProvider;
@@ -142,7 +185,7 @@ namespace Nanoray.Pintail
         /// <summary>
         /// The behavior to use if no matching method to proxy is found.
         /// </summary>
-        public readonly INoMatchingMethodHandler<Context> NoMatchingMethodHandler;
+        public readonly ProxyManagerNoMatchingMethodHandler<Context> NoMatchingMethodHandler;
 
         /// <summary>
         /// When exactly proxy factories for interfaces and delegates should be created and prepared.
@@ -168,14 +211,14 @@ namespace Nanoray.Pintail
         /// Creates a new configuration for <see cref="ProxyManager{Context}"/>.
         /// </summary>
         /// <param name="typeNameProvider">The type name provider to use.<br/>Defaults to <see cref="ShortNameIDGeneratingTypeNameProvider"/>.</param>
-        /// <param name="noMatchingMethodHandler">The behavior to use if no matching method to proxy is found.<br/>Defaults to <see cref="ThrowingDuringProxyingNoMatchingMethodHandler{Context}"/>.</param>
+        /// <param name="noMatchingMethodHandler">The behavior to use if no matching method to proxy is found.<br/>Defaults to <see cref="ThrowExceptionNoMatchingMethodHandler"/>.</param>
         /// <param name="proxyPrepareBehavior">When exactly proxy factories for interfaces and delegates should be created and prepared.<br/>Defaults to <see cref="ProxyManagerProxyPrepareBehavior.Lazy"/>.</param>
         /// <param name="enumMappingBehavior">The behavior to use when mapping <see cref="Enum"/> arguments while matching methods to proxy.<br/>Defaults to <see cref="ProxyManagerEnumMappingBehavior.ThrowAtRuntime"/>.</param>
         /// <param name="mismatchedArrayMappingBehavior">The behavior to use when mapping mismatched <see cref="Array"/> elements back and forth.<br/>Defaults to <see cref="ProxyManagerMismatchedArrayMappingBehavior.Throw"/>.</param>
         /// <param name="proxyObjectInterfaceMarking">Whether proxy types should implement any marker interfaces.<br/>Defaults to <see cref="ProxyObjectInterfaceMarking.Marker"/>.</param>
         public ProxyManagerConfiguration(
             ProxyManagerTypeNameProvider<Context>? typeNameProvider = null,
-            INoMatchingMethodHandler<Context>? noMatchingMethodHandler = null,
+            ProxyManagerNoMatchingMethodHandler<Context>? noMatchingMethodHandler = null,
             ProxyManagerProxyPrepareBehavior proxyPrepareBehavior = ProxyManagerProxyPrepareBehavior.Lazy,
             ProxyManagerEnumMappingBehavior enumMappingBehavior = ProxyManagerEnumMappingBehavior.ThrowAtRuntime,
             ProxyManagerMismatchedArrayMappingBehavior mismatchedArrayMappingBehavior = ProxyManagerMismatchedArrayMappingBehavior.Throw,
@@ -183,7 +226,7 @@ namespace Nanoray.Pintail
         )
         {
             this.TypeNameProvider = typeNameProvider ?? ShortNameIDGeneratingTypeNameProvider.Value;
-            this.NoMatchingMethodHandler = noMatchingMethodHandler ?? new ThrowingDuringProxyingNoMatchingMethodHandler<Context>();
+            this.NoMatchingMethodHandler = noMatchingMethodHandler ?? ThrowExceptionNoMatchingMethodHandler;
             this.ProxyPrepareBehavior = proxyPrepareBehavior;
             this.EnumMappingBehavior = enumMappingBehavior;
             this.MismatchedArrayMappingBehavior = mismatchedArrayMappingBehavior;
