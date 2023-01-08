@@ -268,8 +268,7 @@ namespace Nanoray.Pintail
             {
                 foreach (var assignFromMethod in toAssignFromMethods)
                 {
-                    // TODO: double check the directions are right here. Argh. I can never seem to get AssignTo/AssignFrom right on the first try.
-                    if (MatchProxyMethod(assignToMethod, assignFromMethod, enumMappingBehavior, assumeMappableIfRecursed, interfaceMappabilityCache) is not null)
+                    if (MatchProxyMethod(assignFromMethod, assignToMethod, enumMappingBehavior, assumeMappableIfRecursed, interfaceMappabilityCache) is not null)
                     {
                         foundMethods.Add(assignFromMethod);
                         goto NextMethod;

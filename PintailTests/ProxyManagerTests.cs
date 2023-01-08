@@ -5,6 +5,7 @@ using System.Reflection;
 using System.Reflection.Emit;
 using System.Text;
 using Nanoray.Pintail.Tests.Consumer;
+using Nanoray.Pintail.Tests.Private;
 using Nanoray.Pintail.Tests.Provider;
 using NUnit.Framework;
 
@@ -608,6 +609,19 @@ namespace Nanoray.Pintail.Tests
 
             Assert.AreEqual("Hi!", consumerApi!.Name);
             Assert.AreEqual("sigh", consumerApi.inner[0].sigh);
-       }
+        }
+
+        [Test]
+        public void TestNestedCalls()
+        {
+            var manager = this.CreateProxyManager();
+            var providerApi = new Nesting.Provider();
+            var consumerApi = manager.ObtainProxy<Nesting.Consumer>(providerApi)!;
+
+            Assert.AreEqual("lorem ipsum", consumerApi!.Text);
+            Assert.AreEqual("lorem ipsum", consumerApi!.Inner.Text);
+            Assert.AreEqual("lorem ipsum", consumerApi!.Inner.Inner.Text);
+            Assert.AreEqual("lorem ipsum", consumerApi!.Inner.Inner.Inner.Text);
+        }
     }
 }
