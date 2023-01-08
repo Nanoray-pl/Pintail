@@ -2,6 +2,11 @@
 
 # Release notes
 
+## 2.2.2
+Released 8 January 2023.
+
+* Fixed backwards type checking for nested proxies, causing issues when proxying types with methods going 3+ levels deep.
+
 ## 2.2.1
 Released 17 July 2022.
 
