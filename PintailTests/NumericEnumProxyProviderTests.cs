@@ -17,10 +17,10 @@ namespace Nanoray.Pintail.Tests
         private enum IntB : int
         {
             Zero = 0,
-            FirstFlag = 2 << 0,
-            SecondFlag = 2 << 1,
-            ThirdFlag = 2 << 2,
-            FourthFlag = 2 << 3
+            FirstFlag = 1 << 0,
+            SecondFlag = 1 << 1,
+            ThirdFlag = 1 << 2,
+            FourthFlag = 1 << 3
         }
 
         private enum LongA : long

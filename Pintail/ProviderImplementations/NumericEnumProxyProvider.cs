@@ -3,7 +3,7 @@ using System.Runtime.CompilerServices;
 
 namespace Nanoray.Pintail
 {
-    public class NumericEnumProxyProvider : IProxyProvider
+    public sealed class NumericEnumProxyProvider : IProxyProvider
     {
         public static double DefaultPriority { get; private set; } = 0.8;
 

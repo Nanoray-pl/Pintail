@@ -6,7 +6,7 @@ using System.Reflection.Emit;
 
 namespace Nanoray.Pintail
 {
-    public class NullableProxyProvider : IProxyProvider
+    public sealed class NullableProxyProvider : IProxyProvider
     {
         private delegate bool CanProxyDelegate<TOriginal, TProxy>(NullableProxyProvider self, TOriginal original, [NotNullWhen(true)] out IProxyProcessor<TOriginal, TProxy>? processor, IProxyProvider? rootProvider);
 
