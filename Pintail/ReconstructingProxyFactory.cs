@@ -52,20 +52,18 @@ namespace Nanoray.Pintail
                             case TypeUtilities.MatchingTypesResult.Assignable:
                                 break;
                             case TypeUtilities.MatchingTypesResult.IfProxied:
-                                var unproxyFactory = manager.GetProxyFactory(isReverse ? this.ProxyInfo : this.ProxyInfo.Reversed());
-                                if (unproxyFactory is not null && unproxyFactory.TryUnproxy(manager, callParameters[i]!, out object? targetInstance))
-                                {
-                                    callParameters[i] = targetInstance;
-                                    break;
-                                }
-                                var factory = manager.ObtainProxyFactory(isReverse ? this.ProxyInfo.Reversed() : this.ProxyInfo);
+                                ProxyInfo<Context> proxyInfo = new(
+                                    target: new TypeInfo<Context>(this.ProxyInfo.Target.Context, callParameters[i]!.GetType()),
+                                    proxy: new TypeInfo<Context>(this.ProxyInfo.Proxy.Context, constructor.GetParameters()[i].ParameterType)
+                                );
+                                var factory = manager.ObtainProxyFactory(proxyInfo);
                                 callParameters[i] = factory.ObtainProxy(manager, callParameters[i]!);
                                 break;
                             case TypeUtilities.MatchingTypesResult.False:
                                 throw new InvalidOperationException($"Cannot convert from {from} to type {to.Type}.");
                         }
                     }
-                    return constructor.Invoke(null, callParameters)!;
+                    return constructor.Invoke(callParameters)!;
                 };
             }
 

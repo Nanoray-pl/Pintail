@@ -623,5 +623,17 @@ namespace Nanoray.Pintail.Tests
             Assert.AreEqual("lorem ipsum", consumerApi!.Inner.Inner.Text);
             Assert.AreEqual("lorem ipsum", consumerApi!.Inner.Inner.Inner.Text);
         }
+
+        [Test]
+        public void TestKeyValuePairWithProxiedValue()
+        {
+            var manager = this.CreateProxyManager();
+            var providerApi = new ComplexProviderApi();
+            var consumerApi = manager.ObtainProxy<IComplexConsumerApi>(providerApi)!;
+
+            var kvp = consumerApi.GetKeyValuePairWithProxiedValue(true, "asdf");
+            Assert.AreEqual(true, kvp.Key);
+            Assert.AreEqual("asdf", kvp.Value.teststring);
+        }
     }
 }

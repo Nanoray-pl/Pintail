@@ -193,6 +193,7 @@ namespace Nanoray.Pintail.Tests.Consumer
         void FireApiResultEvent(IApiResult value);
         event Action<IApiResult>? ApiResultEvent;
 
+        KeyValuePair<bool, IProxiedInput> GetKeyValuePairWithProxiedValue(bool key, string wrappedValue);
 
         Type MethodWithOverload(object value);
         Type MethodWithOverload(int value);

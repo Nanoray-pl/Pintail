@@ -250,6 +250,9 @@ namespace Nanoray.Pintail.Tests.Provider
 
         public event Action<IApiResult>? ApiResultEvent;
 
+        public KeyValuePair<bool, IProxiedInput> GetKeyValuePairWithProxiedValue(bool key, string wrappedValue)
+            => new(key, new ProxiedInputImpl(wrappedValue));
+
  #region OVERLOADS
         // base object.
         public Type MethodWithOverload(object value)
@@ -292,6 +295,16 @@ namespace Nanoray.Pintail.Tests.Provider
     public interface IProxiedInput
     {
         string teststring { get; set;}
+    }
+
+    public class ProxiedInputImpl : IProxiedInput
+    {
+        public string teststring { get; set; }
+
+        public ProxiedInputImpl(string wrappedValue)
+        {
+            this.teststring = wrappedValue;
+        }
     }
 
     public interface IProxiedInput2
