@@ -2,6 +2,11 @@
 
 # Release notes
 
+## 2.2.3
+Released 29 May 2023.
+
+* Fixed reconstructing proxies logic.
+
 ## 2.2.2
 Released 8 January 2023.
 
