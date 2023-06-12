@@ -1,9 +1,11 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Text;
 
 namespace Nanoray.Pintail.Tests.Provider
 {
+    public delegate IApiResult CustomDelegate(IReadOnlyList<IApiResult> list);
     public delegate void CustomGenericOutDelegate<T>(out T param);
 
     public abstract class ATestClass
@@ -107,6 +109,7 @@ namespace Nanoray.Pintail.Tests.Provider
     public class SimpleProviderApi: IProviderApiDefaultMethods
     {
         protected Func<IApiResult, IApiResult> Mapper = (r) => r;
+        protected CustomDelegate CustomDelegate = list => new ApiResult($"{string.Join(", ", list.Select(r => r.Text))}");
         protected CustomGenericOutDelegate<StateEnum> CustomOutDelegate = (out StateEnum p) => p = StateEnum.State0;
 
         public void VoidMethod() { }
@@ -211,6 +214,12 @@ namespace Nanoray.Pintail.Tests.Provider
 
         public void SetMapper(Func<IApiResult, IApiResult> mapper)
             => this.Mapper = mapper;
+
+        public void SetCustomDelegate(CustomDelegate @delegate)
+            => this.CustomDelegate = @delegate;
+
+        public IApiResult CallCustomDelegate(IReadOnlyList<IApiResult> list)
+            => this.CustomDelegate(list);
 
         public CustomGenericOutDelegate<StateEnum> GetCustomOutDelegate()
             => this.CustomOutDelegate;

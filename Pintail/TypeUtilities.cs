@@ -44,15 +44,20 @@ namespace Nanoray.Pintail
             ImmutableHashSet<Type> assumeMappableIfRecursed,
             ConcurrentDictionary<string, List<Type>> interfaceMappabilityCache)
         {
+            // Exact match, don't need to look further.
+            if (proxyType == targetType)
+                return MatchingTypesResult.Exact;
+
             if (targetType.IsGenericMethodParameter != proxyType.IsGenericMethodParameter)
                 return MatchingTypesResult.False;
 
             if (targetType.IsByRef != proxyType.IsByRef)
                 return MatchingTypesResult.False;
 
-            // Exact match, don't need to look further.
-            if (proxyType == targetType)
-                return MatchingTypesResult.Exact;
+            var targetTypeGenericArguments = targetType.GetGenericArguments();
+            var proxyTypeGenericArguments = proxyType.GetGenericArguments();
+            if (targetTypeGenericArguments.Length != proxyTypeGenericArguments.Length)
+                return MatchingTypesResult.False;
 
             // toss the by ref ness? Not sure here.
             if (targetType.IsByRef && proxyType.IsByRef)
@@ -104,7 +109,7 @@ namespace Nanoray.Pintail
             {
                 if (assumeMappableIfRecursed.Contains(targetType))
                     return MatchingTypesResult.IfProxied; // we will need to double check this later.
-                if (CanInterfaceBeMapped(targetType, proxyType, enumMappingBehavior, assignability, assumeMappableIfRecursed, interfaceMappabilityCache))
+                if (CanInterfaceBeMapped(targetType, proxyType, delegateCheck: false, enumMappingBehavior, assignability, assumeMappableIfRecursed, interfaceMappabilityCache))
                     return MatchingTypesResult.IfProxied;
                 return MatchingTypesResult.False;
             }
@@ -112,14 +117,26 @@ namespace Nanoray.Pintail
             {
                 if (assumeMappableIfRecursed.Contains(proxyType))
                     return MatchingTypesResult.IfProxied; // we will need to double check this later.
-                if (CanInterfaceBeMapped(targetType, proxyType, enumMappingBehavior, assignability, assumeMappableIfRecursed, interfaceMappabilityCache))
+                if (CanInterfaceBeMapped(targetType, proxyType, delegateCheck: false, enumMappingBehavior, assignability, assumeMappableIfRecursed, interfaceMappabilityCache))
                     return MatchingTypesResult.IfProxied;
                 return MatchingTypesResult.False;
             }
 
-            var targetTypeGenericArguments = targetType.GetGenericArguments();
-            var proxyTypeGenericArguments = proxyType.GetGenericArguments();
-            if (targetTypeGenericArguments.Length != proxyTypeGenericArguments.Length || targetTypeGenericArguments.Length == 0)
+            bool proxyIsDelegate = proxyType.IsAssignableTo(typeof(Delegate));
+            bool targetIsDelegate = targetType.IsAssignableTo(typeof(Delegate));
+
+            if (proxyIsDelegate != targetIsDelegate)
+                return MatchingTypesResult.False;
+            if (proxyIsDelegate)
+            {
+                if (assumeMappableIfRecursed.Contains(proxyType))
+                    return MatchingTypesResult.IfProxied;
+                if (CanInterfaceBeMapped(targetType, proxyType, delegateCheck: true, enumMappingBehavior, assignability, assumeMappableIfRecursed, interfaceMappabilityCache))
+                    return MatchingTypesResult.IfProxied;
+                return MatchingTypesResult.False;
+            }
+
+            if (targetTypeGenericArguments.Length == 0)
                 return MatchingTypesResult.False;
 
             var matchingTypesResult = MatchingTypesResult.Exact;
@@ -217,6 +234,7 @@ namespace Nanoray.Pintail
         internal static bool CanInterfaceBeMapped(
             Type target,
             Type proxy,
+            bool delegateCheck,
             ProxyManagerEnumMappingBehavior enumMappingBehavior,
             MethodTypeAssignability assignability,
             ImmutableHashSet<Type> assumeMappableIfRecursed,
@@ -266,8 +284,14 @@ namespace Nanoray.Pintail
 
             foreach (var assignToMethod in toAssignToMethods)
             {
+                if (delegateCheck && assignToMethod.Name != "Invoke")
+                    continue;
+
                 foreach (var assignFromMethod in toAssignFromMethods)
                 {
+                    if (delegateCheck && assignFromMethod.Name != "Invoke")
+                        continue;
+
                     if (MatchProxyMethod(assignFromMethod, assignToMethod, enumMappingBehavior, assumeMappableIfRecursed, interfaceMappabilityCache) is not null)
                     {
                         foundMethods.Add(assignFromMethod);

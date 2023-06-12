@@ -272,6 +272,19 @@ namespace Nanoray.Pintail.Tests
         }
 
         [Test]
+        public void TestCustomGenericDelegate()
+        {
+            var manager = this.CreateProxyManager();
+            var providerApi = new ComplexProviderApi();
+            var consumerApi = manager.ObtainProxy<IComplexConsumerApi>(providerApi)!;
+
+            consumerApi.SetCustomDelegate(list => new Consumer.ApiResult($"{string.Join(" ", list.Select(r => r.Text))}"));
+            var result = consumerApi.CallCustomDelegate(new List<Consumer.ApiResult> { new("42"), new("asdf") });
+
+            Assert.AreEqual("42 asdf", result.Text);
+        }
+
+        [Test]
         public void TestCustomGenericOutDelegate()
         {
             var manager = this.CreateProxyManager();

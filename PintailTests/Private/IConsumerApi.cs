@@ -4,6 +4,7 @@ using System.Text;
 
 namespace Nanoray.Pintail.Tests.Consumer
 {
+    public delegate IApiResult CustomDelegate(IReadOnlyList<IApiResult> list);
     public delegate void CustomGenericOutDelegate<T>(out T param);
 
     public interface IATestClass
@@ -175,6 +176,9 @@ namespace Nanoray.Pintail.Tests.Consumer
 
         Func<IApiResult, IApiResult> GetMapper();
         void SetMapper(Func<IApiResult, IApiResult> mapper);
+
+        void SetCustomDelegate(CustomDelegate @delegate);
+        IApiResult CallCustomDelegate(IReadOnlyList<IApiResult> list);
 
         CustomGenericOutDelegate<StateEnum> GetCustomOutDelegate();
         void SetCustomOutDelegate(CustomGenericOutDelegate<StateEnum> @delegate);
