@@ -92,6 +92,50 @@ namespace Nanoray.Pintail
                 return false;
             }
         }
+
+        /// <summary>
+        /// Tries to return a proxy instance for a given instance (or unproxy it if it's already a proxy and the type would be accessible when doing so).
+        /// </summary>
+        /// <typeparam name="Context"></typeparam>
+        /// <typeparam name="TProxy"></typeparam>
+        /// <param name="self">Target of the extension method.</param>
+        /// <param name="toProxy">The instance to create a proxy for (or to unproxy).</param>
+        /// <param name="targetContext">The context of the target instance.</param>
+        /// <param name="proxyContext">The context of the proxy instance.</param>
+        /// <param name="proxy">The resulting proxy instance (or unproxied instance), if the (un)proxying succeeds.</param>
+        /// <returns>`true` if the (un)proxying succeeds, `false` otherwise.</returns>
+        public static bool TryProxy<Context, TProxy>(this IProxyManager<Context> self, object toProxy, Context targetContext, Context proxyContext, [NotNullWhen(true)] out TProxy? proxy) where TProxy : struct
+        {
+            try
+            {
+                foreach (Type interfaceType in toProxy.GetType().GetInterfacesRecursively(includingSelf: true))
+                {
+                    var unproxyFactory = self.GetProxyFactory(new ProxyInfo<Context>(
+                        target: new TypeInfo<Context>(targetContext, typeof(TProxy)),
+                        proxy: new TypeInfo<Context>(proxyContext, interfaceType)
+                    ));
+                    if (unproxyFactory is null)
+                        continue;
+                    if (unproxyFactory.TryUnproxy(self, toProxy, out object? targetInstance))
+                    {
+                        proxy = (TProxy)targetInstance;
+                        return true;
+                    }
+                }
+
+                var proxyFactory = self.ObtainProxyFactory(new ProxyInfo<Context>(
+                    target: new TypeInfo<Context>(targetContext, toProxy.GetType()),
+                    proxy: new TypeInfo<Context>(proxyContext, typeof(TProxy))
+                ));
+                proxy = (TProxy)proxyFactory.ObtainProxy(self, toProxy);
+                return true;
+            }
+            catch
+            {
+                proxy = null;
+                return false;
+            }
+        }
     }
 
     /// <summary>

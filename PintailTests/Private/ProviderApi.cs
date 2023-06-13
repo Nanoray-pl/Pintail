@@ -192,6 +192,15 @@ namespace Nanoray.Pintail.Tests.Provider
             return list;
         }
 
+        public IApiResult? GetNullableObject(string text)
+            => new ApiResult(text);
+
+        public StateEnum? GetNullableEnum()
+            => StateEnum.State0;
+
+        public StateEnum? GetNullEnum()
+            => null;
+
         public void GetOutResult(string text, out IApiResult result)
             => result = new ApiResult(text);
 

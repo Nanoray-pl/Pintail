@@ -195,6 +195,41 @@ namespace Nanoray.Pintail.Tests
         }
 
         [Test]
+        public void TestReturnNullableObject()
+        {
+            var manager = this.CreateProxyManager();
+            var providerApi = new ComplexProviderApi();
+
+            var consumerApi = manager.ObtainProxy<IComplexConsumerApi>(providerApi)!;
+            var result = consumerApi.GetNullableObject("asdf");
+            Assert.IsNotNull(result);
+            Assert.AreEqual("asdf", result!.Text);
+        }
+
+        [Test]
+        public void TestReturnNullableEnum()
+        {
+            var manager = this.CreateProxyManager();
+            var providerApi = new ComplexProviderApi();
+
+            var consumerApi = manager.ObtainProxy<IComplexConsumerApi>(providerApi)!;
+            var result = consumerApi.GetNullableEnum();
+            Assert.IsNotNull(result);
+            Assert.AreEqual(Consumer.StateEnum.State0, result!.Value);
+        }
+
+        [Test]
+        public void TestReturnNullEnum()
+        {
+            var manager = this.CreateProxyManager();
+            var providerApi = new ComplexProviderApi();
+
+            var consumerApi = manager.ObtainProxy<IComplexConsumerApi>(providerApi)!;
+            var result = consumerApi.GetNullEnum();
+            Assert.IsNull(result);
+        }
+
+        [Test]
         public void TestReturnList()
         {
             var manager = this.CreateProxyManager();

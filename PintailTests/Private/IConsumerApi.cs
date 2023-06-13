@@ -167,6 +167,9 @@ namespace Nanoray.Pintail.Tests.Consumer
         IApiResult[,] Get2DArray();
         void ArrayMethod(IApiResult[] array);
         IList<IApiResult> GetList();
+        IApiResult? GetNullableObject(string text);
+        StateEnum? GetNullableEnum();
+        StateEnum? GetNullEnum();
 
         void GetOutResult(string text, out IApiResult result);
         IApiResult GetSameResult(IApiResult result);

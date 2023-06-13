@@ -289,6 +289,11 @@ namespace Nanoray.Pintail
                         factory = new ArrayProxyFactory<Context>(proxyInfo, this.Configuration.MismatchedArrayMappingBehavior);
                         this.Factories[proxyInfo] = factory;
                     }
+                    else if (proxyInfo.Target.Type.IsConstructedGenericType && proxyInfo.Proxy.Type.IsConstructedGenericType && proxyInfo.Target.Type.GetGenericTypeDefinition() == typeof(Nullable<>) && proxyInfo.Proxy.Type.GetGenericTypeDefinition() == typeof(Nullable<>))
+                    {
+                        factory = new NullableProxyFactory<Context>(proxyInfo);
+                        this.Factories[proxyInfo] = factory;
+                    }
                     else if (proxyInfo.Proxy.Type.IsInterface || (proxyInfo.Proxy.Type.IsAssignableTo(typeof(Delegate)) && proxyInfo.Target.Type.IsAssignableTo(typeof(Delegate))))
                     {
                         var newFactory = new InterfaceOrDelegateProxyFactory<Context>(
