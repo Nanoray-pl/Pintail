@@ -236,7 +236,7 @@ namespace Nanoray.Pintail.Tests
             var providerApi = new ComplexProviderApi();
 
             var consumerApi = manager.ObtainProxy<IComplexConsumerApi>(providerApi)!;
-            var result = consumerApi.GetValueTuple("asdf", Consumer.StateEnum.State2);
+            var result = consumerApi.GetValueTuple((new Consumer.ApiResult("asdf"), Consumer.StateEnum.State2));
             Assert.AreEqual("asdf", result.Item1.Text);
             Assert.AreEqual(Consumer.StateEnum.State2, result.Item2);
         }
@@ -248,7 +248,7 @@ namespace Nanoray.Pintail.Tests
             var providerApi = new ComplexProviderApi();
 
             var consumerApi = manager.ObtainProxy<IComplexConsumerApi>(providerApi)!;
-            var result = consumerApi.GetTuple("asdf", Consumer.StateEnum.State2);
+            var result = consumerApi.GetTuple(Tuple.Create<Consumer.IApiResult, Consumer.StateEnum>(new Consumer.ApiResult("asdf"), Consumer.StateEnum.State2));
             Assert.AreEqual("asdf", result.Item1.Text);
             Assert.AreEqual(Consumer.StateEnum.State2, result.Item2);
         }
