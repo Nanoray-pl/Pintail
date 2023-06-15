@@ -2,6 +2,13 @@
 
 # Release notes
 
+## 2.3.0
+Released 15 June 2023.
+
+* Implemented Nullable value type proxies.
+* Implemented Tuple and ValueTuple proxies.
+* Fixed delegate proxies.
+
 ## 2.2.3
 Released 29 May 2023.
 
