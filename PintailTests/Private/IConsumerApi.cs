@@ -170,6 +170,8 @@ namespace Nanoray.Pintail.Tests.Consumer
         IApiResult? GetNullableObject(string text);
         StateEnum? GetNullableEnum();
         StateEnum? GetNullEnum();
+        ValueTuple<IApiResult, StateEnum> GetValueTuple(string text, StateEnum state);
+        Tuple<IApiResult, StateEnum> GetTuple(string text, StateEnum state);
 
         void GetOutResult(string text, out IApiResult result);
         IApiResult GetSameResult(IApiResult result);

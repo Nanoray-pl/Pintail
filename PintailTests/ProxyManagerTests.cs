@@ -230,6 +230,30 @@ namespace Nanoray.Pintail.Tests
         }
 
         [Test]
+        public void TestReturnValueTuple()
+        {
+            var manager = this.CreateProxyManager();
+            var providerApi = new ComplexProviderApi();
+
+            var consumerApi = manager.ObtainProxy<IComplexConsumerApi>(providerApi)!;
+            var result = consumerApi.GetValueTuple("asdf", Consumer.StateEnum.State2);
+            Assert.AreEqual("asdf", result.Item1.Text);
+            Assert.AreEqual(Consumer.StateEnum.State2, result.Item2);
+        }
+
+        [Test]
+        public void TestReturnTuple()
+        {
+            var manager = this.CreateProxyManager();
+            var providerApi = new ComplexProviderApi();
+
+            var consumerApi = manager.ObtainProxy<IComplexConsumerApi>(providerApi)!;
+            var result = consumerApi.GetTuple("asdf", Consumer.StateEnum.State2);
+            Assert.AreEqual("asdf", result.Item1.Text);
+            Assert.AreEqual(Consumer.StateEnum.State2, result.Item2);
+        }
+
+        [Test]
         public void TestReturnList()
         {
             var manager = this.CreateProxyManager();

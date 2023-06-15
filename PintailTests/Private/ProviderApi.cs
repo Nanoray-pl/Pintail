@@ -201,6 +201,12 @@ namespace Nanoray.Pintail.Tests.Provider
         public StateEnum? GetNullEnum()
             => null;
 
+        public ValueTuple<IApiResult, StateEnum> GetValueTuple(string text, StateEnum state)
+            => (new ApiResult(text), state);
+
+        public Tuple<IApiResult, StateEnum> GetTuple(string text, StateEnum state)
+            => Tuple.Create<IApiResult, StateEnum>(new ApiResult(text), state);
+
         public void GetOutResult(string text, out IApiResult result)
             => result = new ApiResult(text);
 
