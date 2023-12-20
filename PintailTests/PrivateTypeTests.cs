@@ -1,3 +1,4 @@
+using System;
 using System.Reflection;
 using System.Reflection.Emit;
 using NUnit.Framework;
@@ -36,18 +37,70 @@ namespace Nanoray.Pintail.Tests
             string Test { get; }
         }
 
-        private ProxyManager<Nothing> CreateProxyManager(ProxyManagerConfiguration<Nothing>? configuration = null)
+        private ProxyManager<Nothing> CreateProxyManager(AccessLevelChecking accessLevelChecking)
         {
             var assemblyBuilder = AssemblyBuilder.DefineDynamicAssembly(new AssemblyName($"Nanoray.Pintail.Proxies, Version={this.GetType().Assembly.GetName().Version}, Culture=neutral"), AssemblyBuilderAccess.Run);
             var moduleBuilder = assemblyBuilder.DefineDynamicModule($"Proxies");
-            var manager = new ProxyManager<Nothing>(moduleBuilder, configuration);
+            var manager = new ProxyManager<Nothing>(moduleBuilder, new(accessLevelChecking: accessLevelChecking));
             return manager;
         }
 
         [Test]
-        public void TestPrivateProviderAndPrivateClient()
+        public void TestEnabledAccessLevelCheckingPrivateProviderAndPrivateClient()
         {
-            var manager = this.CreateProxyManager();
+            var manager = this.CreateProxyManager(AccessLevelChecking.Enabled);
+            object providerApi = ProviderWrapper.GetPrivateProvider();
+
+            Assert.Throws<TypeLoadException>(() =>
+            {
+                var consumerApi = manager.ObtainProxy<IPrivateClient>(providerApi)!;
+                Assert.AreEqual("Lorem ipsum", consumerApi.Test);
+            });
+        }
+
+        [Test]
+        public void TestEnabledAccessLevelCheckingPublicProviderAndPrivateClient()
+        {
+            var manager = this.CreateProxyManager(AccessLevelChecking.Enabled);
+            object providerApi = ProviderWrapper.GetPublicProvider();
+
+            Assert.Throws<TypeLoadException>(() =>
+            {
+                var consumerApi = manager.ObtainProxy<IPrivateClient>(providerApi)!;
+                Assert.AreEqual("Lorem ipsum", consumerApi.Test);
+            });
+        }
+
+        [Test]
+        public void TestEnabledAccessLevelCheckingPrivateProviderAndPublicClient()
+        {
+            var manager = this.CreateProxyManager(AccessLevelChecking.Enabled);
+            object providerApi = ProviderWrapper.GetPrivateProvider();
+
+            Assert.Throws<MethodAccessException>(() =>
+            {
+                var consumerApi = manager.ObtainProxy<IPublicClient>(providerApi)!;
+                Assert.AreEqual("Lorem ipsum", consumerApi.Test);
+            });
+        }
+
+        [Test]
+        public void TestEnabledAccessLevelCheckingPublicProviderAndPublicClient()
+        {
+            var manager = this.CreateProxyManager(AccessLevelChecking.Enabled);
+            object providerApi = ProviderWrapper.GetPublicProvider();
+
+            Assert.DoesNotThrow(() =>
+            {
+                var consumerApi = manager.ObtainProxy<IPublicClient>(providerApi)!;
+                Assert.AreEqual("Lorem ipsum", consumerApi.Test);
+            });
+        }
+
+        [Test]
+        public void TestDisabledAccessLevelCheckingPrivateProviderAndPrivateClient()
+        {
+            var manager = this.CreateProxyManager(AccessLevelChecking.DisabledButOnlyAllowPublicMembers);
             object providerApi = ProviderWrapper.GetPrivateProvider();
 
             Assert.DoesNotThrow(() =>
@@ -58,9 +111,9 @@ namespace Nanoray.Pintail.Tests
         }
 
         [Test]
-        public void TestPublicProviderAndPrivateClient()
+        public void TestDisabledAccessLevelCheckingPublicProviderAndPrivateClient()
         {
-            var manager = this.CreateProxyManager();
+            var manager = this.CreateProxyManager(AccessLevelChecking.DisabledButOnlyAllowPublicMembers);
             object providerApi = ProviderWrapper.GetPublicProvider();
 
             Assert.DoesNotThrow(() =>
@@ -71,9 +124,9 @@ namespace Nanoray.Pintail.Tests
         }
 
         [Test]
-        public void TestPrivateProviderAndPublicClient()
+        public void TestDisabledAccessLevelCheckingPrivateProviderAndPublicClient()
         {
-            var manager = this.CreateProxyManager();
+            var manager = this.CreateProxyManager(AccessLevelChecking.DisabledButOnlyAllowPublicMembers);
             object providerApi = ProviderWrapper.GetPrivateProvider();
 
             Assert.DoesNotThrow(() =>
@@ -84,9 +137,9 @@ namespace Nanoray.Pintail.Tests
         }
 
         [Test]
-        public void TestPublicProviderAndPublicClient()
+        public void TestDisabledAccessLevelCheckingPublicProviderAndPublicClient()
         {
-            var manager = this.CreateProxyManager();
+            var manager = this.CreateProxyManager(AccessLevelChecking.DisabledButOnlyAllowPublicMembers);
             object providerApi = ProviderWrapper.GetPublicProvider();
 
             Assert.DoesNotThrow(() =>

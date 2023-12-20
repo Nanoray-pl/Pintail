@@ -42,7 +42,9 @@ namespace Nanoray.Pintail
             MethodTypeAssignability assignability,
             ProxyManagerEnumMappingBehavior enumMappingBehavior,
             ImmutableHashSet<Type> assumeMappableIfRecursed,
-            ConcurrentDictionary<string, List<Type>> interfaceMappabilityCache)
+            ConcurrentDictionary<string, List<Type>> interfaceMappabilityCache,
+            bool includePrivate
+        )
         {
             // Exact match, don't need to look further.
             if (proxyType == targetType)
@@ -91,7 +93,7 @@ namespace Nanoray.Pintail
             }
 
             if (proxyType.IsArray && targetType.IsArray)
-                return (MatchingTypesResult)Math.Min((int)AreTypesMatching(targetType.GetElementType()!, proxyType.GetElementType()!, assignability, enumMappingBehavior, assumeMappableIfRecursed, interfaceMappabilityCache), (int)MatchingTypesResult.IfProxied);
+                return (MatchingTypesResult)Math.Min((int)AreTypesMatching(targetType.GetElementType()!, proxyType.GetElementType()!, assignability, enumMappingBehavior, assumeMappableIfRecursed, interfaceMappabilityCache, includePrivate), (int)MatchingTypesResult.IfProxied);
 
             // check mismatched generics.
             if (proxyType.IsGenericMethodParameter)
@@ -109,7 +111,7 @@ namespace Nanoray.Pintail
             {
                 if (assumeMappableIfRecursed.Contains(targetType))
                     return MatchingTypesResult.IfProxied; // we will need to double check this later.
-                if (CanInterfaceBeMapped(targetType, proxyType, delegateCheck: false, enumMappingBehavior, assignability, assumeMappableIfRecursed, interfaceMappabilityCache))
+                if (CanInterfaceBeMapped(targetType, proxyType, delegateCheck: false, enumMappingBehavior, assignability, assumeMappableIfRecursed, interfaceMappabilityCache, includePrivate))
                     return MatchingTypesResult.IfProxied;
                 return MatchingTypesResult.False;
             }
@@ -117,7 +119,7 @@ namespace Nanoray.Pintail
             {
                 if (assumeMappableIfRecursed.Contains(proxyType))
                     return MatchingTypesResult.IfProxied; // we will need to double check this later.
-                if (CanInterfaceBeMapped(targetType, proxyType, delegateCheck: false, enumMappingBehavior, assignability, assumeMappableIfRecursed, interfaceMappabilityCache))
+                if (CanInterfaceBeMapped(targetType, proxyType, delegateCheck: false, enumMappingBehavior, assignability, assumeMappableIfRecursed, interfaceMappabilityCache, includePrivate))
                     return MatchingTypesResult.IfProxied;
                 return MatchingTypesResult.False;
             }
@@ -131,7 +133,7 @@ namespace Nanoray.Pintail
             {
                 if (assumeMappableIfRecursed.Contains(proxyType))
                     return MatchingTypesResult.IfProxied;
-                if (CanInterfaceBeMapped(targetType, proxyType, delegateCheck: true, enumMappingBehavior, assignability, assumeMappableIfRecursed, interfaceMappabilityCache))
+                if (CanInterfaceBeMapped(targetType, proxyType, delegateCheck: true, enumMappingBehavior, assignability, assumeMappableIfRecursed, interfaceMappabilityCache, includePrivate))
                     return MatchingTypesResult.IfProxied;
                 return MatchingTypesResult.False;
             }
@@ -148,7 +150,7 @@ namespace Nanoray.Pintail
                 {
                     var genericTargetType = targetType.GetGenericTypeDefinition();
                     var genericProxyType = proxyType.GetGenericTypeDefinition();
-                    switch (AreTypesMatching(genericTargetType, genericProxyType, assignability, enumMappingBehavior, assumeMappableIfRecursed, interfaceMappabilityCache))
+                    switch (AreTypesMatching(genericTargetType, genericProxyType, assignability, enumMappingBehavior, assumeMappableIfRecursed, interfaceMappabilityCache, includePrivate))
                     {
                         case MatchingTypesResult.Exact:
                         case MatchingTypesResult.Assignable:
@@ -163,7 +165,7 @@ namespace Nanoray.Pintail
             }
             for (int i = 0; i < targetTypeGenericArguments.Length; i++)
             {
-                switch (AreTypesMatching(targetTypeGenericArguments[i], proxyTypeGenericArguments[i], assignability, enumMappingBehavior, assumeMappableIfRecursed, interfaceMappabilityCache))
+                switch (AreTypesMatching(targetTypeGenericArguments[i], proxyTypeGenericArguments[i], assignability, enumMappingBehavior, assumeMappableIfRecursed, interfaceMappabilityCache, includePrivate))
                 {
                     case MatchingTypesResult.Exact:
                     case MatchingTypesResult.Assignable:
@@ -183,7 +185,9 @@ namespace Nanoray.Pintail
             MethodInfo proxyMethod,
             ProxyManagerEnumMappingBehavior enumMappingBehavior,
             ImmutableHashSet<Type> assumeMappableIfRecursed,
-            ConcurrentDictionary<string, List<Type>> interfaceMappabilityCache)
+            ConcurrentDictionary<string, List<Type>> interfaceMappabilityCache,
+            bool includePrivate
+        )
         {
             // checking if `targetMethod` matches `proxyMethod`
             var proxyMethodParameters = proxyMethod.GetParameters();
@@ -198,7 +202,7 @@ namespace Nanoray.Pintail
                 return null;
             var positionConversions = new PositionConversion?[mParameters.Length + 1]; // 0 = return type; n + 1 = parameter position n
 
-            switch (AreTypesMatching(targetMethod.ReturnType, proxyMethod.ReturnType, MethodTypeAssignability.AssignFrom, enumMappingBehavior, assumeMappableIfRecursed, interfaceMappabilityCache))
+            switch (AreTypesMatching(targetMethod.ReturnType, proxyMethod.ReturnType, MethodTypeAssignability.AssignFrom, enumMappingBehavior, assumeMappableIfRecursed, interfaceMappabilityCache, includePrivate))
             {
                 case MatchingTypesResult.False:
                     return null;
@@ -212,7 +216,7 @@ namespace Nanoray.Pintail
 
             for (int i = 0; i < mParameters.Length; i++)
             {
-                switch (AreTypesMatching(mParameters[i].ParameterType, proxyMethodParameters[i].ParameterType, MethodTypeAssignability.AssignTo, enumMappingBehavior, assumeMappableIfRecursed, interfaceMappabilityCache))
+                switch (AreTypesMatching(mParameters[i].ParameterType, proxyMethodParameters[i].ParameterType, MethodTypeAssignability.AssignTo, enumMappingBehavior, assumeMappableIfRecursed, interfaceMappabilityCache, includePrivate))
                 {
                     case MatchingTypesResult.False:
                         return null;
@@ -238,7 +242,9 @@ namespace Nanoray.Pintail
             ProxyManagerEnumMappingBehavior enumMappingBehavior,
             MethodTypeAssignability assignability,
             ImmutableHashSet<Type> assumeMappableIfRecursed,
-            ConcurrentDictionary<string, List<Type>> interfaceMappabilityCache)
+            ConcurrentDictionary<string, List<Type>> interfaceMappabilityCache,
+            bool includePrivate
+        )
         {
             // If it's just assignable, we can skip the whole reflection logic
             // which can be quite slow.
@@ -274,8 +280,8 @@ namespace Nanoray.Pintail
             }
 
             // Figure out groupby...
-            var toAssignToMethods = (assignability == MethodTypeAssignability.AssignTo ? target.FindInterfaceMethods() : proxy.FindInterfaceMethods());
-            var toAssignFromMethods = (assignability == MethodTypeAssignability.AssignTo ? proxy.FindInterfaceMethods() : target.FindInterfaceMethods()).ToList();
+            var toAssignToMethods = assignability == MethodTypeAssignability.AssignTo ? target.FindInterfaceMethods(includePrivate) : proxy.FindInterfaceMethods(includePrivate);
+            var toAssignFromMethods = (assignability == MethodTypeAssignability.AssignTo ? proxy.FindInterfaceMethods(includePrivate) : target.FindInterfaceMethods(includePrivate)).ToList();
 
             HashSet<MethodInfo> foundMethods = new();
 
@@ -292,7 +298,7 @@ namespace Nanoray.Pintail
                     if (delegateCheck && assignFromMethod.Name != "Invoke")
                         continue;
 
-                    if (MatchProxyMethod(assignFromMethod, assignToMethod, enumMappingBehavior, assumeMappableIfRecursed, interfaceMappabilityCache) is not null)
+                    if (MatchProxyMethod(assignFromMethod, assignToMethod, enumMappingBehavior, assumeMappableIfRecursed, interfaceMappabilityCache, includePrivate) is not null)
                     {
                         foundMethods.Add(assignFromMethod);
                         goto NextMethod;
@@ -316,17 +322,17 @@ namespace Nanoray.Pintail
             return true;
         }
 
-        internal static IEnumerable<MethodInfo> FindInterfaceMethods(this Type baseType, Func<MethodInfo, bool>? filter = null)
+        internal static IEnumerable<MethodInfo> FindInterfaceMethods(this Type baseType, bool includePrivate, Func<MethodInfo, bool>? filter = null)
         {
             filter ??= (_) => true;
-            foreach (MethodInfo method in baseType.GetMethods())
+            foreach (MethodInfo method in baseType.GetMethods(BindingFlags.Instance | BindingFlags.Public | (includePrivate ? BindingFlags.NonPublic : 0)))
             {
                 if (filter(method))
                     yield return method;
             }
             foreach (Type interfaceType in baseType.GetInterfaces())
             {
-                foreach (var method in FindInterfaceMethods(interfaceType, filter))
+                foreach (var method in FindInterfaceMethods(interfaceType, includePrivate, filter))
                 {
                     if (filter(method))
                         yield return method;

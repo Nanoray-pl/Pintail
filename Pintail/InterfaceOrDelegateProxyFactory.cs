@@ -27,10 +27,11 @@ namespace Nanoray.Pintail
         private readonly ProxyManagerProxyPrepareBehavior ProxyPrepareBehavior;
         private readonly ProxyManagerEnumMappingBehavior EnumMappingBehavior;
         private readonly ProxyObjectInterfaceMarking ProxyObjectInterfaceMarking;
+        private readonly AccessLevelChecking AccessLevelChecking;
+        private readonly ConcurrentDictionary<string, List<Type>> InterfaceMappabilityCache;
+
         private readonly ConditionalWeakTable<object, object> ProxyCache = new();
         private Type? BuiltProxyType;
-
-        private readonly ConcurrentDictionary<string, List<Type>> interfaceMappabilityCache;
 
         internal InterfaceOrDelegateProxyFactory(
             ProxyInfo<Context> proxyInfo,
@@ -38,7 +39,9 @@ namespace Nanoray.Pintail
             ProxyManagerProxyPrepareBehavior proxyPrepareBehavior,
             ProxyManagerEnumMappingBehavior enumMappingBehavior,
             ProxyObjectInterfaceMarking proxyObjectInterfaceMarking,
-            ConcurrentDictionary<string, List<Type>> interfaceMappabilityCache)
+            AccessLevelChecking accessLevelChecking,
+            ConcurrentDictionary<string, List<Type>> interfaceMappabilityCache
+        )
         {
             bool isProxyDelegate = proxyInfo.Proxy.Type.IsAssignableTo(typeof(Delegate));
             bool isTargetDelegate = proxyInfo.Target.Type.IsAssignableTo(typeof(Delegate));
@@ -60,7 +63,8 @@ namespace Nanoray.Pintail
             this.ProxyPrepareBehavior = proxyPrepareBehavior;
             this.EnumMappingBehavior = enumMappingBehavior;
             this.ProxyObjectInterfaceMarking = proxyObjectInterfaceMarking;
-            this.interfaceMappabilityCache = interfaceMappabilityCache;
+            this.InterfaceMappabilityCache = interfaceMappabilityCache;
+            this.AccessLevelChecking = accessLevelChecking;
         }
 
         internal void Prepare(ProxyManager<Context> manager, string typeName)
@@ -71,11 +75,15 @@ namespace Nanoray.Pintail
                 proxyBuilder.AddInterfaceImplementation(this.ProxyInfo.Proxy.Type);
 
             // allows ignoring access levels - we only need this so we can access public methods in otherwise private types
-            (manager.ModuleBuilder.Assembly as AssemblyBuilder)?.SetCustomAttribute(new CustomAttributeBuilder
-            (
-                typeof(IgnoresAccessChecksToAttribute).GetConstructor(new Type[] { typeof(string) })!,
-                new object[] { this.ProxyInfo.Target.Type.Assembly.GetName().Name! }
-            ));
+            if (this.AccessLevelChecking != AccessLevelChecking.Enabled)
+            {
+                (manager.ModuleBuilder.Assembly as AssemblyBuilder)?.SetCustomAttribute(
+                    new CustomAttributeBuilder(
+                        typeof(IgnoresAccessChecksToAttribute).GetConstructor(new Type[] { typeof(string) })!,
+                        new object[] { this.ProxyInfo.Target.Type.Assembly.GetName().Name! }
+                    )
+                );
+            }
 
             // create fields to store target instance and proxy factory
             FieldBuilder targetField = proxyBuilder.DefineField(TargetFieldName, this.ProxyInfo.Target.Type, FieldAttributes.Private | FieldAttributes.InitOnly);
@@ -134,8 +142,8 @@ namespace Nanoray.Pintail
             Func<MethodInfo, bool> filter = this.ProxyInfo.Proxy.Type.IsAssignableTo(typeof(Delegate)) ? (f => f.Name == "Invoke") : (_) => true;
 
             // Groupby might make this more efficient.
-            var allTargetMethods = this.ProxyInfo.Target.Type.FindInterfaceMethods(filter).ToList();
-            var allProxyMethods = this.ProxyInfo.Proxy.Type.FindInterfaceMethods(filter).ToList();
+            var allTargetMethods = this.ProxyInfo.Target.Type.FindInterfaceMethods(this.AccessLevelChecking == AccessLevelChecking.Disabled, filter).ToList();
+            var allProxyMethods = this.ProxyInfo.Proxy.Type.FindInterfaceMethods(this.AccessLevelChecking == AccessLevelChecking.Disabled, filter).ToList();
 
 #if DEBUG
             Console.WriteLine($"Looking at {allProxyMethods.Count} proxy methods and {allTargetMethods.Count} target methods for proxy {this.ProxyInfo.Proxy.Type.FullName} and target {this.ProxyInfo.Target.Type.FullName}");
@@ -149,7 +157,7 @@ namespace Nanoray.Pintail
                 var candidates = new Dictionary<MethodInfo, TypeUtilities.PositionConversion?[]>();
                 foreach (MethodInfo targetMethod in allTargetMethods)
                 {
-                    var positionConversions = TypeUtilities.MatchProxyMethod(targetMethod, proxyMethod, this.EnumMappingBehavior, ImmutableHashSet.Create(this.ProxyInfo.Target.Type, this.ProxyInfo.Proxy.Type), this.interfaceMappabilityCache);
+                    var positionConversions = TypeUtilities.MatchProxyMethod(targetMethod, proxyMethod, this.EnumMappingBehavior, ImmutableHashSet.Create(this.ProxyInfo.Target.Type, this.ProxyInfo.Proxy.Type), this.InterfaceMappabilityCache, this.AccessLevelChecking == AccessLevelChecking.Disabled);
                     if (positionConversions is null)
                         continue;
 

@@ -208,6 +208,11 @@ namespace Nanoray.Pintail
         public readonly ProxyObjectInterfaceMarking ProxyObjectInterfaceMarking;
 
         /// <summary>
+        /// Defines whether access level checks should be enabled for generated proxy types.
+        /// </summary>
+        public readonly AccessLevelChecking AccessLevelChecking;
+
+        /// <summary>
         /// Creates a new configuration for <see cref="ProxyManager{Context}"/>.
         /// </summary>
         /// <param name="typeNameProvider">The type name provider to use.<br/>Defaults to <see cref="ShortNameIDGeneratingTypeNameProvider"/>.</param>
@@ -216,13 +221,15 @@ namespace Nanoray.Pintail
         /// <param name="enumMappingBehavior">The behavior to use when mapping <see cref="Enum"/> arguments while matching methods to proxy.<br/>Defaults to <see cref="ProxyManagerEnumMappingBehavior.ThrowAtRuntime"/>.</param>
         /// <param name="mismatchedArrayMappingBehavior">The behavior to use when mapping mismatched <see cref="Array"/> elements back and forth.<br/>Defaults to <see cref="ProxyManagerMismatchedArrayMappingBehavior.Throw"/>.</param>
         /// <param name="proxyObjectInterfaceMarking">Whether proxy types should implement any marker interfaces.<br/>Defaults to <see cref="ProxyObjectInterfaceMarking.Marker"/>.</param>
+        /// <param name="accessLevelChecking">Defines whether access level checks should be enabled for generated proxy types.<br/>Defaults to <see cref="AccessLevelChecking.Enabled"/>.</param>
         public ProxyManagerConfiguration(
             ProxyManagerTypeNameProvider<Context>? typeNameProvider = null,
             ProxyManagerNoMatchingMethodHandler<Context>? noMatchingMethodHandler = null,
             ProxyManagerProxyPrepareBehavior proxyPrepareBehavior = ProxyManagerProxyPrepareBehavior.Lazy,
             ProxyManagerEnumMappingBehavior enumMappingBehavior = ProxyManagerEnumMappingBehavior.ThrowAtRuntime,
             ProxyManagerMismatchedArrayMappingBehavior mismatchedArrayMappingBehavior = ProxyManagerMismatchedArrayMappingBehavior.Throw,
-            ProxyObjectInterfaceMarking proxyObjectInterfaceMarking = ProxyObjectInterfaceMarking.Marker
+            ProxyObjectInterfaceMarking proxyObjectInterfaceMarking = ProxyObjectInterfaceMarking.Marker,
+            AccessLevelChecking accessLevelChecking = AccessLevelChecking.Enabled
         )
         {
             this.TypeNameProvider = typeNameProvider ?? ShortNameIDGeneratingTypeNameProvider.Value;
@@ -231,6 +238,7 @@ namespace Nanoray.Pintail
             this.EnumMappingBehavior = enumMappingBehavior;
             this.MismatchedArrayMappingBehavior = mismatchedArrayMappingBehavior;
             this.ProxyObjectInterfaceMarking = proxyObjectInterfaceMarking;
+            this.AccessLevelChecking = accessLevelChecking;
         }
     }
 
@@ -302,6 +310,7 @@ namespace Nanoray.Pintail
                             this.Configuration.ProxyPrepareBehavior,
                             this.Configuration.EnumMappingBehavior,
                             this.Configuration.ProxyObjectInterfaceMarking,
+                            this.Configuration.AccessLevelChecking,
                             this.InterfaceMappabilityCache
                         );
                         factory = newFactory;
@@ -318,7 +327,7 @@ namespace Nanoray.Pintail
                     }
                     else
                     {
-                        var newFactory = new ReconstructingProxyFactory<Context>(proxyInfo, this.Configuration.EnumMappingBehavior, this.InterfaceMappabilityCache);
+                        var newFactory = new ReconstructingProxyFactory<Context>(proxyInfo, this.Configuration.EnumMappingBehavior, this.Configuration.AccessLevelChecking, this.InterfaceMappabilityCache);
                         factory = newFactory;
                         this.Factories[proxyInfo] = factory;
                         try

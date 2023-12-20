@@ -13,14 +13,22 @@ namespace Nanoray.Pintail
     {
         public ProxyInfo<Context> ProxyInfo { get; private set; }
         private readonly ProxyManagerEnumMappingBehavior EnumMappingBehavior;
+        private readonly AccessLevelChecking AccessLevelChecking;
         private readonly ConcurrentDictionary<string, List<Type>> InterfaceMappabilityCache;
+
         private Func<IProxyManager<Context>, object, object> ProxyFactory = null!;
         private Func<IProxyManager<Context>, object, object> UnproxyFactory = null!;
 
-        internal ReconstructingProxyFactory(ProxyInfo<Context> proxyInfo, ProxyManagerEnumMappingBehavior enumMappingBehavior, ConcurrentDictionary<string, List<Type>> interfaceMappabilityCache)
+        internal ReconstructingProxyFactory(
+            ProxyInfo<Context> proxyInfo,
+            ProxyManagerEnumMappingBehavior enumMappingBehavior,
+            AccessLevelChecking accessLevelChecking,
+            ConcurrentDictionary<string, List<Type>> interfaceMappabilityCache
+        )
         {
             this.ProxyInfo = proxyInfo;
             this.EnumMappingBehavior = enumMappingBehavior;
+            this.AccessLevelChecking = accessLevelChecking;
             this.InterfaceMappabilityCache = interfaceMappabilityCache;
         }
 
@@ -131,7 +139,7 @@ namespace Nanoray.Pintail
                     {
                         int deconstructValueIndex = i + (deconstructViaExtensionMethod ? 1 : 0);
                         constructValues[i] = deconstructValues[deconstructValueIndex];
-                        switch (TypeUtilities.AreTypesMatching(factoryParameters[i].ParameterType, deconstructValues[deconstructValueIndex]!.GetType(), TypeUtilities.MethodTypeAssignability.AssignTo, this.EnumMappingBehavior, ImmutableHashSet<Type>.Empty, this.InterfaceMappabilityCache))
+                        switch (TypeUtilities.AreTypesMatching(factoryParameters[i].ParameterType, deconstructValues[deconstructValueIndex]!.GetType(), TypeUtilities.MethodTypeAssignability.AssignTo, this.EnumMappingBehavior, ImmutableHashSet<Type>.Empty, this.InterfaceMappabilityCache, this.AccessLevelChecking == AccessLevelChecking.Disabled))
                         {
                             case TypeUtilities.MatchingTypesResult.Exact:
                             case TypeUtilities.MatchingTypesResult.Assignable:
