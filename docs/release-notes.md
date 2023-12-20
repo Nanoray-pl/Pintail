@@ -2,6 +2,13 @@
 
 # Release notes
 
+## 2.4.0
+Released 20 December 2023.
+
+* Added an option to (partially) ignore access checks when proxying.
+* Added `TryObtainProxyFactory`, which returns `null` instead of throwing if the type could not be proxied.
+* The fact of failing to create a type proxy is now cached and will exit early if repeated, instead of trying again.
+
 ## 2.3.0
 Released 15 June 2023.
 
