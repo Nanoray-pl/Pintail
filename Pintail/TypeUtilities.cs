@@ -143,7 +143,6 @@ namespace Nanoray.Pintail
 
             var matchingTypesResult = MatchingTypesResult.Exact;
 
-            // I'm not convinced this ever gets run?
             if (!(proxyType.IsAssignableTo(typeof(Delegate)) && targetType.IsAssignableTo(typeof(Delegate))))
             {
                 if (!targetType.IsGenericTypeDefinition && !proxyType.IsGenericTypeDefinition)
