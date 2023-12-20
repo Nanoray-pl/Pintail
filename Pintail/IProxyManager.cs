@@ -22,6 +22,13 @@ namespace Nanoray.Pintail
         /// <param name="proxyInfo">Proxy info describing the <see cref="IProxyFactory{Context}"/> to return.</param>
         /// <returns>A <see cref="IProxyFactory{Context}"/> instance for the given proxy info.</returns>
         IProxyFactory<Context> ObtainProxyFactory(ProxyInfo<Context> proxyInfo);
+
+        /// <summary>
+        /// Tries to return an existing <see cref="IProxyFactory{Context}"/> instance for the given proxy info or creates and returns a new one. If proxying is not possible, returns `null`.
+        /// </summary>
+        /// <param name="proxyInfo">Proxy info describing the <see cref="IProxyFactory{Context}"/> to return.</param>
+        /// <returns>A <see cref="IProxyFactory{Context}"/> instance for the given proxy info.</returns>
+        IProxyFactory<Context>? TryObtainProxyFactory(ProxyInfo<Context> proxyInfo);
     }
 
     /// <summary>
@@ -79,10 +86,15 @@ namespace Nanoray.Pintail
                     }
                 }
 
-                var proxyFactory = self.ObtainProxyFactory(new ProxyInfo<Context>(
+                var proxyFactory = self.TryObtainProxyFactory(new ProxyInfo<Context>(
                     target: new TypeInfo<Context>(targetContext, toProxy.GetType()),
                     proxy: new TypeInfo<Context>(proxyContext, typeof(TProxy))
                 ));
+                if (proxyFactory is null)
+                {
+                    proxy = null;
+                    return false;
+                }
                 proxy = (TProxy)proxyFactory.ObtainProxy(self, toProxy);
                 return true;
             }

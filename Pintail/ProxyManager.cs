@@ -250,8 +250,9 @@ namespace Nanoray.Pintail
     {
         internal readonly ModuleBuilder ModuleBuilder;
         internal readonly ProxyManagerConfiguration<Context> Configuration;
-        private readonly IDictionary<ProxyInfo<Context>, IProxyFactory<Context>> Factories = new Dictionary<ProxyInfo<Context>, IProxyFactory<Context>>();
+        private readonly Dictionary<ProxyInfo<Context>, IProxyFactory<Context>> Factories = new();
         private readonly ConcurrentDictionary<string, List<Type>> InterfaceMappabilityCache = new();
+        private readonly Dictionary<ProxyInfo<Context>, Exception> FailedProxyTypeExceptions = new();
 
         /// <summary>
         /// Constructs a <see cref="ProxyManager{Context}"/>.
@@ -280,6 +281,9 @@ namespace Nanoray.Pintail
         {
             lock (this.Factories)
             {
+                if (this.FailedProxyTypeExceptions.TryGetValue(proxyInfo, out var priorException))
+                    throw new ArgumentException($"Unhandled proxy/conversion method for info: {proxyInfo}", priorException);
+
                 if (!this.Factories.TryGetValue(proxyInfo, out IProxyFactory<Context>? factory))
                 {
                     if (proxyInfo.Target.Type == proxyInfo.Proxy.Type)
@@ -319,10 +323,11 @@ namespace Nanoray.Pintail
                         {
                             newFactory.Prepare(this, this.Configuration.TypeNameProvider(this.ModuleBuilder, proxyInfo));
                         }
-                        catch
+                        catch (Exception e)
                         {
                             this.Factories.Remove(proxyInfo);
-                            throw;
+                            this.FailedProxyTypeExceptions[proxyInfo] = e;
+                            throw new ArgumentException($"Unhandled proxy/conversion method for info: {proxyInfo}", e);
                         }
                     }
                     else
@@ -337,11 +342,23 @@ namespace Nanoray.Pintail
                         catch (Exception e)
                         {
                             this.Factories.Remove(proxyInfo);
+                            this.FailedProxyTypeExceptions[proxyInfo] = e;
                             throw new ArgumentException($"Unhandled proxy/conversion method for info: {proxyInfo}", e);
                         }
                     }
                 }
                 return factory;
+            }
+        }
+
+        /// <inheritdoc/>
+        public IProxyFactory<Context>? TryObtainProxyFactory(ProxyInfo<Context> proxyInfo)
+        {
+            lock (this.Factories)
+            {
+                if (this.FailedProxyTypeExceptions.ContainsKey(proxyInfo))
+                    return null;
+                return this.ObtainProxyFactory(proxyInfo);
             }
         }
     }

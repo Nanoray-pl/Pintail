@@ -51,7 +51,7 @@ namespace Nanoray.Pintail.Tests
             var manager = this.CreateProxyManager(AccessLevelChecking.Enabled);
             object providerApi = ProviderWrapper.GetPrivateProvider();
 
-            Assert.Throws<TypeLoadException>(() =>
+            Assert.Throws<ArgumentException>(() =>
             {
                 var consumerApi = manager.ObtainProxy<IPrivateClient>(providerApi)!;
                 Assert.AreEqual("Lorem ipsum", consumerApi.Test);
@@ -64,7 +64,7 @@ namespace Nanoray.Pintail.Tests
             var manager = this.CreateProxyManager(AccessLevelChecking.Enabled);
             object providerApi = ProviderWrapper.GetPublicProvider();
 
-            Assert.Throws<TypeLoadException>(() =>
+            Assert.Throws<ArgumentException>(() =>
             {
                 var consumerApi = manager.ObtainProxy<IPrivateClient>(providerApi)!;
                 Assert.AreEqual("Lorem ipsum", consumerApi.Test);
