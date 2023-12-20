@@ -70,6 +70,13 @@ namespace Nanoray.Pintail
             if (this.ProxyInfo.Proxy.Type.IsInterface) // false for delegates
                 proxyBuilder.AddInterfaceImplementation(this.ProxyInfo.Proxy.Type);
 
+            // allows ignoring access levels - we only need this so we can access public methods in otherwise private types
+            (manager.ModuleBuilder.Assembly as AssemblyBuilder)?.SetCustomAttribute(new CustomAttributeBuilder
+            (
+                typeof(IgnoresAccessChecksToAttribute).GetConstructor(new Type[] { typeof(string) })!,
+                new object[] { this.ProxyInfo.Target.Type.Assembly.GetName().Name! }
+            ));
+
             // create fields to store target instance and proxy factory
             FieldBuilder targetField = proxyBuilder.DefineField(TargetFieldName, this.ProxyInfo.Target.Type, FieldAttributes.Private | FieldAttributes.InitOnly);
             FieldBuilder glueField = proxyBuilder.DefineField(GlueFieldName, typeof(ProxyGlue<Context>), FieldAttributes.Private | FieldAttributes.InitOnly);
