@@ -707,5 +707,17 @@ namespace Nanoray.Pintail.Tests
             Assert.AreEqual(true, kvp.Key);
             Assert.AreEqual("asdf", kvp.Value.teststring);
         }
+
+        [Test]
+        public void TestDefaultMethodsInReverseProxy()
+        {
+            var manager = this.CreateProxyManager();
+            var providerApi = new ProviderApiWithDefaultMethods();
+            Assert.DoesNotThrow(() =>
+            {
+                var consumerApi = manager.ObtainProxy<IConsumerApiWithDefaultMethods>(providerApi);
+                Assert.AreEqual(456, consumerApi.CallHookNewMethod(new IConsumerApiWithDefaultMethods.HookImplementation()));
+            });
+        }
     }
 }

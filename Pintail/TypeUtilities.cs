@@ -303,6 +303,16 @@ namespace Nanoray.Pintail
                         goto NextMethod;
                     }
                 }
+
+                // allow default method implementations
+                if (!assignToMethod.IsAbstract && assignToMethod.DeclaringType?.IsInterface == true)
+                {
+                    // if there is method named exactly the same, with the same number of arguments, then it's probably an unsupported situation
+                    // don't use a default impl then, as users may not be able to figure out why their method is not being called
+                    if (!toAssignFromMethods.Any(m => m.Name == assignToMethod.Name && m.GetParameters().Length == assignToMethod.GetParameters().Length))
+                        goto NextMethod;
+                }
+
                 return false;
                 NextMethod:;
             }

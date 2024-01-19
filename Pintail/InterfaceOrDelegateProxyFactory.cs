@@ -182,6 +182,12 @@ namespace Nanoray.Pintail
 
                     this.ProxyMethod(manager, proxyBuilder, proxyMethod, targetMethod, targetField, glueField, proxyInfosField, positionConversions, relatedProxyInfos);
                 }
+                else if (!proxyMethod.IsAbstract && proxyMethod.DeclaringType?.IsInterface == true)
+                {
+                    var positionConversions = TypeUtilities.MatchProxyMethod(proxyMethod, proxyMethod, this.EnumMappingBehavior, ImmutableHashSet.Create(this.ProxyInfo.Target.Type, this.ProxyInfo.Proxy.Type), this.InterfaceMappabilityCache, this.AccessLevelChecking == AccessLevelChecking.Disabled);
+                    if (positionConversions is null)
+                        this.NoMatchingMethodHandler(proxyBuilder, this.ProxyInfo, targetField, glueField, proxyInfosField, proxyMethod);
+                }
                 else
                 {
                     this.NoMatchingMethodHandler(proxyBuilder, this.ProxyInfo, targetField, glueField, proxyInfosField, proxyMethod);
