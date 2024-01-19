@@ -2,6 +2,11 @@
 
 # Release notes
 
+## 2.4.1
+Released 19 January 2024.
+
+* Handling default interface method implementations, making them completely optional on the other side.
+
 ## 2.4.0
 Released 20 December 2023.
 
