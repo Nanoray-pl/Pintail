@@ -2,6 +2,11 @@
 
 # Release notes
 
+## 2.4.2
+Released 20 January 2024.
+
+* Allowing default method implementations with same number of parameters to be added, as long as their parameters names differ.
+
 ## 2.4.1
 Released 19 January 2024.
 
