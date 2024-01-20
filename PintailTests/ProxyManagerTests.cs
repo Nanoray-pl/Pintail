@@ -716,7 +716,10 @@ namespace Nanoray.Pintail.Tests
             Assert.DoesNotThrow(() =>
             {
                 var consumerApi = manager.ObtainProxy<IConsumerApiWithDefaultMethods>(providerApi);
-                Assert.AreEqual(456, consumerApi.CallHookNewMethod(new IConsumerApiWithDefaultMethods.HookImplementation()));
+                var hook = new IConsumerApiWithDefaultMethods.HookImplementation();
+                consumerApi.SetHook(hook);
+                Assert.AreEqual(456, consumerApi.CallHookNewMethod(hook));
+                Assert.AreEqual(456, providerApi.CallHookNewMethod());
             });
         }
     }

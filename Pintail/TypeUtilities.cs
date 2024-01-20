@@ -309,7 +309,7 @@ namespace Nanoray.Pintail
                 {
                     // if there is method named exactly the same, with the same number of arguments, then it's probably an unsupported situation
                     // don't use a default impl then, as users may not be able to figure out why their method is not being called
-                    if (!toAssignFromMethods.Any(m => m.Name == assignToMethod.Name && m.GetParameters().Length == assignToMethod.GetParameters().Length))
+                    if (!toAssignFromMethods.Any(m => m.Name == assignToMethod.Name && m.GetParameters().Select(p => p.Name).SequenceEqual(assignToMethod.GetParameters().Select(p => p.Name))))
                         goto NextMethod;
                 }
 
