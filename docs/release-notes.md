@@ -2,7 +2,8 @@
 
 # Release notes
 
-## Upcoming release
+## 2.4.3
+Released 27 June 2024.
 
 * Fixed access level check ignoring not quite working with more complex interfaces.
 
