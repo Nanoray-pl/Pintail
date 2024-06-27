@@ -83,6 +83,12 @@ namespace Nanoray.Pintail
                         new object[] { this.ProxyInfo.Target.Type.Assembly.GetName().Name! }
                     )
                 );
+                (manager.ModuleBuilder.Assembly as AssemblyBuilder)?.SetCustomAttribute(
+                    new CustomAttributeBuilder(
+                        typeof(IgnoresAccessChecksToAttribute).GetConstructor(new[] { typeof(string) })!,
+                        new object[] { this.ProxyInfo.Proxy.Type.Assembly.GetName().Name! }
+                    )
+                );
             }
 
             // create fields to store target instance and proxy factory
