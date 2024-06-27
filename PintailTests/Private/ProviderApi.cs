@@ -265,12 +265,12 @@ namespace Nanoray.Pintail.Tests.Provider
             => new();
 
         public void FireStringEvent(string value)
-            => StringEvent?.Invoke(value);
+            => this.StringEvent?.Invoke(value);
 
         public event Action<string>? StringEvent;
 
         public void FireApiResultEvent(IApiResult value)
-            => ApiResultEvent?.Invoke(value);
+            => this.ApiResultEvent?.Invoke(value);
 
         public event Action<IApiResult>? ApiResultEvent;
 

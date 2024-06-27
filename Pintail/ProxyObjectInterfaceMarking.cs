@@ -1,9 +1,10 @@
 namespace Nanoray.Pintail
 {
     /// <summary>
-    /// Defines whether a proxy type should implement any marker interfaces.<br/>
-    /// See also: <seealso cref="IProxyObject"/>, <seealso cref="IProxyObject.IWithProxyTargetInstanceProperty"/>.
+    /// Defines whether a proxy type should implement any marker interfaces.
     /// </summary>
+    /// <seealso cref="IProxyObject"/>
+    /// <seealso cref="IProxyObject.IWithProxyTargetInstanceProperty"/>
     public enum ProxyObjectInterfaceMarking
     {
         /// <summary>

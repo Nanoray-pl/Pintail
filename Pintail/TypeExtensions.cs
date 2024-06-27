@@ -35,11 +35,11 @@ namespace Nanoray.Pintail
         private static string BuildTypeName(Type type, Func<Type, string> nameProvider)
         {
             StringBuilder sb = new(nameProvider(type));
-            Type[] genericArguments = type.GetGenericArguments();
+            var genericArguments = type.GetGenericArguments();
             if (genericArguments.Length != 0)
             {
                 sb.Append('[');
-                sb.AppendJoin(",", genericArguments.Select(generic => nameProvider(generic)));
+                sb.AppendJoin(",", genericArguments.Select(nameProvider));
                 sb.Append(']');
             }
             return sb.ToString();
@@ -49,10 +49,10 @@ namespace Nanoray.Pintail
         {
             if (includingSelf && type.IsInterface)
                 yield return type;
-            foreach (Type interfaceType in type.GetInterfaces())
+            foreach (var interfaceType in type.GetInterfaces())
             {
                 yield return interfaceType;
-                foreach (Type recursiveInterfaceType in interfaceType.GetInterfacesRecursivelyAsEnumerable(false))
+                foreach (var recursiveInterfaceType in interfaceType.GetInterfacesRecursivelyAsEnumerable(false))
                 {
                     yield return recursiveInterfaceType;
                 }
@@ -76,10 +76,10 @@ namespace Nanoray.Pintail
         {
             if (!self.ContainsGenericParameters)
                 return self;
-            if (self.IsGenericParameter && self.FullName is null && realGenericArguments.TryGetValue(self.Name, out Type? replacementType) && replacementType is not null)
+            if (self is { IsGenericParameter: true, FullName: null } && realGenericArguments.TryGetValue(self.Name, out var replacementType))
                 return replacementType;
 
-            Type[] genericArguments = self.GenericTypeArguments.Select(t => t.ReplacingGenericArguments(realGenericArguments)).ToArray();
+            var genericArguments = self.GenericTypeArguments.Select(t => t.ReplacingGenericArguments(realGenericArguments)).ToArray();
             return genericArguments.Length == 0 ? self : self.GetGenericTypeDefinition().MakeGenericType(genericArguments);
         }
     }

@@ -20,16 +20,16 @@ namespace Nanoray.Pintail
 
         public object ObtainProxy(IProxyManager<Context> manager, object targetInstance)
         {
-            if (targetInstance is not Array)
+            if (targetInstance is not Array array)
                 throw new ArgumentException($"{targetInstance} is not an array.");
-            return this.MapArray(manager, (Array)targetInstance);
+            return this.MapArray(manager, array);
         }
 
         public bool TryUnproxy(IProxyManager<Context> manager, object potentialProxyInstance, [NotNullWhen(true)] out object? targetInstance)
         {
-            if (potentialProxyInstance is not Array)
+            if (potentialProxyInstance is not Array array)
                 throw new ArgumentException($"{potentialProxyInstance} is not an array.");
-            targetInstance = this.MapArray(manager, (Array)potentialProxyInstance);
+            targetInstance = this.MapArray(manager, array);
             return true;
         }
 
@@ -38,7 +38,7 @@ namespace Nanoray.Pintail
             int[] lengths = new int[inputArray.Rank];
             for (int i = 0; i < lengths.Length; i++)
                 lengths[i] = inputArray.GetLength(i);
-            var proxyInfo = this.ProxyInfo.Target.Type.IsAssignableFrom(inputArray.GetType()) ? this.ProxyInfo : this.ProxyInfo.Reversed();
+            var proxyInfo = this.ProxyInfo.Target.Type.IsInstanceOfType(inputArray) ? this.ProxyInfo : this.ProxyInfo.Reversed();
             var outputArray = Array.CreateInstance(proxyInfo.Proxy.Type.GetElementType()!, lengths);
             this.MapArrayContents(manager, inputArray, outputArray);
             return outputArray;
@@ -52,12 +52,12 @@ namespace Nanoray.Pintail
                 if (inputArray.GetLength(i) != outputArray.GetLength(i))
                     throw new ArgumentException("Arrays have different lengths.");
 
-            var elementProxyInfo = this.ProxyInfo.Target.Type.IsAssignableFrom(inputArray.GetType()) ? this.ProxyInfo : this.ProxyInfo.Reversed();
-            var elementUnproxyInfo = this.ProxyInfo.Target.Type.IsAssignableFrom(inputArray.GetType()) ? this.ProxyInfo.Reversed() : this.ProxyInfo;
+            var elementProxyInfo = this.ProxyInfo.Target.Type.IsInstanceOfType(inputArray) ? this.ProxyInfo : this.ProxyInfo.Reversed();
+            var elementUnproxyInfo = this.ProxyInfo.Target.Type.IsInstanceOfType(inputArray) ? this.ProxyInfo.Reversed() : this.ProxyInfo;
             elementProxyInfo = elementProxyInfo.Copy(targetType: elementProxyInfo.Target.Type.GetElementType()!, proxyType: elementProxyInfo.Proxy.Type.GetElementType()!);
             elementUnproxyInfo = elementUnproxyInfo.Copy(targetType: elementUnproxyInfo.Target.Type.GetElementType()!, proxyType: elementUnproxyInfo.Proxy.Type.GetElementType()!);
 
-            Type outputElementType = outputArray.GetType().GetElementType()!;
+            var outputElementType = outputArray.GetType().GetElementType()!;
             if (outputElementType != elementProxyInfo.Proxy.Type)
             {
                 switch (this.MismatchedArrayMappingBehavior)
@@ -68,6 +68,11 @@ namespace Nanoray.Pintail
                         return;
                 }
             }
+
+            int[] position = new int[inputArray.Rank];
+            for (int i = 0; i < position.Length; i++)
+                position[i] = -1;
+            Map(position);
 
             void Map(int[] position)
             {
@@ -104,11 +109,6 @@ namespace Nanoray.Pintail
                     position[dimension] = -1;
                 }
             }
-
-            int[] position = new int[inputArray.Rank];
-            for (int i = 0; i < position.Length; i++)
-                position[i] = -1;
-            Map(position);
         }
     }
 }

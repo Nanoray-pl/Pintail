@@ -101,6 +101,6 @@ namespace Nanoray.Pintail.Tests.Provider
 
         public event Action<IProxyInputA>? FancyEvent;
 
-        public void FireEvent(IProxyInputA val) => FancyEvent?.Invoke(val);
+        public void FireEvent(IProxyInputA val) => this.FancyEvent?.Invoke(val);
     }
 }

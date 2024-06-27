@@ -1,4 +1,3 @@
-using System;
 using System.Diagnostics.CodeAnalysis;
 
 namespace Nanoray.Pintail
@@ -71,7 +70,7 @@ namespace Nanoray.Pintail
         {
             try
             {
-                foreach (Type interfaceType in toProxy.GetType().GetInterfacesRecursively(includingSelf: true))
+                foreach (var interfaceType in toProxy.GetType().GetInterfacesRecursively(includingSelf: true))
                 {
                     var unproxyFactory = self.GetProxyFactory(new ProxyInfo<Context>(
                         target: new TypeInfo<Context>(targetContext, typeof(TProxy)),
@@ -120,7 +119,7 @@ namespace Nanoray.Pintail
         {
             try
             {
-                foreach (Type interfaceType in toProxy.GetType().GetInterfacesRecursively(includingSelf: true))
+                foreach (var interfaceType in toProxy.GetType().GetInterfacesRecursively(includingSelf: true))
                 {
                     var unproxyFactory = self.GetProxyFactory(new ProxyInfo<Context>(
                         target: new TypeInfo<Context>(targetContext, typeof(TProxy)),

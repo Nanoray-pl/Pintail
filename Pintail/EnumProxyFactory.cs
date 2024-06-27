@@ -18,16 +18,16 @@ namespace Nanoray.Pintail
 
         public object ObtainProxy(IProxyManager<Context> manager, object targetInstance)
         {
-            return this.MapEnum(targetInstance, this.ProxyInfo.Proxy.Type);
+            return MapEnum(targetInstance, this.ProxyInfo.Proxy.Type);
         }
 
         public bool TryUnproxy(IProxyManager<Context> manager, object potentialProxyInstance, [NotNullWhen(true)] out object? targetInstance)
         {
-            targetInstance = this.MapEnum(potentialProxyInstance, this.ProxyInfo.Target.Type);
+            targetInstance = MapEnum(potentialProxyInstance, this.ProxyInfo.Target.Type);
             return true;
         }
 
-        private object MapEnum(object input, Type outputType)
+        private static object MapEnum(object input, Type outputType)
         {
             foreach (object outputValue in Enum.GetValues(outputType))
             {

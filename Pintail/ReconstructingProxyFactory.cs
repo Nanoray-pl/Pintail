@@ -36,7 +36,7 @@ namespace Nanoray.Pintail
         {
             Func<IProxyManager<Context>, object, object>? MakeFactory(bool isReverse)
             {
-                TypeInfo<Context> from = isReverse ? this.ProxyInfo.Proxy : this.ProxyInfo.Target;
+                var from = isReverse ? this.ProxyInfo.Proxy : this.ProxyInfo.Target;
                 TypeInfo<Context> to = isReverse ? this.ProxyInfo.Target : this.ProxyInfo.Proxy;
 
                 bool deconstructViaExtensionMethod;
@@ -102,8 +102,8 @@ namespace Nanoray.Pintail
                     var createMethod = typeof(Tuple)
                         .GetMethods()
                         .Where(m => m.Name == "Create")
-                        .First(m => m.GetGenericArguments().Length == to.Type.GenericTypeArguments.Length)
-                        .MakeGenericMethod(to.Type.GenericTypeArguments);
+                        .FirstOrDefault(m => m.GetGenericArguments().Length == to.Type.GenericTypeArguments.Length)
+                        ?.MakeGenericMethod(to.Type.GenericTypeArguments);
                     if (createMethod is null)
                         return null;
 
@@ -112,12 +112,12 @@ namespace Nanoray.Pintail
                 }
                 else
                 {
-                    var constructor = to.Type.GetConstructors().Where(c => c.GetParameters().Length == realParameterCount).FirstOrDefault();
+                    var constructor = to.Type.GetConstructors().FirstOrDefault(c => c.GetParameters().Length == realParameterCount);
                     if (constructor is null)
                         return null;
 
                     factoryParameters = constructor.GetParameters();
-                    factoryDelegate = parameters => constructor.Invoke(parameters)!;
+                    factoryDelegate = parameters => constructor.Invoke(parameters);
                 }
 
                 return (manager, from) =>

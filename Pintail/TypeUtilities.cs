@@ -334,12 +334,12 @@ namespace Nanoray.Pintail
         internal static IEnumerable<MethodInfo> FindInterfaceMethods(this Type baseType, bool includePrivate, Func<MethodInfo, bool>? filter = null)
         {
             filter ??= (_) => true;
-            foreach (MethodInfo method in baseType.GetMethods(BindingFlags.Instance | BindingFlags.Public | (includePrivate ? BindingFlags.NonPublic : 0)))
+            foreach (var method in baseType.GetMethods(BindingFlags.Instance | BindingFlags.Public | (includePrivate ? BindingFlags.NonPublic : 0)))
             {
                 if (filter(method))
                     yield return method;
             }
-            foreach (Type interfaceType in baseType.GetInterfaces())
+            foreach (var interfaceType in baseType.GetInterfaces())
             {
                 foreach (var method in FindInterfaceMethods(interfaceType, includePrivate, filter))
                 {

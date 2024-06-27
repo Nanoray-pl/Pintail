@@ -89,8 +89,8 @@ namespace Nanoray.Pintail
             byte[] hashBytes = MD5.ComputeHash(inputBytes);
 
             StringBuilder sb = new();
-            for (int i = 0; i < hashBytes.Length; i++)
-                sb.Append(hashBytes[i].ToString("X2"));
+            foreach (byte b in hashBytes)
+                sb.Append(b.ToString("X2"));
             return sb.ToString();
         }
 
@@ -121,7 +121,7 @@ namespace Nanoray.Pintail
             IDictionary<string, string> qualifiedToShortName = new Dictionary<string, string>();
             IDictionary<string, int> shortNameCounts = new Dictionary<string, int>();
 
-            return (moduleBuilder, proxyInfo) =>
+            return (_, proxyInfo) =>
             {
                 lock (qualifiedToShortName)
                 {
@@ -146,7 +146,7 @@ namespace Nanoray.Pintail
         /// The default <see cref="ProxyManagerNoMatchingMethodHandler{Context}"/> implementation.<br/>
         /// If a method cannot be implemented, <see cref="ArgumentException"/> will be thrown right away.
         /// </summary>
-        public static readonly ProxyManagerNoMatchingMethodHandler<Context> ThrowExceptionNoMatchingMethodHandler = (proxyBuilder, proxyInfo, _, _, _, proxyMethod)
+        public static readonly ProxyManagerNoMatchingMethodHandler<Context> ThrowExceptionNoMatchingMethodHandler = (_, proxyInfo, _, _, _, proxyMethod)
             => throw new ArgumentException($"The {proxyInfo.Proxy.Type.GetShortName()} interface defines method {proxyMethod.Name} which doesn't exist in the API or depends on an interface that cannot be mapped!");
 
         /// <summary>
@@ -154,15 +154,15 @@ namespace Nanoray.Pintail
         /// </summary>
         public static readonly ProxyManagerNoMatchingMethodHandler<Context> ThrowingImplementationNoMatchingMethodHandler = (proxyBuilder, proxyInfo, _, _, _, proxyMethod) =>
         {
-            MethodBuilder methodBuilder = proxyBuilder.DefineMethod(proxyMethod.Name, MethodAttributes.Public | MethodAttributes.Final | MethodAttributes.Virtual);
+            var methodBuilder = proxyBuilder.DefineMethod(proxyMethod.Name, MethodAttributes.Public | MethodAttributes.Final | MethodAttributes.Virtual);
 
-            Type[] proxyGenericArguments = proxyMethod.GetGenericArguments();
+            var proxyGenericArguments = proxyMethod.GetGenericArguments();
             string[] genericArgNames = proxyGenericArguments.Select(a => a.Name).ToArray();
-            GenericTypeParameterBuilder[] genericTypeParameterBuilders = proxyGenericArguments.Length == 0 ? Array.Empty<GenericTypeParameterBuilder>() : methodBuilder.DefineGenericParameters(genericArgNames);
+            var genericTypeParameterBuilders = proxyGenericArguments.Length == 0 ? Array.Empty<GenericTypeParameterBuilder>() : methodBuilder.DefineGenericParameters(genericArgNames);
             for (int i = 0; i < proxyGenericArguments.Length; i++)
                 genericTypeParameterBuilders[i].SetGenericParameterAttributes(proxyGenericArguments[i].GenericParameterAttributes);
 
-            Type returnType = proxyMethod.ReturnType.IsGenericMethodParameter ? genericTypeParameterBuilders[proxyMethod.ReturnType.GenericParameterPosition] : proxyMethod.ReturnType;
+            var returnType = proxyMethod.ReturnType.IsGenericMethodParameter ? genericTypeParameterBuilders[proxyMethod.ReturnType.GenericParameterPosition] : proxyMethod.ReturnType;
             methodBuilder.SetReturnType(returnType);
 
             Type[] argTypes = proxyMethod.GetParameters()
@@ -171,9 +171,9 @@ namespace Nanoray.Pintail
                 .ToArray();
             methodBuilder.SetParameters(argTypes);
 
-            ILGenerator il = methodBuilder.GetILGenerator();
+            var il = methodBuilder.GetILGenerator();
             il.Emit(OpCodes.Ldstr, $"The {proxyInfo.Proxy.Type.GetShortName()} interface defines method {proxyMethod.Name} which doesn't exist in the API. (It may depend on an interface that was not mappable).");
-            il.Emit(OpCodes.Newobj, typeof(NotImplementedException).GetConstructor(new Type[] { typeof(string) })!);
+            il.Emit(OpCodes.Newobj, typeof(NotImplementedException).GetConstructor(new[] { typeof(string) })!);
             il.Emit(OpCodes.Throw);
         };
 

@@ -22,40 +22,38 @@ namespace Nanoray.Pintail
 
         public object ObtainProxy(IProxyManager<Context> manager, object targetInstance)
         {
-            var type = targetInstance.GetType();
-            var @delegate = this.ObtainMapDelegate(manager, this.ProxyInfo.Target.Type.GetGenericArguments()[0], this.ProxyInfo.Proxy.Type.GetGenericArguments()[0]);
+            var @delegate = this.ObtainMapDelegate(this.ProxyInfo.Target.Type.GetGenericArguments()[0], this.ProxyInfo.Proxy.Type.GetGenericArguments()[0]);
             return @delegate(this, manager, targetInstance);
         }
 
         public bool TryUnproxy(IProxyManager<Context> manager, object potentialProxyInstance, [NotNullWhen(true)] out object? targetInstance)
         {
-            var type = potentialProxyInstance.GetType();
-            var @delegate = this.ObtainMapDelegate(manager, this.ProxyInfo.Proxy.Type.GetGenericArguments()[0], this.ProxyInfo.Target.Type.GetGenericArguments()[0]);
+            var @delegate = this.ObtainMapDelegate(this.ProxyInfo.Proxy.Type.GetGenericArguments()[0], this.ProxyInfo.Target.Type.GetGenericArguments()[0]);
             targetInstance = @delegate(this, manager, potentialProxyInstance);
             return true;
         }
 
-        private Func<NullableProxyFactory<Context>, IProxyManager<Context>, object, object> ObtainMapDelegate(IProxyManager<Context> manager, Type inputType, Type outputType)
+        private Func<NullableProxyFactory<Context>, IProxyManager<Context>, object, object> ObtainMapDelegate(Type inputType, Type outputType)
         {
             if (!this.MapDelegateCache.TryGetValue((inputType, outputType), out var @delegate))
             {
-                @delegate = this.CreateMapDelegate(manager, inputType, outputType);
+                @delegate = this.CreateMapDelegate(inputType, outputType);
                 this.MapDelegateCache[(inputType, outputType)] = @delegate;
             }
             return @delegate;
         }
 
-        private Func<NullableProxyFactory<Context>, IProxyManager<Context>, object, object> CreateMapDelegate(IProxyManager<Context> manager, Type inputType, Type outputType)
+        private Func<NullableProxyFactory<Context>, IProxyManager<Context>, object, object> CreateMapDelegate(Type inputType, Type outputType)
         {
-            var method = new DynamicMethod("Map", typeof(object), new Type[] { typeof(NullableProxyFactory<Context>), typeof(IProxyManager<Context>), typeof(object) });
+            var method = new DynamicMethod("Map", typeof(object), new[] { typeof(NullableProxyFactory<Context>), typeof(IProxyManager<Context>), typeof(object) });
             var il = method.GetILGenerator();
 
             il.Emit(OpCodes.Ldarg_0);
             il.Emit(OpCodes.Ldarg_1);
             il.Emit(OpCodes.Ldarg_2);
             il.Emit(OpCodes.Unbox_Any, inputType);
-            il.Emit(OpCodes.Newobj, typeof(Nullable<>).MakeGenericType(inputType).GetConstructor(new Type[] { inputType })!);
-            il.Emit(OpCodes.Call, typeof(NullableProxyFactory<Context>).GetMethod(nameof(Map), BindingFlags.NonPublic | BindingFlags.Instance)!.MakeGenericMethod(new Type[] { inputType, outputType }));
+            il.Emit(OpCodes.Newobj, typeof(Nullable<>).MakeGenericType(inputType).GetConstructor(new[] { inputType })!);
+            il.Emit(OpCodes.Call, typeof(NullableProxyFactory<Context>).GetMethod(nameof(this.Map), BindingFlags.NonPublic | BindingFlags.Instance)!.MakeGenericMethod(inputType, outputType));
             il.Emit(OpCodes.Box, typeof(Nullable<>).MakeGenericType(outputType));
             il.Emit(OpCodes.Ret);
 
