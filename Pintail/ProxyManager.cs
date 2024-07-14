@@ -17,6 +17,14 @@ namespace Nanoray.Pintail
 
     /// <summary>
     /// A type which defines the behavior to use if a given proxy method could not be implemented when using <see cref="ProxyManager{Context}"/>.
+    /// The delegate will be called early, before a proxy type is defined.
+    /// </summary>
+    /// <typeparam name="Context">The context type used to describe the current proxy process. Use <see cref="Nothing"/> if not needed.</typeparam>
+    public delegate void EarlyProxyManagerNoMatchingMethodHandler<Context>(ProxyInfo<Context> proxyInfo, MethodInfo proxyMethod);
+
+    /// <summary>
+    /// A type which defines the behavior to use if a given proxy method could not be implemented when using <see cref="ProxyManager{Context}"/>.
+    /// The delegate will be called late, after a proxy type is defined.
     /// </summary>
     /// <typeparam name="Context">The context type used to describe the current proxy process. Use <see cref="Nothing"/> if not needed.</typeparam>
     public delegate void ProxyManagerNoMatchingMethodHandler<Context>(TypeBuilder proxyBuilder, ProxyInfo<Context> proxyInfo, FieldBuilder targetField, FieldBuilder glueField, FieldBuilder proxyInfosField, MethodInfo proxyMethod);
@@ -79,7 +87,7 @@ namespace Nanoray.Pintail
     /// Defines a configuration for <see cref="ProxyManager{Context}"/>.
     /// </summary>
     /// <typeparam name="Context">The context type used to describe the current proxy process. Use <see cref="Nothing"/> if not needed.</typeparam>
-    public class ProxyManagerConfiguration<Context>
+    public sealed class ProxyManagerConfiguration<Context>
     {
         private static readonly MD5 MD5 = MD5.Create();
 
@@ -118,8 +126,8 @@ namespace Nanoray.Pintail
         /// </summary>
         public static readonly Lazy<ProxyManagerTypeNameProvider<Context>> ShortNameIDGeneratingTypeNameProvider = new(() =>
         {
-            IDictionary<string, string> qualifiedToShortName = new Dictionary<string, string>();
-            IDictionary<string, int> shortNameCounts = new Dictionary<string, int>();
+            var qualifiedToShortName = new Dictionary<string, string>();
+            var shortNameCounts = new Dictionary<string, int>();
 
             return (_, proxyInfo) =>
             {
@@ -143,13 +151,14 @@ namespace Nanoray.Pintail
         });
 
         /// <summary>
-        /// The default <see cref="ProxyManagerNoMatchingMethodHandler{Context}"/> implementation.<br/>
+        /// The default <see cref="EarlyProxyManagerNoMatchingMethodHandler{Context}"/> implementation.<br/>
         /// If a method cannot be implemented, <see cref="ArgumentException"/> will be thrown right away.
         /// </summary>
-        public static readonly ProxyManagerNoMatchingMethodHandler<Context> ThrowExceptionNoMatchingMethodHandler = (_, proxyInfo, _, _, _, proxyMethod)
+        public static readonly EarlyProxyManagerNoMatchingMethodHandler<Context> ThrowExceptionNoMatchingMethodHandler = (proxyInfo, proxyMethod)
             => throw new ArgumentException($"The {proxyInfo.Proxy.Type.GetShortName()} interface defines method {proxyMethod.Name} which doesn't exist in the API or depends on an interface that cannot be mapped!");
 
         /// <summary>
+        /// The default <see cref="ProxyManagerNoMatchingMethodHandler{Context}"/> implementation.<br/>
         /// If a method cannot be implemented, a blank implementation will be created instead, which will throw <see cref="NotImplementedException"/> when called.
         /// </summary>
         public static readonly ProxyManagerNoMatchingMethodHandler<Context> ThrowingImplementationNoMatchingMethodHandler = (proxyBuilder, proxyInfo, _, _, _, proxyMethod) =>
@@ -180,48 +189,64 @@ namespace Nanoray.Pintail
         /// <summary>
         /// The type name provider to use.
         /// </summary>
-        public readonly ProxyManagerTypeNameProvider<Context> TypeNameProvider;
+        public ProxyManagerTypeNameProvider<Context> TypeNameProvider { get; init; } = ShortNameIDGeneratingTypeNameProvider.Value;
 
         /// <summary>
         /// The behavior to use if no matching method to proxy is found.
+        /// The delegate will be called early, before a proxy type is defined.
         /// </summary>
-        public readonly ProxyManagerNoMatchingMethodHandler<Context> NoMatchingMethodHandler;
+        public EarlyProxyManagerNoMatchingMethodHandler<Context>? EarlyNoMatchingMethodHandler { get; init; } = ThrowExceptionNoMatchingMethodHandler;
+
+        /// <summary>
+        /// The behavior to use if no matching method to proxy is found.
+        /// The delegate will be called late, after a proxy type is defined.
+        /// </summary>
+        public ProxyManagerNoMatchingMethodHandler<Context> NoMatchingMethodHandler { get; init; } = ThrowingImplementationNoMatchingMethodHandler;
 
         /// <summary>
         /// When exactly proxy factories for interfaces and delegates should be created and prepared.
         /// </summary>
-        public readonly ProxyManagerProxyPrepareBehavior ProxyPrepareBehavior;
+        public ProxyManagerProxyPrepareBehavior ProxyPrepareBehavior { get; init; } = ProxyManagerProxyPrepareBehavior.Lazy;
 
         /// <summary>
         /// The behavior to use when mapping <see cref="Enum"/> arguments while matching methods to proxy.
         /// </summary>
-        public readonly ProxyManagerEnumMappingBehavior EnumMappingBehavior;
+        public ProxyManagerEnumMappingBehavior EnumMappingBehavior { get; init; } = ProxyManagerEnumMappingBehavior.ThrowAtRuntime;
 
         /// <summary>
         /// The behavior to use when mapping mismatched <see cref="Array"/> elements back and forth.
         /// </summary>
-        public readonly ProxyManagerMismatchedArrayMappingBehavior MismatchedArrayMappingBehavior;
+        public ProxyManagerMismatchedArrayMappingBehavior MismatchedArrayMappingBehavior { get; init; } = ProxyManagerMismatchedArrayMappingBehavior.Throw;
 
         /// <summary>
         /// Whether proxy types should implement any marker interfaces.
         /// </summary>
-        public readonly ProxyObjectInterfaceMarking ProxyObjectInterfaceMarking;
+        public ProxyObjectInterfaceMarking ProxyObjectInterfaceMarking { get; init; } = ProxyObjectInterfaceMarking.Marker;
 
         /// <summary>
         /// Defines whether access level checks should be enabled for generated proxy types.
         /// </summary>
-        public readonly AccessLevelChecking AccessLevelChecking;
+        public AccessLevelChecking AccessLevelChecking { get; init; } = AccessLevelChecking.Enabled;
+
+        /// <summary>
+        /// Creates a new configuration for <see cref="ProxyManager{Context}"/>.
+        /// All configuration is meant to be declared in an object initializer.
+        /// </summary>
+        public ProxyManagerConfiguration()
+        {
+        }
 
         /// <summary>
         /// Creates a new configuration for <see cref="ProxyManager{Context}"/>.
         /// </summary>
         /// <param name="typeNameProvider">The type name provider to use.<br/>Defaults to <see cref="ShortNameIDGeneratingTypeNameProvider"/>.</param>
-        /// <param name="noMatchingMethodHandler">The behavior to use if no matching method to proxy is found.<br/>Defaults to <see cref="ThrowExceptionNoMatchingMethodHandler"/>.</param>
+        /// <param name="noMatchingMethodHandler">The behavior to use if no matching method to proxy is found.<br/>Defaults to <see cref="ThrowingImplementationNoMatchingMethodHandler"/>.</param>
         /// <param name="proxyPrepareBehavior">When exactly proxy factories for interfaces and delegates should be created and prepared.<br/>Defaults to <see cref="ProxyManagerProxyPrepareBehavior.Lazy"/>.</param>
         /// <param name="enumMappingBehavior">The behavior to use when mapping <see cref="Enum"/> arguments while matching methods to proxy.<br/>Defaults to <see cref="ProxyManagerEnumMappingBehavior.ThrowAtRuntime"/>.</param>
         /// <param name="mismatchedArrayMappingBehavior">The behavior to use when mapping mismatched <see cref="Array"/> elements back and forth.<br/>Defaults to <see cref="ProxyManagerMismatchedArrayMappingBehavior.Throw"/>.</param>
         /// <param name="proxyObjectInterfaceMarking">Whether proxy types should implement any marker interfaces.<br/>Defaults to <see cref="ProxyObjectInterfaceMarking.Marker"/>.</param>
         /// <param name="accessLevelChecking">Defines whether access level checks should be enabled for generated proxy types.<br/>Defaults to <see cref="AccessLevelChecking.Enabled"/>.</param>
+        [Obsolete("Use the no parameter constructor instead and declare the configuration via an object initializer.")]
         public ProxyManagerConfiguration(
             ProxyManagerTypeNameProvider<Context>? typeNameProvider = null,
             ProxyManagerNoMatchingMethodHandler<Context>? noMatchingMethodHandler = null,
@@ -233,7 +258,8 @@ namespace Nanoray.Pintail
         )
         {
             this.TypeNameProvider = typeNameProvider ?? ShortNameIDGeneratingTypeNameProvider.Value;
-            this.NoMatchingMethodHandler = noMatchingMethodHandler ?? ThrowExceptionNoMatchingMethodHandler;
+            this.EarlyNoMatchingMethodHandler = ThrowExceptionNoMatchingMethodHandler;
+            this.NoMatchingMethodHandler = noMatchingMethodHandler ?? ThrowingImplementationNoMatchingMethodHandler;
             this.ProxyPrepareBehavior = proxyPrepareBehavior;
             this.EnumMappingBehavior = enumMappingBehavior;
             this.MismatchedArrayMappingBehavior = mismatchedArrayMappingBehavior;
@@ -310,6 +336,7 @@ namespace Nanoray.Pintail
                     {
                         var newFactory = new InterfaceOrDelegateProxyFactory<Context>(
                             proxyInfo,
+                            this.Configuration.EarlyNoMatchingMethodHandler,
                             this.Configuration.NoMatchingMethodHandler,
                             this.Configuration.ProxyPrepareBehavior,
                             this.Configuration.EnumMappingBehavior,

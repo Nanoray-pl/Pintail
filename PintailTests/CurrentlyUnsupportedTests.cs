@@ -22,9 +22,11 @@ namespace Nanoray.Pintail.Tests
         [Test]
         public void TestNotMatchingEnumShouldThrow()
         {
-            var manager = this.CreateProxyManager(new(
-                noMatchingMethodHandler: ProxyManagerConfiguration<Nothing>.ThrowExceptionNoMatchingMethodHandler
-            ));
+            var manager = this.CreateProxyManager(new ProxyManagerConfiguration<Nothing>
+            {
+                EarlyNoMatchingMethodHandler = ProxyManagerConfiguration<Nothing>.ThrowExceptionNoMatchingMethodHandler,
+                NoMatchingMethodHandler = ProxyManagerConfiguration<Nothing>.ThrowingImplementationNoMatchingMethodHandler,
+            });
             var invalidProviderApi = new InvalidNotMatchingEnumBackingField();
             Assert.Throws<ArgumentException>(() => manager.ObtainProxy<IInvalidNotMatchingEnumBackingField>(invalidProviderApi));
         }
@@ -32,9 +34,11 @@ namespace Nanoray.Pintail.Tests
         [Test]
         public void TestNotMatchingArrayShouldThrow()
         {
-            var manager = this.CreateProxyManager(new(
-                noMatchingMethodHandler: ProxyManagerConfiguration<Nothing>.ThrowExceptionNoMatchingMethodHandler
-            ));
+            var manager = this.CreateProxyManager(new ProxyManagerConfiguration<Nothing>
+            {
+                EarlyNoMatchingMethodHandler = ProxyManagerConfiguration<Nothing>.ThrowExceptionNoMatchingMethodHandler,
+                NoMatchingMethodHandler = ProxyManagerConfiguration<Nothing>.ThrowingImplementationNoMatchingMethodHandler,
+            });
             var invalidProviderApi = new InvalidNotMatchingArrayInput();
             Assert.Throws<ArgumentException>(() => manager.ObtainProxy<IInvalidNotMatchingArrayInput>(invalidProviderApi));
         }
@@ -42,9 +46,11 @@ namespace Nanoray.Pintail.Tests
         [Test]
         public void TestByRefNotMatchingShouldThrow()
         {
-            var manager = this.CreateProxyManager(new(
-                noMatchingMethodHandler: ProxyManagerConfiguration<Nothing>.ThrowExceptionNoMatchingMethodHandler
-            ));
+            var manager = this.CreateProxyManager(new ProxyManagerConfiguration<Nothing>
+            {
+                EarlyNoMatchingMethodHandler = ProxyManagerConfiguration<Nothing>.ThrowExceptionNoMatchingMethodHandler,
+                NoMatchingMethodHandler = ProxyManagerConfiguration<Nothing>.ThrowingImplementationNoMatchingMethodHandler,
+            });
             var invalidProviderApi = new InvalidIncorrectByRef();
             Assert.Throws<ArgumentException>(() => manager.ObtainProxy<IInvalidIncorrectByRef>(invalidProviderApi));
         }
@@ -52,9 +58,11 @@ namespace Nanoray.Pintail.Tests
         [Test]
         public void TestBoxing()
         {
-            var manager = this.CreateProxyManager(new(
-                noMatchingMethodHandler: ProxyManagerConfiguration<Nothing>.ThrowExceptionNoMatchingMethodHandler
-            ));
+            var manager = this.CreateProxyManager(new ProxyManagerConfiguration<Nothing>
+            {
+                EarlyNoMatchingMethodHandler = ProxyManagerConfiguration<Nothing>.ThrowExceptionNoMatchingMethodHandler,
+                NoMatchingMethodHandler = ProxyManagerConfiguration<Nothing>.ThrowingImplementationNoMatchingMethodHandler,
+            });
             var invalidProviderApi = new RequiresBoxing();
             Assert.Throws<ArgumentException>(() => manager.ObtainProxy<IRequiresBoxing>(invalidProviderApi));
         }
@@ -62,9 +70,11 @@ namespace Nanoray.Pintail.Tests
         [Test]
         public void TestUnboxing()
         {
-            var manager = this.CreateProxyManager(new(
-                noMatchingMethodHandler: ProxyManagerConfiguration<Nothing>.ThrowExceptionNoMatchingMethodHandler
-            ));
+            var manager = this.CreateProxyManager(new ProxyManagerConfiguration<Nothing>
+            {
+                EarlyNoMatchingMethodHandler = ProxyManagerConfiguration<Nothing>.ThrowExceptionNoMatchingMethodHandler,
+                NoMatchingMethodHandler = ProxyManagerConfiguration<Nothing>.ThrowingImplementationNoMatchingMethodHandler,
+            });
             var invalidProviderApi = new RequiresUnboxing();
             Assert.Throws<ArgumentException>(() => manager.ObtainProxy<IRequiresUnboxing>(invalidProviderApi));
         }
@@ -72,10 +82,12 @@ namespace Nanoray.Pintail.Tests
         [Test]
         public void TestIncorrectlySizedEnum()
         {
-            var manager = this.CreateProxyManager(new(
-                noMatchingMethodHandler: ProxyManagerConfiguration<Nothing>.ThrowExceptionNoMatchingMethodHandler,
-                enumMappingBehavior: ProxyManagerEnumMappingBehavior.AllowAdditive
-            ));
+            var manager = this.CreateProxyManager(new ProxyManagerConfiguration<Nothing>
+            {
+                EarlyNoMatchingMethodHandler = ProxyManagerConfiguration<Nothing>.ThrowExceptionNoMatchingMethodHandler,
+                NoMatchingMethodHandler = ProxyManagerConfiguration<Nothing>.ThrowingImplementationNoMatchingMethodHandler,
+                EnumMappingBehavior = ProxyManagerEnumMappingBehavior.AllowAdditive,
+            });
             var invalidProviderApi = new EnumInsufficientlyBig();
             Assert.Throws<ArgumentException>(() => manager.ObtainProxy<IInsufficientEnumValues>(invalidProviderApi));
         }

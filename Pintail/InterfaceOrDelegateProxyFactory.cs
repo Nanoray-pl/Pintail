@@ -23,6 +23,7 @@ namespace Nanoray.Pintail
         private static readonly MethodInfo GetTypeFromHandleMethod = typeof(Type).GetMethod(nameof(Type.GetTypeFromHandle))!;
 
         public ProxyInfo<Context> ProxyInfo { get; private set; }
+        private readonly EarlyProxyManagerNoMatchingMethodHandler<Context>? EarlyNoMatchingMethodHandler;
         private readonly ProxyManagerNoMatchingMethodHandler<Context> NoMatchingMethodHandler;
         private readonly ProxyManagerProxyPrepareBehavior ProxyPrepareBehavior;
         private readonly ProxyManagerEnumMappingBehavior EnumMappingBehavior;
@@ -35,6 +36,7 @@ namespace Nanoray.Pintail
 
         internal InterfaceOrDelegateProxyFactory(
             ProxyInfo<Context> proxyInfo,
+            EarlyProxyManagerNoMatchingMethodHandler<Context>? earlyNoMatchingMethodHandler,
             ProxyManagerNoMatchingMethodHandler<Context> noMatchingMethodHandler,
             ProxyManagerProxyPrepareBehavior proxyPrepareBehavior,
             ProxyManagerEnumMappingBehavior enumMappingBehavior,
@@ -59,6 +61,7 @@ namespace Nanoray.Pintail
             }
 
             this.ProxyInfo = proxyInfo;
+            this.EarlyNoMatchingMethodHandler = earlyNoMatchingMethodHandler;
             this.NoMatchingMethodHandler = noMatchingMethodHandler;
             this.ProxyPrepareBehavior = proxyPrepareBehavior;
             this.EnumMappingBehavior = enumMappingBehavior;
@@ -69,6 +72,69 @@ namespace Nanoray.Pintail
 
         internal void Prepare(ProxyManager<Context> manager, string typeName)
         {
+            var methodsToProxy = new List<MethodProxyInfo>();
+            var methodsFailedToProxy = new List<MethodInfo>();
+
+            // crosscheck this.
+            Func<MethodInfo, bool> filter = this.ProxyInfo.Proxy.Type.IsAssignableTo(typeof(Delegate)) ? (f => f.Name == "Invoke") : (_) => true;
+
+            // Groupby might make this more efficient.
+            var allTargetMethods = this.ProxyInfo.Target.Type.FindInterfaceMethods(this.AccessLevelChecking == AccessLevelChecking.Disabled, filter).ToList();
+            var allProxyMethods = this.ProxyInfo.Proxy.Type.FindInterfaceMethods(this.AccessLevelChecking == AccessLevelChecking.Disabled, filter).ToList();
+
+#if DEBUG
+            Console.WriteLine($"Looking at {allProxyMethods.Count} proxy methods and {allTargetMethods.Count} target methods for proxy {this.ProxyInfo.Proxy.Type.FullName} and target {this.ProxyInfo.Target.Type.FullName}");
+            Console.WriteLine(string.Join(", ", allProxyMethods.Select(a => a.DeclaringType!.ToString() + '.' + a.Name.ToString())));
+#endif
+
+            // proxy methods
+            var relatedProxyInfos = new List<ProxyInfo<Context>>();
+            foreach (var proxyMethod in allProxyMethods)
+            {
+                var candidates = new Dictionary<MethodInfo, TypeUtilities.PositionConversion?[]>();
+                foreach (var targetMethod in allTargetMethods)
+                {
+                    var positionConversions = TypeUtilities.MatchProxyMethod(targetMethod, proxyMethod, this.EnumMappingBehavior, ImmutableHashSet.Create(this.ProxyInfo.Target.Type, this.ProxyInfo.Proxy.Type), this.InterfaceMappabilityCache, this.AccessLevelChecking == AccessLevelChecking.Disabled);
+                    if (positionConversions is null)
+                        continue;
+
+                    // no inputs are proxied.
+                    if (positionConversions.All(a => a is null))
+                    {
+                        methodsToProxy.Add(new(proxyMethod, targetMethod, positionConversions, relatedProxyInfos));
+                        goto proxyMethodLoopContinue;
+                    }
+                    candidates[targetMethod] = positionConversions;
+                }
+
+                if (candidates.Any())
+                {
+#if DEBUG
+                    Console.WriteLine($"Found {candidates.Count} candidates for {proxyMethod.DeclaringType}.{proxyMethod.Name}");
+#endif
+                    var (targetMethod, positionConversions) = TypeUtilities.RankMethods(candidates, proxyMethod).First();
+
+                    methodsToProxy.Add(new(proxyMethod, targetMethod, positionConversions, relatedProxyInfos));
+                }
+                else if (proxyMethod is { IsAbstract: false, DeclaringType: { IsInterface: true } })
+                {
+                    var positionConversions = TypeUtilities.MatchProxyMethod(proxyMethod, proxyMethod, this.EnumMappingBehavior, ImmutableHashSet.Create(this.ProxyInfo.Target.Type, this.ProxyInfo.Proxy.Type), this.InterfaceMappabilityCache, this.AccessLevelChecking == AccessLevelChecking.Disabled);
+                    if (positionConversions is null)
+                    {
+                        this.EarlyNoMatchingMethodHandler?.Invoke(this.ProxyInfo, proxyMethod);
+                        methodsFailedToProxy.Add(proxyMethod);
+                    }
+                }
+                else
+                {
+                    this.EarlyNoMatchingMethodHandler?.Invoke(this.ProxyInfo, proxyMethod);
+                    methodsFailedToProxy.Add(proxyMethod);
+                }
+                proxyMethodLoopContinue:;
+            }
+
+            // done matching methods to each other. if no `EarlyNoMatchingMethodHandler` threw, proceed to define the type
+
             // define proxy type
             var proxyBuilder = manager.ModuleBuilder.DefineType(typeName, TypeAttributes.Public | TypeAttributes.Class);
             if (this.ProxyInfo.Proxy.Type.IsInterface) // false for delegates
@@ -144,59 +210,11 @@ namespace Nanoray.Pintail
                     break;
             }
 
-            // crosscheck this.
-            Func<MethodInfo, bool> filter = this.ProxyInfo.Proxy.Type.IsAssignableTo(typeof(Delegate)) ? (f => f.Name == "Invoke") : (_) => true;
+            foreach (var methodFailedToProxy in methodsFailedToProxy)
+                this.NoMatchingMethodHandler(proxyBuilder, this.ProxyInfo, targetField, glueField, proxyInfosField, methodFailedToProxy);
 
-            // Groupby might make this more efficient.
-            var allTargetMethods = this.ProxyInfo.Target.Type.FindInterfaceMethods(this.AccessLevelChecking == AccessLevelChecking.Disabled, filter).ToList();
-            var allProxyMethods = this.ProxyInfo.Proxy.Type.FindInterfaceMethods(this.AccessLevelChecking == AccessLevelChecking.Disabled, filter).ToList();
-
-#if DEBUG
-            Console.WriteLine($"Looking at {allProxyMethods.Count} proxy methods and {allTargetMethods.Count} target methods for proxy {this.ProxyInfo.Proxy.Type.FullName} and target {this.ProxyInfo.Target.Type.FullName}");
-            Console.WriteLine(string.Join(", ", allProxyMethods.Select(a => a.DeclaringType!.ToString() + '.' + a.Name.ToString())));
-#endif
-
-            // proxy methods
-            IList<ProxyInfo<Context>> relatedProxyInfos = new List<ProxyInfo<Context>>();
-            foreach (var proxyMethod in allProxyMethods)
-            {
-                var candidates = new Dictionary<MethodInfo, TypeUtilities.PositionConversion?[]>();
-                foreach (var targetMethod in allTargetMethods)
-                {
-                    var positionConversions = TypeUtilities.MatchProxyMethod(targetMethod, proxyMethod, this.EnumMappingBehavior, ImmutableHashSet.Create(this.ProxyInfo.Target.Type, this.ProxyInfo.Proxy.Type), this.InterfaceMappabilityCache, this.AccessLevelChecking == AccessLevelChecking.Disabled);
-                    if (positionConversions is null)
-                        continue;
-
-                    // no inputs are proxied.
-                    if (positionConversions.All(a => a is null))
-                    {
-                        this.ProxyMethod(manager, proxyBuilder, proxyMethod, targetMethod, targetField, glueField, proxyInfosField, positionConversions, relatedProxyInfos);
-                        goto proxyMethodLoopContinue;
-                    }
-                    candidates[targetMethod] = positionConversions;
-                }
-
-                if (candidates.Any())
-                {
-#if DEBUG
-                    Console.WriteLine($"Found {candidates.Count} candidates for {proxyMethod.DeclaringType}.{proxyMethod.Name}");
-#endif
-                    var (targetMethod, positionConversions) = TypeUtilities.RankMethods(candidates, proxyMethod).First();
-
-                    this.ProxyMethod(manager, proxyBuilder, proxyMethod, targetMethod, targetField, glueField, proxyInfosField, positionConversions, relatedProxyInfos);
-                }
-                else if (proxyMethod is { IsAbstract: false, DeclaringType: { IsInterface: true } })
-                {
-                    var positionConversions = TypeUtilities.MatchProxyMethod(proxyMethod, proxyMethod, this.EnumMappingBehavior, ImmutableHashSet.Create(this.ProxyInfo.Target.Type, this.ProxyInfo.Proxy.Type), this.InterfaceMappabilityCache, this.AccessLevelChecking == AccessLevelChecking.Disabled);
-                    if (positionConversions is null)
-                        this.NoMatchingMethodHandler(proxyBuilder, this.ProxyInfo, targetField, glueField, proxyInfosField, proxyMethod);
-                }
-                else
-                {
-                    this.NoMatchingMethodHandler(proxyBuilder, this.ProxyInfo, targetField, glueField, proxyInfosField, proxyMethod);
-                }
-                proxyMethodLoopContinue:;
-            }
+            foreach (var methodProxyInfo in methodsToProxy)
+                this.ProxyMethod(manager, proxyBuilder, methodProxyInfo.Proxy, methodProxyInfo.Target, targetField, glueField, proxyInfosField, methodProxyInfo.PositionConversions, methodProxyInfo.RelatedProxyInfos);
 
 #if DEBUG
             Console.WriteLine($"Trying to save! {proxyBuilder.FullName}");
@@ -207,7 +225,7 @@ namespace Nanoray.Pintail
             actualProxyInfosField.SetValue(null, relatedProxyInfos);
         }
 
-        private void ProxyMethod(ProxyManager<Context> manager, TypeBuilder proxyBuilder, MethodInfo proxy, MethodInfo target, FieldBuilder instanceField, FieldBuilder glueField, FieldBuilder proxyInfosField, TypeUtilities.PositionConversion?[] positionConversions, IList<ProxyInfo<Context>> relatedProxyInfos)
+        private void ProxyMethod(ProxyManager<Context> manager, TypeBuilder proxyBuilder, MethodInfo proxy, MethodInfo target, FieldBuilder instanceField, FieldBuilder glueField, FieldBuilder proxyInfosField, TypeUtilities.PositionConversion?[] positionConversions, List<ProxyInfo<Context>> relatedProxyInfos)
         {
 #if DEBUG
             Console.WriteLine($"Proxying {proxy.DeclaringType}.{proxy.Name}[{string.Join(", ", proxy.GetParameters().Select(a => a.Name))}] to {target.DeclaringType}.{target.Name}");
@@ -538,5 +556,12 @@ namespace Nanoray.Pintail
                 return false;
             }
         }
+
+        private record MethodProxyInfo(
+            MethodInfo Proxy,
+            MethodInfo Target,
+            TypeUtilities.PositionConversion?[] PositionConversions,
+            List<ProxyInfo<Context>> RelatedProxyInfos
+        );
     }
 }

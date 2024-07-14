@@ -41,7 +41,7 @@ namespace Nanoray.Pintail.Tests
         {
             var assemblyBuilder = AssemblyBuilder.DefineDynamicAssembly(new AssemblyName($"Nanoray.Pintail.Proxies, Version={this.GetType().Assembly.GetName().Version}, Culture=neutral"), AssemblyBuilderAccess.Run);
             var moduleBuilder = assemblyBuilder.DefineDynamicModule($"Proxies");
-            var manager = new ProxyManager<Nothing>(moduleBuilder, new(accessLevelChecking: accessLevelChecking));
+            var manager = new ProxyManager<Nothing>(moduleBuilder, new() { AccessLevelChecking = accessLevelChecking });
             return manager;
         }
 
