@@ -2,7 +2,8 @@
 
 # Release notes
 
-## Upcoming release
+## 2.5.0
+Released 14 July 2024.
 
 * Split out an `EarlyNoMatchingMethodHandler` out of `NoMatchingMethodHandler` to fix invalid types being defined that were never truly created due to being impossible to proxy.
 
