@@ -10,9 +10,11 @@ namespace Nanoray.Pintail
         internal EnumProxyFactory(ProxyInfo<Context> proxyInfo)
         {
             if (!proxyInfo.Target.Type.IsEnum)
-                throw new ArgumentException($"{proxyInfo.Target.Type.GetShortName()} is not an enum.");
+                throw new ArgumentException($"{proxyInfo.Target.Type.GetShortName()} is not an enum");
             if (!proxyInfo.Proxy.Type.IsEnum)
-                throw new ArgumentException($"{proxyInfo.Proxy.Type.GetShortName()} is not an enum.");
+                throw new ArgumentException($"{proxyInfo.Proxy.Type.GetShortName()} is not an enum");
+            if (Enum.GetUnderlyingType(proxyInfo.Target.Type) != Enum.GetUnderlyingType(proxyInfo.Proxy.Type))
+                throw new ArgumentException($"{proxyInfo.Target.Type.GetShortName()} and {proxyInfo.Proxy.Type.GetShortName()} have different underlying types");
             this.ProxyInfo = proxyInfo;
         }
 
@@ -28,13 +30,6 @@ namespace Nanoray.Pintail
         }
 
         private static object MapEnum(object input, Type outputType)
-        {
-            foreach (object outputValue in Enum.GetValues(outputType))
-            {
-                if ((int)outputValue == (int)input)
-                    return outputValue;
-            }
-            throw new ArgumentException($"Cannot map {input} to type {outputType.GetShortName()}.");
-        }
+            => Enum.ToObject(outputType, Convert.ChangeType(input, Enum.GetUnderlyingType(outputType)));
     }
 }

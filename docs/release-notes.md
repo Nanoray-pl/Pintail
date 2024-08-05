@@ -2,6 +2,10 @@
 
 # Release notes
 
+## Upcoming release
+
+* Enums are now mapped directly by value, fixing flag enums and greatly improving performance.
+
 ## 2.5.0
 Released 14 July 2024.
 
