@@ -204,7 +204,8 @@ namespace Nanoray.Pintail
                     var il = methodBuilder.GetILGenerator();
                     il.Emit(OpCodes.Ldarg_0);
                     il.Emit(OpCodes.Ldfld, targetField);
-                    il.Emit(OpCodes.Castclass, typeof(object));
+                    if (this.ProxyInfo.Target.Type.IsValueType)
+                        il.Emit(OpCodes.Box, this.ProxyInfo.Target.Type);
                     il.Emit(OpCodes.Ret);
 
                     break;
@@ -422,7 +423,7 @@ namespace Nanoray.Pintail
                 var resultTargetLocal = target.ReturnType == typeof(void) ? null : il.DeclareLocal(target.ReturnType);
                 var resultProxyLocal = returnType == typeof(void) ? null : il.DeclareLocal(returnType);
                 il.Emit(OpCodes.Ldarg_0);
-                il.Emit(OpCodes.Ldfld, instanceField);
+                il.Emit(this.ProxyInfo.Target.Type.IsValueType ? OpCodes.Ldflda : OpCodes.Ldfld, instanceField);
                 for (int i = 0; i < argTypes.Length; i++)
                 {
                     switch (positionConversions[i + 1])
