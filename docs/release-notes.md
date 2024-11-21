@@ -2,7 +2,8 @@
 
 # Release notes
 
-## Upcoming version
+## 2.6.1
+Released 21 November 2024.
 
 * Fixed proxying of value types into interfaces.
 
