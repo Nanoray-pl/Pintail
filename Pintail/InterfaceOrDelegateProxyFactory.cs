@@ -10,6 +10,13 @@ using System.Runtime.CompilerServices;
 
 namespace Nanoray.Pintail
 {
+    file static class InterfaceOrDelegateProxyFactory
+    {
+        public static readonly ConstructorInfo StringTypeDictionaryConstructor = typeof(Dictionary<string, Type>).GetConstructor([])!;
+        public static readonly MethodInfo StringTypeDictionarySetItemMethod = typeof(IDictionary<string, Type>).GetMethod("set_Item")!;
+        public static readonly MethodInfo GetTypeFromHandleMethod = typeof(Type).GetMethod(nameof(Type.GetTypeFromHandle))!;
+    }
+
     internal class InterfaceOrDelegateProxyFactory<Context>: IProxyFactory<Context>
     {
         private const string TargetFieldName = "__Target";
@@ -18,9 +25,6 @@ namespace Nanoray.Pintail
         private static readonly MethodInfo UnproxyOrObtainProxyMethod = typeof(ProxyGlue<Context>).GetMethod(nameof(ProxyGlue<Context>.UnproxyOrObtainProxy))!;
         private static readonly MethodInfo MapArrayContentsMethod = typeof(ProxyGlue<Context>).GetMethod(nameof(ProxyGlue<Context>.MapArrayContents))!;
         private static readonly MethodInfo ProxyInfoListGetMethod = typeof(IList<ProxyInfo<Context>>).GetProperty("Item")!.GetGetMethod()!;
-        private static readonly ConstructorInfo StringTypeDictionaryConstructor = typeof(Dictionary<string, Type>).GetConstructor(Array.Empty<Type>())!;
-        private static readonly MethodInfo StringTypeDictionarySetItemMethod = typeof(IDictionary<string, Type>).GetMethod("set_Item")!;
-        private static readonly MethodInfo GetTypeFromHandleMethod = typeof(Type).GetMethod(nameof(Type.GetTypeFromHandle))!;
 
         public ProxyInfo<Context> ProxyInfo { get; private set; }
         private readonly EarlyProxyManagerNoMatchingMethodHandler<Context>? EarlyNoMatchingMethodHandler;
@@ -76,7 +80,7 @@ namespace Nanoray.Pintail
             var methodsFailedToProxy = new List<MethodInfo>();
 
             // crosscheck this.
-            Func<MethodInfo, bool> filter = this.ProxyInfo.Proxy.Type.IsAssignableTo(typeof(Delegate)) ? (f => f.Name == "Invoke") : (_) => true;
+            Func<MethodInfo, bool> filter = this.ProxyInfo.Proxy.Type.IsAssignableTo(typeof(Delegate)) ? (f => f.Name == "Invoke") : (_ => true);
 
             // Groupby might make this more efficient.
             var allTargetMethods = this.ProxyInfo.Target.Type.FindInterfaceMethods(this.AccessLevelChecking == AccessLevelChecking.Disabled, filter).ToList();
@@ -116,7 +120,7 @@ namespace Nanoray.Pintail
 
                     methodsToProxy.Add(new(proxyMethod, targetMethod, positionConversions, relatedProxyInfos));
                 }
-                else if (proxyMethod is { IsAbstract: false, DeclaringType: { IsInterface: true } })
+                else if (proxyMethod is { IsAbstract: false, DeclaringType.IsInterface: true })
                 {
                     var positionConversions = TypeUtilities.MatchProxyMethod(proxyMethod, proxyMethod, this.EnumMappingBehavior, ImmutableHashSet.Create(this.ProxyInfo.Target.Type, this.ProxyInfo.Proxy.Type), this.InterfaceMappabilityCache, this.AccessLevelChecking == AccessLevelChecking.Disabled);
                     if (positionConversions is null)
@@ -136,23 +140,24 @@ namespace Nanoray.Pintail
             // done matching methods to each other. if no `EarlyNoMatchingMethodHandler` threw, proceed to define the type
 
             // define proxy type
-            var proxyBuilder = manager.ModuleBuilder.DefineType(typeName, TypeAttributes.Public | TypeAttributes.Class);
+            var moduleBuilder = manager.GetModuleBuilder(this.ProxyInfo);
+            var proxyBuilder = moduleBuilder.DefineType(typeName, TypeAttributes.Public | TypeAttributes.Class);
             if (this.ProxyInfo.Proxy.Type.IsInterface) // false for delegates
                 proxyBuilder.AddInterfaceImplementation(this.ProxyInfo.Proxy.Type);
 
             // allows ignoring access levels - we only need this so we can access public methods in otherwise private types
             if (this.AccessLevelChecking != AccessLevelChecking.Enabled)
             {
-                (manager.ModuleBuilder.Assembly as AssemblyBuilder)?.SetCustomAttribute(
+                (moduleBuilder.Assembly as AssemblyBuilder)?.SetCustomAttribute(
                     new CustomAttributeBuilder(
-                        typeof(IgnoresAccessChecksToAttribute).GetConstructor(new[] { typeof(string) })!,
-                        new object[] { this.ProxyInfo.Target.Type.Assembly.GetName().Name! }
+                        typeof(IgnoresAccessChecksToAttribute).GetConstructor([typeof(string)])!,
+                        [this.ProxyInfo.Target.Type.Assembly.GetName().Name!]
                     )
                 );
-                (manager.ModuleBuilder.Assembly as AssemblyBuilder)?.SetCustomAttribute(
+                (moduleBuilder.Assembly as AssemblyBuilder)?.SetCustomAttribute(
                     new CustomAttributeBuilder(
-                        typeof(IgnoresAccessChecksToAttribute).GetConstructor(new[] { typeof(string) })!,
-                        new object[] { this.ProxyInfo.Proxy.Type.Assembly.GetName().Name! }
+                        typeof(IgnoresAccessChecksToAttribute).GetConstructor([typeof(string)])!,
+                        [this.ProxyInfo.Proxy.Type.Assembly.GetName().Name!]
                     )
                 );
             }
@@ -164,12 +169,12 @@ namespace Nanoray.Pintail
 
             // create constructor which accepts target instance + factory, and sets fields
             {
-                var constructor = proxyBuilder.DefineConstructor(MethodAttributes.Public, CallingConventions.Standard | CallingConventions.HasThis, new[] { this.ProxyInfo.Target.Type, typeof(ProxyGlue<Context>) });
+                var constructor = proxyBuilder.DefineConstructor(MethodAttributes.Public, CallingConventions.Standard | CallingConventions.HasThis, [this.ProxyInfo.Target.Type, typeof(ProxyGlue<Context>)]);
                 var il = constructor.GetILGenerator();
 
                 // call base constructor
                 il.Emit(OpCodes.Ldarg_0);
-                il.Emit(OpCodes.Call, typeof(object).GetConstructor(Array.Empty<Type>())!);
+                il.Emit(OpCodes.Call, typeof(object).GetConstructor([])!);
 
                 // set target instance field
                 il.Emit(OpCodes.Ldarg_0);
@@ -239,7 +244,7 @@ namespace Nanoray.Pintail
             // set up generic arguments
             var proxyGenericArguments = proxy.GetGenericArguments();
             string[] genericArgNames = proxyGenericArguments.Select(a => a.Name).ToArray();
-            var genericTypeParameterBuilders = proxyGenericArguments.Length == 0 ? Array.Empty<GenericTypeParameterBuilder>() : methodBuilder.DefineGenericParameters(genericArgNames);
+            var genericTypeParameterBuilders = proxyGenericArguments.Length == 0 ? [] : methodBuilder.DefineGenericParameters(genericArgNames);
             for (int i = 0; i < proxyGenericArguments.Length; i++)
             {
                 genericTypeParameterBuilders[i].SetGenericParameterAttributes(proxyGenericArguments[i].GenericParameterAttributes);
@@ -327,7 +332,7 @@ namespace Nanoray.Pintail
             for (int i = 0; i < argTypes.Length; i++)
                 methodBuilder.DefineParameter(i, targetParameters[i].Attributes, targetParameters[i].Name);
 
-            var typeGenericArguments = target.DeclaringType?.GetGenericArguments() ?? Array.Empty<Type>();
+            var typeGenericArguments = target.DeclaringType?.GetGenericArguments() ?? [];
             var methodGenericArguments = target.GetGenericArguments();
             var allTargetGenericArguments = typeGenericArguments.Union(methodGenericArguments).ToArray();
 
@@ -360,25 +365,25 @@ namespace Nanoray.Pintail
                     il.Emit(OpCodes.Ldfld, glueField);
 
                     // load target generic arguments
-                    il.Emit(OpCodes.Newobj, StringTypeDictionaryConstructor);
+                    il.Emit(OpCodes.Newobj, InterfaceOrDelegateProxyFactory.StringTypeDictionaryConstructor);
                     foreach (var type in allTargetGenericArguments)
                     {
                         il.Emit(OpCodes.Dup);
                         il.Emit(OpCodes.Ldstr, type.Name);
                         il.Emit(OpCodes.Ldtoken, type);
-                        il.Emit(OpCodes.Call, GetTypeFromHandleMethod);
-                        il.Emit(OpCodes.Callvirt, StringTypeDictionarySetItemMethod);
+                        il.Emit(OpCodes.Call, InterfaceOrDelegateProxyFactory.GetTypeFromHandleMethod);
+                        il.Emit(OpCodes.Callvirt, InterfaceOrDelegateProxyFactory.StringTypeDictionarySetItemMethod);
                     }
 
                     // load proxy generic arguments
-                    il.Emit(OpCodes.Newobj, StringTypeDictionaryConstructor);
+                    il.Emit(OpCodes.Newobj, InterfaceOrDelegateProxyFactory.StringTypeDictionaryConstructor);
                     foreach (var type in allProxyGenericArguments)
                     {
                         il.Emit(OpCodes.Dup);
                         il.Emit(OpCodes.Ldstr, type.Name);
                         il.Emit(OpCodes.Ldtoken, type);
-                        il.Emit(OpCodes.Call, GetTypeFromHandleMethod);
-                        il.Emit(OpCodes.Callvirt, StringTypeDictionarySetItemMethod);
+                        il.Emit(OpCodes.Call, InterfaceOrDelegateProxyFactory.GetTypeFromHandleMethod);
+                        il.Emit(OpCodes.Callvirt, InterfaceOrDelegateProxyFactory.StringTypeDictionarySetItemMethod);
                     }
 
                     // load proxy ProxyInfo
@@ -433,18 +438,14 @@ namespace Nanoray.Pintail
                             {
                                 proxyLocals[i] = il.DeclareLocal(argTypes[i].GetNonRefType());
                                 targetLocals[i] = il.DeclareLocal(targetParameters[i].ParameterType.GetNonRefType());
-                                if (targetParameters[i].IsOut)
-                                {
-                                    il.Emit(OpCodes.Ldloca, targetLocals[i]!);
-                                }
-                                else
+                                if (!targetParameters[i].IsOut)
                                 {
                                     il.Emit(OpCodes.Ldarg, i + 1);
                                     il.Emit(OpCodes.Ldind_Ref);
                                     il.Emit(OpCodes.Stloc, proxyLocals[i]!);
                                     ConvertIfNeededAndStore(proxyLocals[i]!, targetLocals[i]!, parameterTargetToArgProxyInfoIndexes[i], isReverse: true);
-                                    il.Emit(OpCodes.Ldloca, targetLocals[i]!);
                                 }
+                                il.Emit(OpCodes.Ldloca, targetLocals[i]!);
                             }
                             else
                             {
@@ -518,25 +519,24 @@ namespace Nanoray.Pintail
                 if (this.ProxyCache.TryGetValue(targetInstance, out object? proxyInstance))
                     return proxyInstance;
 
-                var constructor = this.BuiltProxyType?.GetConstructor(new[] { this.ProxyInfo.Target.Type, typeof(ProxyGlue<Context>) });
+                var constructor = this.BuiltProxyType?.GetConstructor([this.ProxyInfo.Target.Type, typeof(ProxyGlue<Context>)]);
                 if (constructor is null)
                     throw new InvalidOperationException($"Couldn't find the constructor for generated proxy type '{this.ProxyInfo.Proxy.Type.Name}'."); // should never happen
-                proxyInstance = constructor.Invoke(new[] { targetInstance, new ProxyGlue<Context>(manager) });
+                proxyInstance = constructor.Invoke([targetInstance, new ProxyGlue<Context>(manager)]);
 
                 if (this.ProxyInfo.Proxy.Type.IsInterface)
                 {
                     this.ProxyCache.Add(targetInstance, proxyInstance);
                     return proxyInstance;
                 }
-                else // has to be a delegate
-                {
-                    var invokeMethod = this.BuiltProxyType?.GetMethod("Invoke");
-                    if (invokeMethod is null)
-                        throw new InvalidOperationException($"Couldn't find the Invoke method for generated proxy delegate type '{this.ProxyInfo.Proxy.Type.Name}'."); // should never happen
-                    var @delegate = Delegate.CreateDelegate(this.ProxyInfo.Proxy.Type, proxyInstance, invokeMethod);
-                    this.ProxyCache.Add(targetInstance, @delegate);
-                    return @delegate;
-                }
+
+                // has to be a delegate
+                var invokeMethod = this.BuiltProxyType?.GetMethod("Invoke");
+                if (invokeMethod is null)
+                    throw new InvalidOperationException($"Couldn't find the Invoke method for generated proxy delegate type '{this.ProxyInfo.Proxy.Type.Name}'."); // should never happen
+                var @delegate = Delegate.CreateDelegate(this.ProxyInfo.Proxy.Type, proxyInstance, invokeMethod);
+                this.ProxyCache.Add(targetInstance, @delegate);
+                return @delegate;
             }
         }
 
@@ -547,11 +547,11 @@ namespace Nanoray.Pintail
             {
                 foreach ((object cachedTargetInstance, object cachedProxyInstance) in this.ProxyCache)
                 {
-                    if (ReferenceEquals(potentialProxyInstance, cachedProxyInstance))
-                    {
-                        targetInstance = cachedTargetInstance;
-                        return true;
-                    }
+                    if (!ReferenceEquals(potentialProxyInstance, cachedProxyInstance))
+                        continue;
+
+                    targetInstance = cachedTargetInstance;
+                    return true;
                 }
                 targetInstance = null;
                 return false;

@@ -2,6 +2,10 @@
 
 # Release notes
 
+## Upcoming release
+
+* Added an option to provide different `ModuleBuilder`s depending on the proxied types.
+
 ## 2.6.1
 Released 21 November 2024.
 

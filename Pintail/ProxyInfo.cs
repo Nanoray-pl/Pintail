@@ -6,15 +6,15 @@ namespace Nanoray.Pintail
     /// Describes the specific proxy conversion.
     /// </summary>
     /// <typeparam name="Context">The context type used to describe the current proxy process. Use <see cref="Nothing"/> if not needed.</typeparam>
-    public readonly struct ProxyInfo<Context>: IEquatable<ProxyInfo<Context>>
+    public readonly struct ProxyInfo<Context> : IEquatable<ProxyInfo<Context>>
     {
         /// <summary>
-        /// The context of the target instance.
+        /// The context of the target instance, including the type.
         /// </summary>
         public readonly TypeInfo<Context> Target;
 
         /// <summary>
-        /// The context of the proxy instance.
+        /// The context of the proxy instance, including the type.
         /// </summary>
         public readonly TypeInfo<Context> Proxy;
 
@@ -75,20 +75,20 @@ namespace Nanoray.Pintail
         public override int GetHashCode()
             => (this.Target, this.Proxy).GetHashCode();
 
-        /// <inheritdoc/>
+#pragma warning disable CS1591 // Missing XML comment for publicly visible type or member
         public static bool operator ==(ProxyInfo<Context> left, ProxyInfo<Context> right)
             => Equals(left, right);
 
-        /// <inheritdoc/>
         public static bool operator !=(ProxyInfo<Context> left, ProxyInfo<Context> right)
             => !Equals(left, right);
+#pragma warning restore CS1591 // Missing XML comment for publicly visible type or member
     }
 
     /// <summary>
     /// Describes one side of a specified proxy conversion.
     /// </summary>
     /// <typeparam name="C">The context type used to describe the current proxy process. Use <see cref="Nothing"/> if not needed.</typeparam>
-    public readonly struct TypeInfo<C>: IEquatable<TypeInfo<C>>
+    public readonly struct TypeInfo<C> : IEquatable<TypeInfo<C>>
     {
         /// <summary>
         /// The context type used to describe the current proxy process.
@@ -134,12 +134,12 @@ namespace Nanoray.Pintail
         public override int GetHashCode()
             => (this.Context, this.Type).GetHashCode();
 
-        /// <inheritdoc/>
+#pragma warning disable CS1591 // Missing XML comment for publicly visible type or member
         public static bool operator ==(TypeInfo<C>? left, TypeInfo<C>? right)
             => Equals(left, right);
 
-        /// <inheritdoc/>
         public static bool operator !=(TypeInfo<C>? left, TypeInfo<C>? right)
             => !Equals(left, right);
+#pragma warning restore CS1591 // Missing XML comment for publicly visible type or member
     }
 }

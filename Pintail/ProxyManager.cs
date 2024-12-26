@@ -83,18 +83,21 @@ namespace Nanoray.Pintail
         AllowAndDontMapBack
     }
 
+    file static class ProxyManagerConfiguration
+    {
+        public static readonly MD5 MD5 = MD5.Create();
+    }
+
     /// <summary>
     /// Defines a configuration for <see cref="ProxyManager{Context}"/>.
     /// </summary>
     /// <typeparam name="Context">The context type used to describe the current proxy process. Use <see cref="Nothing"/> if not needed.</typeparam>
     public sealed class ProxyManagerConfiguration<Context>
     {
-        private static readonly MD5 MD5 = MD5.Create();
-
         private static string GetMd5String(string input)
         {
             byte[] inputBytes = Encoding.UTF8.GetBytes(input);
-            byte[] hashBytes = MD5.ComputeHash(inputBytes);
+            byte[] hashBytes = ProxyManagerConfiguration.MD5.ComputeHash(inputBytes);
 
             StringBuilder sb = new();
             foreach (byte b in hashBytes)
@@ -138,8 +141,7 @@ namespace Nanoray.Pintail
                         return shortName;
 
                     shortName = proxyInfo.GetNameSuitableForProxyTypeName(type => type.GetShortName());
-                    if (!shortNameCounts.TryGetValue(shortName, out int shortNameCount))
-                        shortNameCount = 0;
+                    int shortNameCount = shortNameCounts.GetValueOrDefault(shortName);
 
                     shortNameCount++;
                     shortNameCounts[shortName] = shortNameCount;
@@ -167,14 +169,14 @@ namespace Nanoray.Pintail
 
             var proxyGenericArguments = proxyMethod.GetGenericArguments();
             string[] genericArgNames = proxyGenericArguments.Select(a => a.Name).ToArray();
-            var genericTypeParameterBuilders = proxyGenericArguments.Length == 0 ? Array.Empty<GenericTypeParameterBuilder>() : methodBuilder.DefineGenericParameters(genericArgNames);
+            var genericTypeParameterBuilders = proxyGenericArguments.Length == 0 ? [] : methodBuilder.DefineGenericParameters(genericArgNames);
             for (int i = 0; i < proxyGenericArguments.Length; i++)
                 genericTypeParameterBuilders[i].SetGenericParameterAttributes(proxyGenericArguments[i].GenericParameterAttributes);
 
             var returnType = proxyMethod.ReturnType.IsGenericMethodParameter ? genericTypeParameterBuilders[proxyMethod.ReturnType.GenericParameterPosition] : proxyMethod.ReturnType;
             methodBuilder.SetReturnType(returnType);
 
-            Type[] argTypes = proxyMethod.GetParameters()
+            var argTypes = proxyMethod.GetParameters()
                 .Select(a => a.ParameterType)
                 .Select(t => t.IsGenericMethodParameter ? genericTypeParameterBuilders[t.GenericParameterPosition] : t)
                 .ToArray();
@@ -182,7 +184,7 @@ namespace Nanoray.Pintail
 
             var il = methodBuilder.GetILGenerator();
             il.Emit(OpCodes.Ldstr, $"The {proxyInfo.Proxy.Type.GetShortName()} interface defines method {proxyMethod.Name} which doesn't exist in the API. (It may depend on an interface that was not mappable).");
-            il.Emit(OpCodes.Newobj, typeof(NotImplementedException).GetConstructor(new[] { typeof(string) })!);
+            il.Emit(OpCodes.Newobj, typeof(NotImplementedException).GetConstructor([typeof(string)])!);
             il.Emit(OpCodes.Throw);
         };
 
@@ -274,7 +276,7 @@ namespace Nanoray.Pintail
     /// <typeparam name="Context">The context type used to describe the current proxy process. Use <see cref="Nothing"/> if not needed.</typeparam>
     public sealed class ProxyManager<Context>: IProxyManager<Context>
     {
-        internal readonly ModuleBuilder ModuleBuilder;
+        internal readonly Func<ProxyInfo<Context>, ModuleBuilder> ModuleBuilderProvider;
         internal readonly ProxyManagerConfiguration<Context> Configuration;
         private readonly Dictionary<ProxyInfo<Context>, IProxyFactory<Context>> Factories = new();
         private readonly ConcurrentDictionary<string, List<Type>> InterfaceMappabilityCache = new();
@@ -285,10 +287,25 @@ namespace Nanoray.Pintail
         /// </summary>
         /// <param name="moduleBuilder">The <see cref="System.Reflection.Emit.ModuleBuilder"/> to use for creating the proxy types in.</param>
         /// <param name="configuration">Configuration to use for this <see cref="ProxyManager{Context}"/>. Defaults to `null`, which means that the default configuration will be used.</param>
-        public ProxyManager(ModuleBuilder moduleBuilder, ProxyManagerConfiguration<Context>? configuration = null)
+        public ProxyManager(ModuleBuilder moduleBuilder, ProxyManagerConfiguration<Context>? configuration = null) : this(_ => moduleBuilder, configuration)
         {
-            this.ModuleBuilder = moduleBuilder;
+        }
+
+        /// <summary>
+        /// Constructs a <see cref="ProxyManager{Context}"/>.
+        /// </summary>
+        /// <param name="moduleBuilderProvider">The <see cref="System.Reflection.Emit.ModuleBuilder"/> to use for creating the proxy types in.</param>
+        /// <param name="configuration">Configuration to use for this <see cref="ProxyManager{Context}"/>. Defaults to `null`, which means that the default configuration will be used.</param>
+        public ProxyManager(Func<ProxyInfo<Context>, ModuleBuilder> moduleBuilderProvider, ProxyManagerConfiguration<Context>? configuration = null)
+        {
+            this.ModuleBuilderProvider = moduleBuilderProvider;
             this.Configuration = configuration ?? new();
+        }
+
+        internal ModuleBuilder GetModuleBuilder(ProxyInfo<Context> proxyInfo)
+        {
+            lock (this.Factories)
+                return this.ModuleBuilderProvider(proxyInfo);
         }
 
         /// <inheritdoc/>
@@ -296,7 +313,7 @@ namespace Nanoray.Pintail
         {
             lock (this.Factories)
             {
-                if (this.Factories.TryGetValue(proxyInfo, out IProxyFactory<Context>? factory))
+                if (this.Factories.TryGetValue(proxyInfo, out var factory))
                     return factory;
             }
             return null;
@@ -348,7 +365,7 @@ namespace Nanoray.Pintail
                         this.Factories[proxyInfo] = factory;
                         try
                         {
-                            newFactory.Prepare(this, this.Configuration.TypeNameProvider(this.ModuleBuilder, proxyInfo));
+                            newFactory.Prepare(this, this.Configuration.TypeNameProvider(this.GetModuleBuilder(proxyInfo), proxyInfo));
                         }
                         catch (Exception e)
                         {

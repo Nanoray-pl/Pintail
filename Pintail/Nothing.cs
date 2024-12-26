@@ -5,7 +5,7 @@ namespace Nanoray.Pintail
     /// <summary>
     /// A type to be used in generic declarations, when no specific type is required.
     /// </summary>
-    public readonly struct Nothing: IEquatable<Nothing>
+    public readonly struct Nothing : IEquatable<Nothing>
     {
         /// <summary>
         /// The only possible value of the <see cref="Nothing"/> type.
@@ -28,12 +28,12 @@ namespace Nanoray.Pintail
         public override int GetHashCode()
             => 0;
 
-        /// <inheritdoc/>
+#pragma warning disable CS1591 // Missing XML comment for publicly visible type or member
         public static bool operator ==(Nothing left, Nothing right)
             => true;
 
-        /// <inheritdoc/>
         public static bool operator !=(Nothing left, Nothing right)
             => false;
+#pragma warning restore CS1591 // Missing XML comment for publicly visible type or member
     }
 }
