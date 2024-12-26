@@ -2,7 +2,8 @@
 
 # Release notes
 
-## Upcoming release
+## 2.7.0
+Released 26 December 2024.
 
 * Added an option to provide different `ModuleBuilder`s depending on the proxied types.
 
