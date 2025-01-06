@@ -216,6 +216,30 @@ namespace Nanoray.Pintail
                     break;
             }
 
+            {
+                (moduleBuilder.Assembly as AssemblyBuilder)?.SetCustomAttribute(
+                    new CustomAttributeBuilder(
+                        typeof(IgnoresAccessChecksToAttribute).GetConstructor([typeof(string)])!,
+                        [typeof(IInternalProxyObject).Assembly.GetName().Name!]
+                    )
+                );
+
+                var markerInterfaceType = typeof(IInternalProxyObject);
+                proxyBuilder.AddInterfaceImplementation(markerInterfaceType);
+
+                var proxyTargetInstanceGetter = markerInterfaceType.GetProperty(nameof(IInternalProxyObject.ProxyTargetInstance))!.GetGetMethod()!;
+                var methodBuilder = proxyBuilder.DefineMethod(proxyTargetInstanceGetter.Name, MethodAttributes.Public | MethodAttributes.Final | MethodAttributes.Virtual);
+                methodBuilder.SetParameters(Array.Empty<Type>());
+                methodBuilder.SetReturnType(typeof(object));
+
+                var il = methodBuilder.GetILGenerator();
+                il.Emit(OpCodes.Ldarg_0);
+                il.Emit(OpCodes.Ldfld, targetField);
+                if (this.ProxyInfo.Target.Type.IsValueType)
+                    il.Emit(OpCodes.Box, this.ProxyInfo.Target.Type);
+                il.Emit(OpCodes.Ret);
+            }
+
             foreach (var methodFailedToProxy in methodsFailedToProxy)
                 this.NoMatchingMethodHandler(proxyBuilder, this.ProxyInfo, targetField, glueField, proxyInfosField, methodFailedToProxy);
 
@@ -543,19 +567,14 @@ namespace Nanoray.Pintail
         /// <inheritdoc/>
         public bool TryUnproxy(IProxyManager<Context> manager, object potentialProxyInstance, [NotNullWhen(true)] out object? targetInstance)
         {
-            lock (this.ProxyCache)
+            if (potentialProxyInstance is not IInternalProxyObject proxyInstance)
             {
-                foreach ((object cachedTargetInstance, object cachedProxyInstance) in this.ProxyCache)
-                {
-                    if (!ReferenceEquals(potentialProxyInstance, cachedProxyInstance))
-                        continue;
-
-                    targetInstance = cachedTargetInstance;
-                    return true;
-                }
                 targetInstance = null;
                 return false;
             }
+
+            targetInstance = proxyInstance.ProxyTargetInstance;
+            return true;
         }
 
         private record MethodProxyInfo(
@@ -564,5 +583,10 @@ namespace Nanoray.Pintail
             TypeUtilities.PositionConversion?[] PositionConversions,
             List<ProxyInfo<Context>> RelatedProxyInfos
         );
+
+        internal interface IInternalProxyObject
+        {
+            object ProxyTargetInstance { get; }
+        }
     }
 }
