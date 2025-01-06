@@ -2,7 +2,8 @@
 
 # Release notes
 
-## Upcoming release
+## 2.7.1
+Released 5 January 2025.
 
 * Sped up unproxying by accessing the stored target instance directly.
 
