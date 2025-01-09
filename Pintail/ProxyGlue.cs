@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
 
+#pragma warning disable CS1591
 namespace Nanoray.Pintail
 {
     /// <summary>
@@ -19,9 +20,7 @@ namespace Nanoray.Pintail
         }
 
         [return: NotNullIfNotNull("toProxy")]
-#pragma warning disable CS1591
         public object? UnproxyOrObtainProxy(Dictionary<string, Type>? targetGenericArguments, Dictionary<string, Type>? proxyGenericArguments, ProxyInfo<Context> proxyInfo, bool isReverse, object? toProxy)
-#pragma warning restore CS1591
         {
             if (toProxy is null)
                 return null;
@@ -45,13 +44,12 @@ namespace Nanoray.Pintail
             return factory.ObtainProxy(this.Manager, toProxy);
         }
 
-#pragma warning disable CS1591
         public void MapArrayContents(ProxyInfo<Context> proxyInfo, bool isReverse, Array inputArray, Array outputArray)
-#pragma warning restore CS1591
         {
-            ProxyInfo<Context> actualProxyInfo = isReverse ? proxyInfo.Reversed() : proxyInfo;
+            var actualProxyInfo = isReverse ? proxyInfo.Reversed() : proxyInfo;
             var arrayProxyFactory = this.Manager.ObtainProxyFactory(actualProxyInfo) as ArrayProxyFactory<Context> ?? throw new ArgumentException($"Could not obtain DefaultArrayProxyFactory for {actualProxyInfo}.");
             arrayProxyFactory.MapArrayContents(this.Manager, inputArray, outputArray);
         }
     }
 }
+#pragma warning restore CS1591

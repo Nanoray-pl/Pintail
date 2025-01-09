@@ -1,12 +1,16 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Runtime.CompilerServices;
 using System.Text;
 
 namespace Nanoray.Pintail
 {
     internal static class TypeExtensions
     {
+        [ThreadStatic]
+        public static Type?[]?[]? TypeArrays;
+
         internal static Type GetNonRefType(this Type type)
         {
             return type.IsByRef ? type.GetElementOrSelfType() : type;
@@ -49,13 +53,12 @@ namespace Nanoray.Pintail
         {
             if (includingSelf && type.IsInterface)
                 yield return type;
+
             foreach (var interfaceType in type.GetInterfaces())
             {
                 yield return interfaceType;
                 foreach (var recursiveInterfaceType in interfaceType.GetInterfacesRecursivelyAsEnumerable(false))
-                {
                     yield return recursiveInterfaceType;
-                }
             }
         }
 
@@ -81,8 +84,22 @@ namespace Nanoray.Pintail
             if (self is { IsGenericParameter: true, FullName: null } && realGenericArguments.TryGetValue(self.Name, out var replacementType))
                 return replacementType;
 
-            var genericArguments = self.GenericTypeArguments.Select(t => t.ReplacingGenericArguments(realGenericArguments)).ToArray();
-            return genericArguments.Length == 0 ? self : self.GetGenericTypeDefinition().MakeGenericType(genericArguments);
+            var genericTypeArguments = self.GenericTypeArguments;
+            var typeArray = GetTypeArray(genericTypeArguments.Length);
+
+            for (int i = 0; i < genericTypeArguments.Length; i++)
+                typeArray[i] = genericTypeArguments[i].ReplacingGenericArguments(realGenericArguments);
+            return self.GetGenericTypeDefinition().MakeGenericType(typeArray);
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static Type[] GetTypeArray(int length)
+        {
+            TypeArrays ??= new Type[16][];
+            if (length > TypeArrays.Length)
+                Array.Resize(ref TypeArrays, length);
+            TypeArrays[length] ??= new Type[length];
+            return TypeArrays[length]!;
         }
     }
 }
