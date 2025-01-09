@@ -12,7 +12,7 @@ namespace Nanoray.Pintail
 {
     file static class InterfaceOrDelegateProxyFactory
     {
-        public static readonly ConstructorInfo StringTypeDictionaryConstructor = typeof(Dictionary<string, Type>).GetConstructor([])!;
+        public static readonly ConstructorInfo StringTypeDictionaryConstructor = typeof(Dictionary<string, Type>).GetConstructor([typeof(int)])!;
         public static readonly MethodInfo StringTypeDictionarySetItemMethod = typeof(Dictionary<string, Type>).GetMethod("set_Item")!;
         public static readonly MethodInfo GetTypeFromHandleMethod = typeof(Type).GetMethod(nameof(Type.GetTypeFromHandle))!;
     }
@@ -76,15 +76,15 @@ namespace Nanoray.Pintail
 
         internal void Prepare(ProxyManager<Context> manager, string typeName)
         {
-            var methodsToProxy = new List<MethodProxyInfo>();
-            var methodsFailedToProxy = new List<MethodInfo>();
-
             // crosscheck this.
-            Func<MethodInfo, bool> filter = this.ProxyInfo.Proxy.Type.IsAssignableTo(typeof(Delegate)) ? (f => f.Name == "Invoke") : (_ => true);
+            bool filterOnlyInvokeMethods = this.ProxyInfo.Proxy.Type.IsAssignableTo(typeof(Delegate));
 
             // Groupby might make this more efficient.
-            var allTargetMethods = this.ProxyInfo.Target.Type.FindInterfaceMethods(this.AccessLevelChecking == AccessLevelChecking.Disabled, filter).ToList();
-            var allProxyMethods = this.ProxyInfo.Proxy.Type.FindInterfaceMethods(this.AccessLevelChecking == AccessLevelChecking.Disabled, filter).ToList();
+            var allTargetMethods = this.ProxyInfo.Target.Type.FindInterfaceMethods(this.AccessLevelChecking == AccessLevelChecking.Disabled, filterOnlyInvokeMethods).ToList();
+            var allProxyMethods = this.ProxyInfo.Proxy.Type.FindInterfaceMethods(this.AccessLevelChecking == AccessLevelChecking.Disabled, filterOnlyInvokeMethods).ToList();
+
+            var methodsToProxy = new List<MethodProxyInfo>(allProxyMethods.Count);
+            var methodsFailedToProxy = new List<MethodInfo>();
 
 #if DEBUG
             Console.WriteLine($"Looking at {allProxyMethods.Count} proxy methods and {allTargetMethods.Count} target methods for proxy {this.ProxyInfo.Proxy.Type.FullName} and target {this.ProxyInfo.Target.Type.FullName}");
@@ -395,6 +395,7 @@ namespace Nanoray.Pintail
                     }
                     else
                     {
+                        il.Emit(OpCodes.Ldc_I4, allTargetGenericArguments.Length);
                         il.Emit(OpCodes.Newobj, InterfaceOrDelegateProxyFactory.StringTypeDictionaryConstructor);
                         foreach (var type in allTargetGenericArguments)
                         {
@@ -413,6 +414,7 @@ namespace Nanoray.Pintail
                     }
                     else
                     {
+                        il.Emit(OpCodes.Ldc_I4, allProxyGenericArguments.Length);
                         il.Emit(OpCodes.Newobj, InterfaceOrDelegateProxyFactory.StringTypeDictionaryConstructor);
                         foreach (var type in allProxyGenericArguments)
                         {

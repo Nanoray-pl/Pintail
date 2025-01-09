@@ -331,22 +331,15 @@ namespace Nanoray.Pintail
             return true;
         }
 
-        internal static IEnumerable<MethodInfo> FindInterfaceMethods(this Type baseType, bool includePrivate, Func<MethodInfo, bool>? filter = null)
+        internal static IEnumerable<MethodInfo> FindInterfaceMethods(this Type baseType, bool includePrivate, bool onlyInvokeMethods = false)
         {
-            filter ??= (_) => true;
             foreach (var method in baseType.GetMethods(BindingFlags.Instance | BindingFlags.Public | (includePrivate ? BindingFlags.NonPublic : 0)))
-            {
-                if (filter(method))
+                if (!onlyInvokeMethods || method.Name == "Invoke")
                     yield return method;
-            }
+
             foreach (var interfaceType in baseType.GetInterfaces())
-            {
-                foreach (var method in FindInterfaceMethods(interfaceType, includePrivate, filter))
-                {
-                    if (filter(method))
-                        yield return method;
-                }
-            }
+                foreach (var method in FindInterfaceMethods(interfaceType, includePrivate, onlyInvokeMethods))
+                    yield return method;
         }
 
         internal static IEnumerable<KeyValuePair<MethodInfo, PositionConversion?[]>> RankMethods(
@@ -361,7 +354,7 @@ namespace Nanoray.Pintail
             var nameMatches = candidates.Where(kvp => AreAllParamNamesMatching(kvp.Key, proxyMethod)).ToList();
             if (nameMatches.Count == 1)
                 return nameMatches;
-            else if (nameMatches.Count == 0) // No name matches, all will be considered equally. 
+            else if (nameMatches.Count == 0) // No name matches, all will be considered equally.
                 nameMatches = candidates.ToList();
 
             // okay, we seem to have multiple. Let's try ranking them.
