@@ -20,14 +20,14 @@ namespace Nanoray.Pintail
 
         [return: NotNullIfNotNull("toProxy")]
 #pragma warning disable CS1591
-        public object? UnproxyOrObtainProxy(IDictionary<string, Type> targetGenericArguments, IDictionary<string, Type> proxyGenericArguments, ProxyInfo<Context> proxyInfo, bool isReverse, object? toProxy)
+        public object? UnproxyOrObtainProxy(Dictionary<string, Type>? targetGenericArguments, Dictionary<string, Type>? proxyGenericArguments, ProxyInfo<Context> proxyInfo, bool isReverse, object? toProxy)
 #pragma warning restore CS1591
         {
             if (toProxy is null)
                 return null;
 
-            ProxyInfo<Context> targetToProxyInfo = isReverse ? proxyInfo.Reversed() : proxyInfo;
-            ProxyInfo<Context> proxyToTargetInfo = isReverse ? proxyInfo : proxyInfo.Reversed();
+            var targetToProxyInfo = isReverse ? proxyInfo.Reversed() : proxyInfo;
+            var proxyToTargetInfo = isReverse ? proxyInfo : proxyInfo.Reversed();
 
             targetToProxyInfo = targetToProxyInfo.Copy(
                 targetType: targetToProxyInfo.Target.Type.ReplacingGenericArguments(targetGenericArguments),

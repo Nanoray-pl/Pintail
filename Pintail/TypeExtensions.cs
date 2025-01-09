@@ -72,8 +72,10 @@ namespace Nanoray.Pintail
             return typeof(EnumType).GetEnumerableEnumValues().Select(e => (EnumType)e);
         }
 
-        internal static Type ReplacingGenericArguments(this Type self, IDictionary<string, Type> realGenericArguments)
+        internal static Type ReplacingGenericArguments(this Type self, Dictionary<string, Type>? realGenericArguments)
         {
+            if (realGenericArguments is null)
+                return self;
             if (!self.ContainsGenericParameters)
                 return self;
             if (self is { IsGenericParameter: true, FullName: null } && realGenericArguments.TryGetValue(self.Name, out var replacementType))

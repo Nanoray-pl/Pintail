@@ -2,6 +2,10 @@
 
 # Release notes
 
+## Upcoming release
+
+* General optimizations and reduced unneeded allocations.
+
 ## 2.7.1
 Released 5 January 2025.
 
