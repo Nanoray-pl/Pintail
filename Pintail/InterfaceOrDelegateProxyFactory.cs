@@ -36,7 +36,9 @@ namespace Nanoray.Pintail
         private readonly ConcurrentDictionary<string, List<Type>> InterfaceMappabilityCache;
 
         private readonly ConditionalWeakTable<object, object> ProxyCache = new();
+        private ProxyGlue<Context> Glue = null!;
         private Type? BuiltProxyType;
+        private Func<object, ProxyGlue<Context>, object>? ProxyCtorDelegate;
 
         internal InterfaceOrDelegateProxyFactory(
             ProxyInfo<Context> proxyInfo,
@@ -76,6 +78,8 @@ namespace Nanoray.Pintail
 
         internal void Prepare(ProxyManager<Context> manager, string typeName)
         {
+            this.Glue = new(manager);
+
             // crosscheck this.
             bool filterOnlyInvokeMethods = this.ProxyInfo.Proxy.Type.IsAssignableTo(typeof(Delegate));
 
@@ -559,17 +563,31 @@ namespace Nanoray.Pintail
                 if (this.ProxyCache.TryGetValue(targetInstance, out object? proxyInstance))
                     return proxyInstance;
 
-                var constructor = this.BuiltProxyType?.GetConstructor([this.ProxyInfo.Target.Type, typeof(ProxyGlue<Context>)]);
-                if (constructor is null)
-                    throw new InvalidOperationException($"Couldn't find the constructor for generated proxy type '{this.ProxyInfo.Proxy.Type.Name}'."); // should never happen
-                proxyInstance = constructor.Invoke([targetInstance, new ProxyGlue<Context>(manager)]);
+                if (this.ProxyCtorDelegate is not { } proxyCtorDelegate)
+                {
+                    if (this.BuiltProxyType?.GetConstructor([this.ProxyInfo.Target.Type, typeof(ProxyGlue<Context>)]) is not { } ctor)
+                        throw new InvalidOperationException($"Couldn't find the constructor for generated proxy type '{this.ProxyInfo.Proxy.Type.Name}'."); // should never happen
+
+                    var ctorDynamicMethod = new DynamicMethod($"Create_{this.BuiltProxyType.Name}", typeof(object), [typeof(object), typeof(ProxyGlue<Context>)]);
+                    var il = ctorDynamicMethod.GetILGenerator();
+                    il.Emit(OpCodes.Ldarg_0);
+                    il.Emit(OpCodes.Castclass, this.ProxyInfo.Target.Type);
+                    il.Emit(OpCodes.Ldarg_1);
+                    il.Emit(OpCodes.Newobj, ctor);
+                    il.Emit(OpCodes.Ret);
+                    proxyCtorDelegate = ctorDynamicMethod.CreateDelegate<Func<object, ProxyGlue<Context>, object>>();
+                    this.ProxyCtorDelegate = proxyCtorDelegate;
+                }
+
+                proxyInstance = proxyCtorDelegate(targetInstance, this.Glue);
 
                 if (this.ProxyInfo.Proxy.Type.IsInterface)
                 {
-                    this.ProxyCache.Add(targetInstance, proxyInstance);
+                    this.ProxyCache.AddOrUpdate(targetInstance, proxyInstance);
                     return proxyInstance;
                 }
 
+                // TODO: this most likely can be optimized
                 // has to be a delegate
                 var invokeMethod = this.BuiltProxyType?.GetMethod("Invoke");
                 if (invokeMethod is null)
