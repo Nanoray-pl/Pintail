@@ -96,7 +96,7 @@ namespace Nanoray.Pintail
 #endif
 
             // proxy methods
-            var relatedProxyInfos = new List<ProxyInfo<Context>>();
+            var relatedProxyInfos = new List<ProxyInfo<Context>> { this.ProxyInfo };
             foreach (var proxyMethod in allProxyMethods)
             {
                 var candidates = new Dictionary<MethodInfo, TypeUtilities.PositionConversion?[]>();
@@ -109,7 +109,7 @@ namespace Nanoray.Pintail
                     // no inputs are proxied.
                     if (positionConversions.All(a => a is null))
                     {
-                        methodsToProxy.Add(new(proxyMethod, targetMethod, positionConversions, relatedProxyInfos));
+                        methodsToProxy.Add(new(proxyMethod, targetMethod, positionConversions));
                         goto proxyMethodLoopContinue;
                     }
                     candidates[targetMethod] = positionConversions;
@@ -122,7 +122,7 @@ namespace Nanoray.Pintail
 #endif
                     var (targetMethod, positionConversions) = TypeUtilities.RankMethods(candidates, proxyMethod).First();
 
-                    methodsToProxy.Add(new(proxyMethod, targetMethod, positionConversions, relatedProxyInfos));
+                    methodsToProxy.Add(new(proxyMethod, targetMethod, positionConversions));
                 }
                 else if (proxyMethod is { IsAbstract: false, DeclaringType.IsInterface: true })
                 {
@@ -171,7 +171,7 @@ namespace Nanoray.Pintail
             var glueField = proxyBuilder.DefineField(GlueFieldName, typeof(ProxyGlue<Context>), FieldAttributes.Private | FieldAttributes.InitOnly);
             var proxyInfosField = proxyBuilder.DefineField(ProxyInfosFieldName, typeof(List<ProxyInfo<Context>>), FieldAttributes.Private | FieldAttributes.Static);
 
-            // create constructor which accepts target instance + factory, and sets fields
+            // create constructor which accepts target instance + glue, and sets fields
             {
                 var constructor = proxyBuilder.DefineConstructor(MethodAttributes.Public, CallingConventions.Standard | CallingConventions.HasThis, [this.ProxyInfo.Target.Type, typeof(ProxyGlue<Context>)]);
                 var il = constructor.GetILGenerator();
@@ -194,30 +194,43 @@ namespace Nanoray.Pintail
             }
 
             // marking with an IProxyObject interface if needed
-            switch (this.ProxyObjectInterfaceMarking)
+
+            if ((this.ProxyObjectInterfaceMarking & ProxyObjectInterfaceMarking.Marker) != 0)
+                proxyBuilder.AddInterfaceImplementation(typeof(IProxyObject));
+
+            if ((this.ProxyObjectInterfaceMarking & ProxyObjectInterfaceMarking.IncludeProxyTargetInstance) != 0)
             {
-                case ProxyObjectInterfaceMarking.Disabled:
-                    break;
-                case ProxyObjectInterfaceMarking.Marker:
-                    proxyBuilder.AddInterfaceImplementation(typeof(IProxyObject));
-                    break;
-                case ProxyObjectInterfaceMarking.MarkerWithProperty:
-                    var markerInterfaceType = typeof(IProxyObject.IWithProxyTargetInstanceProperty);
-                    proxyBuilder.AddInterfaceImplementation(markerInterfaceType);
+                var markerInterfaceType = typeof(IProxyObject.IWithProxyTargetInstanceProperty);
+                proxyBuilder.AddInterfaceImplementation(markerInterfaceType);
 
-                    var proxyTargetInstanceGetter = markerInterfaceType.GetProperty(nameof(IProxyObject.IWithProxyTargetInstanceProperty.ProxyTargetInstance))!.GetGetMethod()!;
-                    var methodBuilder = proxyBuilder.DefineMethod(proxyTargetInstanceGetter.Name, MethodAttributes.Public | MethodAttributes.Final | MethodAttributes.Virtual);
-                    methodBuilder.SetParameters(Array.Empty<Type>());
-                    methodBuilder.SetReturnType(typeof(object));
+                var proxyTargetInstanceGetter = markerInterfaceType.GetProperty(nameof(IProxyObject.IWithProxyTargetInstanceProperty.ProxyTargetInstance))!.GetGetMethod()!;
+                var methodBuilder = proxyBuilder.DefineMethod(proxyTargetInstanceGetter.Name, MethodAttributes.Public | MethodAttributes.Final | MethodAttributes.Virtual);
+                methodBuilder.SetParameters();
+                methodBuilder.SetReturnType(typeof(object));
 
-                    var il = methodBuilder.GetILGenerator();
-                    il.Emit(OpCodes.Ldarg_0);
-                    il.Emit(OpCodes.Ldfld, targetField);
-                    if (this.ProxyInfo.Target.Type.IsValueType)
-                        il.Emit(OpCodes.Box, this.ProxyInfo.Target.Type);
-                    il.Emit(OpCodes.Ret);
+                var il = methodBuilder.GetILGenerator();
+                il.Emit(OpCodes.Ldarg_0);
+                il.Emit(OpCodes.Ldfld, targetField);
+                if (this.ProxyInfo.Target.Type.IsValueType)
+                    il.Emit(OpCodes.Box, this.ProxyInfo.Target.Type);
+                il.Emit(OpCodes.Ret);
+            }
 
-                    break;
+            if ((this.ProxyObjectInterfaceMarking & ProxyObjectInterfaceMarking.IncludeProxyInfo) != 0)
+            {
+                var markerInterfaceType = typeof(IProxyObject.IWithProxyInfoProperty<Context>);
+                proxyBuilder.AddInterfaceImplementation(markerInterfaceType);
+
+                var proxyTargetInstanceGetter = markerInterfaceType.GetProperty(nameof(IProxyObject.IWithProxyInfoProperty<Context>.ProxyInfo))!.GetGetMethod()!;
+                var methodBuilder = proxyBuilder.DefineMethod(proxyTargetInstanceGetter.Name, MethodAttributes.Public | MethodAttributes.Final | MethodAttributes.Virtual);
+                methodBuilder.SetParameters();
+                methodBuilder.SetReturnType(typeof(ProxyInfo<Context>));
+
+                var il = methodBuilder.GetILGenerator();
+                il.Emit(OpCodes.Ldsfld, proxyInfosField);
+                il.Emit(OpCodes.Ldc_I4_0);
+                il.Emit(OpCodes.Call, ProxyInfoListGetMethod);
+                il.Emit(OpCodes.Ret);
             }
 
             {
@@ -233,7 +246,7 @@ namespace Nanoray.Pintail
 
                 var proxyTargetInstanceGetter = markerInterfaceType.GetProperty(nameof(IInternalProxyObject.ProxyTargetInstance))!.GetGetMethod()!;
                 var methodBuilder = proxyBuilder.DefineMethod(proxyTargetInstanceGetter.Name, MethodAttributes.Public | MethodAttributes.Final | MethodAttributes.Virtual);
-                methodBuilder.SetParameters(Array.Empty<Type>());
+                methodBuilder.SetParameters();
                 methodBuilder.SetReturnType(typeof(object));
 
                 var il = methodBuilder.GetILGenerator();
@@ -248,7 +261,7 @@ namespace Nanoray.Pintail
                 this.NoMatchingMethodHandler(proxyBuilder, this.ProxyInfo, targetField, glueField, proxyInfosField, methodFailedToProxy);
 
             foreach (var methodProxyInfo in methodsToProxy)
-                this.ProxyMethod(manager, proxyBuilder, methodProxyInfo.Proxy, methodProxyInfo.Target, targetField, glueField, proxyInfosField, methodProxyInfo.PositionConversions, methodProxyInfo.RelatedProxyInfos);
+                this.ProxyMethod(manager, proxyBuilder, methodProxyInfo.Proxy, methodProxyInfo.Target, targetField, glueField, proxyInfosField, methodProxyInfo.PositionConversions, relatedProxyInfos);
 
 #if DEBUG
             Console.WriteLine($"Trying to save! {proxyBuilder.FullName}");
@@ -614,8 +627,7 @@ namespace Nanoray.Pintail
         private record MethodProxyInfo(
             MethodInfo Proxy,
             MethodInfo Target,
-            TypeUtilities.PositionConversion?[] PositionConversions,
-            List<ProxyInfo<Context>> RelatedProxyInfos
+            TypeUtilities.PositionConversion?[] PositionConversions
         );
 
         internal interface IInternalProxyObject

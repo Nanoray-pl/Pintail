@@ -15,5 +15,16 @@ namespace Nanoray.Pintail
             /// </summary>
             object ProxyTargetInstance { get; }
         }
+
+        /// <summary>
+        /// A marker interface for all proxy instances, which also allows you to retrieve the <see cref="ProxyInfo{T}"/> used for the proxy.
+        /// </summary>
+        public interface IWithProxyInfoProperty<Context>: IProxyObject
+        {
+            /// <summary>
+            /// The proxy information describing this specific proxy object.
+            /// </summary>
+            ProxyInfo<Context> ProxyInfo { get; }
+        }
     }
 }
