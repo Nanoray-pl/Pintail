@@ -276,15 +276,15 @@ namespace Nanoray.Pintail
                 case UnmatchedTargetMethodProxyBehavior.ProxyIfAccessible:
                     foreach (var unmatchedTargetMethod in unmatchedTargetMethods)
                         if (unmatchedTargetMethod.IsPublic)
-                            this.ProxyMethod(manager, proxyBuilder, null, unmatchedTargetMethod, targetField, glueField, proxyInfosField, null, relatedProxyInfos);
+                            this.TryProxyMethod(manager, proxyBuilder, null, unmatchedTargetMethod, targetField, glueField, proxyInfosField, null, relatedProxyInfos);
                     if (this.ProxyInfo.Proxy.Type.Assembly == this.ProxyInfo.Target.Type.Assembly)
                         foreach (var unmatchedTargetMethod in unmatchedTargetMethods)
                             if (unmatchedTargetMethod.IsAssembly)
-                                this.ProxyMethod(manager, proxyBuilder, null, unmatchedTargetMethod, targetField, glueField, proxyInfosField, null, relatedProxyInfos);
+                                this.TryProxyMethod(manager, proxyBuilder, null, unmatchedTargetMethod, targetField, glueField, proxyInfosField, null, relatedProxyInfos);
                     break;
                 case UnmatchedTargetMethodProxyBehavior.Proxy:
                     foreach (var unmatchedTargetMethod in unmatchedTargetMethods)
-                        this.ProxyMethod(manager, proxyBuilder, null, unmatchedTargetMethod, targetField, glueField, proxyInfosField, null, relatedProxyInfos);
+                        this.TryProxyMethod(manager, proxyBuilder, null, unmatchedTargetMethod, targetField, glueField, proxyInfosField, null, relatedProxyInfos);
                     break;
                 default:
                     throw new ArgumentOutOfRangeException();
@@ -299,12 +299,27 @@ namespace Nanoray.Pintail
             actualProxyInfosField.SetValue(null, relatedProxyInfos);
         }
 
+        private void TryProxyMethod(ProxyManager<Context> manager, TypeBuilder proxyBuilder, MethodInfo? proxy, MethodInfo target, FieldBuilder instanceField, FieldBuilder glueField, FieldBuilder proxyInfosField, TypeUtilities.PositionConversion?[]? positionConversions, List<ProxyInfo<Context>> relatedProxyInfos)
+        {
+            try
+            {
+                this.ProxyMethod(manager, proxyBuilder, proxy, target, instanceField, glueField, proxyInfosField, positionConversions, relatedProxyInfos);
+            }
+            catch
+            {
+                // it's likely the method uses types which cannot be resolved yet.
+                // we only call this method for unmatched target methods, so it's probably fine to ignore
+            }
+        }
+
         private void ProxyMethod(ProxyManager<Context> manager, TypeBuilder proxyBuilder, MethodInfo? proxy, MethodInfo target, FieldBuilder instanceField, FieldBuilder glueField, FieldBuilder proxyInfosField, TypeUtilities.PositionConversion?[]? positionConversions, List<ProxyInfo<Context>> relatedProxyInfos)
         {
 #if DEBUG
             Console.WriteLine($"Proxying {proxy.DeclaringType}.{proxy.Name}[{string.Join(", ", proxy.GetParameters().Select(a => a.Name))}] to {target.DeclaringType}.{target.Name}");
 #endif
-            var proxyOrTarget = (proxy ?? target);
+
+            var proxyOrTarget = proxy ?? target;
+            var targetParameters = target.GetParameters();
             var methodBuilder = proxyBuilder.DefineMethod(
                 name: proxyOrTarget.Name,
                 attributes: MethodAttributes.Public | MethodAttributes.Final | MethodAttributes.Virtual
@@ -327,7 +342,6 @@ namespace Nanoray.Pintail
             }
 
             // set up parameters
-            var targetParameters = target.GetParameters();
             var argTypes = proxyOrTarget.GetParameters()
                 .Select(a => a.ParameterType)
                 .Select(t => t.IsGenericMethodParameter ? genericTypeParameterBuilders[t.GenericParameterPosition] : t)
