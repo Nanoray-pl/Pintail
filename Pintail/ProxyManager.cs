@@ -92,6 +92,7 @@ namespace Nanoray.Pintail
                             this.Configuration.NoMatchingMethodHandler,
                             this.Configuration.ProxyPrepareBehavior,
                             this.Configuration.EnumMappingBehavior,
+                            this.Configuration.UnmatchedTargetMethodProxyBehavior,
                             this.Configuration.ProxyObjectInterfaceMarking,
                             this.Configuration.AccessLevelChecking,
                             this.InterfaceMappabilityCache

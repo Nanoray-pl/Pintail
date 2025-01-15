@@ -82,6 +82,28 @@ namespace Nanoray.Pintail
         AllowAndDontMapBack
     }
 
+    /// <summary>
+    /// Defines the behavior to use when a proxy target has extra methods which are not defined in the proxy type.
+    /// Proxying such methods allows fluent APIs to add new methods without breaking existing consumers.
+    /// </summary>
+    public enum UnmatchedTargetMethodProxyBehavior
+    {
+        /// <summary>
+        /// Ignore unmatched methods.
+        /// </summary>
+        Ignore,
+
+        /// <summary>
+        /// Create a matching proxy method, but only if the original method would be accessible anyway (either `public`, or `internal` in the same assembly).
+        /// </summary>
+        ProxyIfAccessible,
+
+        /// <summary>
+        /// Create a matching proxy method no matter the access level.
+        /// </summary>
+        Proxy
+    }
+
     file static class ProxyManagerConfiguration
     {
         public static readonly MD5 MD5 = MD5.Create();
@@ -218,6 +240,11 @@ namespace Nanoray.Pintail
         /// The behavior to use when mapping mismatched <see cref="Array"/> elements back and forth.
         /// </summary>
         public ProxyManagerMismatchedArrayMappingBehavior MismatchedArrayMappingBehavior { get; init; } = ProxyManagerMismatchedArrayMappingBehavior.Throw;
+
+        /// <summary>
+        /// The behavior to use when a proxy target has extra methods which are not defined in the proxy type.
+        /// </summary>
+        public UnmatchedTargetMethodProxyBehavior UnmatchedTargetMethodProxyBehavior { get; init; } = UnmatchedTargetMethodProxyBehavior.ProxyIfAccessible;
 
         /// <summary>
         /// Whether proxy types should implement any marker interfaces.

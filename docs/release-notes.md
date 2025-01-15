@@ -4,6 +4,7 @@
 
 ## Upcoming release
 
+* Added an `UnmatchedTargetMethodProxyBehavior` configuration option, which controls whether methods in the target objece type which did not match any methods in the proxy type will also get method proxies generated. Proxying such methods allows fluent APIs to add new methods without breaking existing consumers.
 * `ProxyObjectInterfaceMarking` is now a flag enum. It now has an option to add a `ProxyInfo<Context> ProxyInfo` property to the created proxies.
 
 ## 2.7.3

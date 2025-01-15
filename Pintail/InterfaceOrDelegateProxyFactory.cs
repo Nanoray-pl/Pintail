@@ -31,6 +31,7 @@ namespace Nanoray.Pintail
         private readonly ProxyManagerNoMatchingMethodHandler<Context> NoMatchingMethodHandler;
         private readonly ProxyManagerProxyPrepareBehavior ProxyPrepareBehavior;
         private readonly ProxyManagerEnumMappingBehavior EnumMappingBehavior;
+        private readonly UnmatchedTargetMethodProxyBehavior UnmatchedTargetMethodProxyBehavior;
         private readonly ProxyObjectInterfaceMarking ProxyObjectInterfaceMarking;
         private readonly AccessLevelChecking AccessLevelChecking;
         private readonly ConcurrentDictionary<string, List<Type>> InterfaceMappabilityCache;
@@ -46,6 +47,7 @@ namespace Nanoray.Pintail
             ProxyManagerNoMatchingMethodHandler<Context> noMatchingMethodHandler,
             ProxyManagerProxyPrepareBehavior proxyPrepareBehavior,
             ProxyManagerEnumMappingBehavior enumMappingBehavior,
+            UnmatchedTargetMethodProxyBehavior unmatchedTargetMethodProxyBehavior,
             ProxyObjectInterfaceMarking proxyObjectInterfaceMarking,
             AccessLevelChecking accessLevelChecking,
             ConcurrentDictionary<string, List<Type>> interfaceMappabilityCache
@@ -71,6 +73,7 @@ namespace Nanoray.Pintail
             this.NoMatchingMethodHandler = noMatchingMethodHandler;
             this.ProxyPrepareBehavior = proxyPrepareBehavior;
             this.EnumMappingBehavior = enumMappingBehavior;
+            this.UnmatchedTargetMethodProxyBehavior = unmatchedTargetMethodProxyBehavior;
             this.ProxyObjectInterfaceMarking = proxyObjectInterfaceMarking;
             this.InterfaceMappabilityCache = interfaceMappabilityCache;
             this.AccessLevelChecking = accessLevelChecking;
@@ -86,6 +89,7 @@ namespace Nanoray.Pintail
             // Groupby might make this more efficient.
             var allTargetMethods = this.ProxyInfo.Target.Type.FindInterfaceMethods(this.AccessLevelChecking == AccessLevelChecking.Disabled, filterOnlyInvokeMethods).ToList();
             var allProxyMethods = this.ProxyInfo.Proxy.Type.FindInterfaceMethods(this.AccessLevelChecking == AccessLevelChecking.Disabled, filterOnlyInvokeMethods).ToList();
+            var unmatchedTargetMethods = allTargetMethods.ToHashSet();
 
             var methodsToProxy = new List<MethodProxyInfo>(allProxyMethods.Count);
             var methodsFailedToProxy = new List<MethodInfo>();
@@ -110,6 +114,7 @@ namespace Nanoray.Pintail
                     if (positionConversions.All(a => a is null))
                     {
                         methodsToProxy.Add(new(proxyMethod, targetMethod, positionConversions));
+                        unmatchedTargetMethods.Remove(targetMethod);
                         goto proxyMethodLoopContinue;
                     }
                     candidates[targetMethod] = positionConversions;
@@ -123,6 +128,7 @@ namespace Nanoray.Pintail
                     var (targetMethod, positionConversions) = TypeUtilities.RankMethods(candidates, proxyMethod).First();
 
                     methodsToProxy.Add(new(proxyMethod, targetMethod, positionConversions));
+                    unmatchedTargetMethods.Remove(targetMethod);
                 }
                 else if (proxyMethod is { IsAbstract: false, DeclaringType.IsInterface: true })
                 {
@@ -263,6 +269,27 @@ namespace Nanoray.Pintail
             foreach (var methodProxyInfo in methodsToProxy)
                 this.ProxyMethod(manager, proxyBuilder, methodProxyInfo.Proxy, methodProxyInfo.Target, targetField, glueField, proxyInfosField, methodProxyInfo.PositionConversions, relatedProxyInfos);
 
+            switch (this.UnmatchedTargetMethodProxyBehavior)
+            {
+                case UnmatchedTargetMethodProxyBehavior.Ignore:
+                    break;
+                case UnmatchedTargetMethodProxyBehavior.ProxyIfAccessible:
+                    foreach (var unmatchedTargetMethod in unmatchedTargetMethods)
+                        if (unmatchedTargetMethod.IsPublic)
+                            this.ProxyMethod(manager, proxyBuilder, null, unmatchedTargetMethod, targetField, glueField, proxyInfosField, null, relatedProxyInfos);
+                    if (this.ProxyInfo.Proxy.Type.Assembly == this.ProxyInfo.Target.Type.Assembly)
+                        foreach (var unmatchedTargetMethod in unmatchedTargetMethods)
+                            if (unmatchedTargetMethod.IsAssembly)
+                                this.ProxyMethod(manager, proxyBuilder, null, unmatchedTargetMethod, targetField, glueField, proxyInfosField, null, relatedProxyInfos);
+                    break;
+                case UnmatchedTargetMethodProxyBehavior.Proxy:
+                    foreach (var unmatchedTargetMethod in unmatchedTargetMethods)
+                        this.ProxyMethod(manager, proxyBuilder, null, unmatchedTargetMethod, targetField, glueField, proxyInfosField, null, relatedProxyInfos);
+                    break;
+                default:
+                    throw new ArgumentOutOfRangeException();
+            }
+
 #if DEBUG
             Console.WriteLine($"Trying to save! {proxyBuilder.FullName}");
 #endif
@@ -272,18 +299,19 @@ namespace Nanoray.Pintail
             actualProxyInfosField.SetValue(null, relatedProxyInfos);
         }
 
-        private void ProxyMethod(ProxyManager<Context> manager, TypeBuilder proxyBuilder, MethodInfo proxy, MethodInfo target, FieldBuilder instanceField, FieldBuilder glueField, FieldBuilder proxyInfosField, TypeUtilities.PositionConversion?[] positionConversions, List<ProxyInfo<Context>> relatedProxyInfos)
+        private void ProxyMethod(ProxyManager<Context> manager, TypeBuilder proxyBuilder, MethodInfo? proxy, MethodInfo target, FieldBuilder instanceField, FieldBuilder glueField, FieldBuilder proxyInfosField, TypeUtilities.PositionConversion?[]? positionConversions, List<ProxyInfo<Context>> relatedProxyInfos)
         {
 #if DEBUG
             Console.WriteLine($"Proxying {proxy.DeclaringType}.{proxy.Name}[{string.Join(", ", proxy.GetParameters().Select(a => a.Name))}] to {target.DeclaringType}.{target.Name}");
 #endif
+            var proxyOrTarget = (proxy ?? target);
             var methodBuilder = proxyBuilder.DefineMethod(
-                name: proxy.Name,
+                name: proxyOrTarget.Name,
                 attributes: MethodAttributes.Public | MethodAttributes.Final | MethodAttributes.Virtual
             );
 
             // set up generic arguments
-            var proxyGenericArguments = proxy.GetGenericArguments();
+            var proxyGenericArguments = proxyOrTarget.GetGenericArguments();
             string[] genericArgNames = proxyGenericArguments.Select(a => a.Name).ToArray();
             var genericTypeParameterBuilders = proxyGenericArguments.Length == 0 ? [] : methodBuilder.DefineGenericParameters(genericArgNames);
             for (int i = 0; i < proxyGenericArguments.Length; i++)
@@ -300,7 +328,7 @@ namespace Nanoray.Pintail
 
             // set up parameters
             var targetParameters = target.GetParameters();
-            var argTypes = proxy.GetParameters()
+            var argTypes = proxyOrTarget.GetParameters()
                 .Select(a => a.ParameterType)
                 .Select(t => t.IsGenericMethodParameter ? genericTypeParameterBuilders[t.GenericParameterPosition] : t)
                 .ToArray();
@@ -309,36 +337,13 @@ namespace Nanoray.Pintail
             int? returnValueTargetToArgProxyInfoIndex = null;
             int?[] parameterTargetToArgProxyInfoIndexes = new int?[argTypes.Length];
 
-            switch (positionConversions[0])
+            if (positionConversions is not null && proxy is not null)
             {
-                case TypeUtilities.PositionConversion.Proxy:
-                    returnValueTargetToArgProxyInfoIndex = relatedProxyInfos.Count;
-                    relatedProxyInfos.Add(this.ProxyInfo.Copy(targetType: target.ReturnType.GetNonRefType(), proxyType: proxy.ReturnType.GetNonRefType()));
-                    switch (this.ProxyPrepareBehavior)
-                    {
-                        case ProxyManagerProxyPrepareBehavior.Eager:
-                            var proxyInfo = relatedProxyInfos.Last();
-                            if (!proxyInfo.Proxy.Type.ContainsGenericParameters && !proxyInfo.Target.Type.ContainsGenericParameters)
-                                manager.ObtainProxyFactory(relatedProxyInfos.Last());
-                            break;
-                        case ProxyManagerProxyPrepareBehavior.Lazy:
-                            break;
-                    }
-                    break;
-                case null:
-                    break;
-            }
-
-            for (int i = 0; i < targetParameters.Length; i++)
-            {
-                switch (positionConversions[i + 1])
+                switch (positionConversions[0])
                 {
                     case TypeUtilities.PositionConversion.Proxy:
-                        var targetType = targetParameters[i].ParameterType;
-                        var argType = argTypes[i];
-
-                        parameterTargetToArgProxyInfoIndexes[i] = relatedProxyInfos.Count;
-                        relatedProxyInfos.Add(this.ProxyInfo.Copy(targetType: targetType.GetNonRefType(), proxyType: argType.GetNonRefType()));
+                        returnValueTargetToArgProxyInfoIndex = relatedProxyInfos.Count;
+                        relatedProxyInfos.Add(this.ProxyInfo.Copy(targetType: target.ReturnType.GetNonRefType(), proxyType: proxy.ReturnType.GetNonRefType()));
                         switch (this.ProxyPrepareBehavior)
                         {
                             case ProxyManagerProxyPrepareBehavior.Eager:
@@ -353,18 +358,46 @@ namespace Nanoray.Pintail
                     case null:
                         break;
                 }
+
+                for (int i = 0; i < targetParameters.Length; i++)
+                {
+                    switch (positionConversions[i + 1])
+                    {
+                        case TypeUtilities.PositionConversion.Proxy:
+                            var targetType = targetParameters[i].ParameterType;
+                            var argType = argTypes[i];
+
+                            parameterTargetToArgProxyInfoIndexes[i] = relatedProxyInfos.Count;
+                            relatedProxyInfos.Add(this.ProxyInfo.Copy(targetType: targetType.GetNonRefType(), proxyType: argType.GetNonRefType()));
+                            switch (this.ProxyPrepareBehavior)
+                            {
+                                case ProxyManagerProxyPrepareBehavior.Eager:
+                                    var proxyInfo = relatedProxyInfos.Last();
+                                    if (!proxyInfo.Proxy.Type.ContainsGenericParameters && !proxyInfo.Target.Type.ContainsGenericParameters)
+                                        manager.ObtainProxyFactory(relatedProxyInfos.Last());
+                                    break;
+                                case ProxyManagerProxyPrepareBehavior.Lazy:
+                                    break;
+                                default:
+                                    throw new ArgumentOutOfRangeException();
+                            }
+                            break;
+                        case null:
+                            break;
+                    }
+                }
             }
 
-            var returnType = proxy.ReturnType.IsGenericMethodParameter ? genericTypeParameterBuilders[proxy.ReturnType.GenericParameterPosition] : proxy.ReturnType;
+            var returnType = proxyOrTarget.ReturnType.IsGenericMethodParameter ? genericTypeParameterBuilders[proxyOrTarget.ReturnType.GenericParameterPosition] : proxyOrTarget.ReturnType;
 
             // we must set the constraints correctly
             // or in params fail.
             // see: https://stackoverflow.com/questions/56564992/when-implementing-an-interface-that-has-a-method-with-in-parameter-by-typebuil
-            var param = proxy.GetParameters();
+            var param = proxyOrTarget.GetParameters();
             methodBuilder.SetSignature(
                 returnType: returnType,
-                returnTypeRequiredCustomModifiers: proxy.ReturnParameter.GetRequiredCustomModifiers(),
-                returnTypeOptionalCustomModifiers: proxy.ReturnParameter.GetOptionalCustomModifiers(),
+                returnTypeRequiredCustomModifiers: proxyOrTarget.ReturnParameter.GetRequiredCustomModifiers(),
+                returnTypeOptionalCustomModifiers: proxyOrTarget.ReturnParameter.GetOptionalCustomModifiers(),
                 parameterTypes: argTypes,
                 parameterTypeRequiredCustomModifiers: param.Select(p => p.GetRequiredCustomModifiers()).ToArray(),
                 parameterTypeOptionalCustomModifiers: param.Select(p => p.GetOptionalCustomModifiers()).ToArray()
@@ -379,9 +412,21 @@ namespace Nanoray.Pintail
 
             var allProxyGenericArguments = proxyGenericArguments;
 
+            var il = methodBuilder.GetILGenerator();
+
+            // handle passthrough
+            if (proxy is null || positionConversions is null)
+            {
+                il.Emit(OpCodes.Ldarg_0);
+                for (int i = 0; i < argTypes.Length; i++)
+                    il.Emit(OpCodes.Ldarg, i + 1);
+                il.Emit(target.IsVirtual ? OpCodes.Callvirt : OpCodes.Call, target);
+                il.Emit(OpCodes.Ret);
+                return;
+            }
+
             // create method body
             {
-                var il = methodBuilder.GetILGenerator();
                 var proxyLocals = new LocalBuilder?[argTypes.Length];
                 var targetLocals = new LocalBuilder?[argTypes.Length];
 
