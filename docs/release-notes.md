@@ -2,7 +2,8 @@
 
 # Release notes
 
-## Upcoming release
+## 2.8.0
+Released 16 January 2025.
 
 * `ProxyObjectInterfaceMarking` is now a flag enum. It now has an option to add a `ProxyInfo<Context> ProxyInfo` property to the created proxies.
 
