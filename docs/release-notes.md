@@ -2,6 +2,10 @@
 
 # Release notes
 
+## Upcoming release
+
+* Fixed a special case where a proxy from one interface to another is requested, but for an object that normally was also proxied, by introducing an intermediate proxy step.
+
 ## 2.8.0
 Released 16 January 2025.
 
