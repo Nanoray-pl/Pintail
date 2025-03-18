@@ -2,7 +2,8 @@
 
 # Release notes
 
-## Upcoming release
+## 2.8.1
+Released 18 March 2025.
 
 * Fixed a special case where a proxy from one interface to another is requested, but for an object that normally was also proxied, by introducing an intermediate proxy step.
 
