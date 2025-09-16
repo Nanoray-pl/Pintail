@@ -2,7 +2,8 @@
 
 # Release notes
 
-## Upcoming release
+## 2.9.0
+Released 16 September 2025.
 
 * Added an option to disable synchronization via locks.
 * General optimizations.
