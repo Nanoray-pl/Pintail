@@ -15,6 +15,8 @@ namespace Nanoray.Pintail
         public static readonly ConstructorInfo StringTypeDictionaryConstructor = typeof(Dictionary<string, Type>).GetConstructor([typeof(int)])!;
         public static readonly MethodInfo StringTypeDictionarySetItemMethod = typeof(Dictionary<string, Type>).GetMethod("set_Item")!;
         public static readonly MethodInfo GetTypeFromHandleMethod = typeof(Type).GetMethod(nameof(Type.GetTypeFromHandle))!;
+        public static readonly MethodInfo ProxyTargetInstanceGetter = typeof(IProxyObject.IWithProxyTargetInstanceProperty).GetProperty(nameof(IProxyObject.IWithProxyTargetInstanceProperty.ProxyTargetInstance))!.GetGetMethod()!;
+        public static readonly ConstructorInfo IgnoresAccessChecksToAttributeCtor = typeof(IgnoresAccessChecksToAttribute).GetConstructor([typeof(string)])!;
     }
 
     internal class InterfaceOrDelegateProxyFactory<Context>: IProxyFactory<Context>
@@ -25,6 +27,8 @@ namespace Nanoray.Pintail
         private static readonly MethodInfo UnproxyOrObtainProxyMethod = typeof(ProxyGlue<Context>).GetMethod(nameof(ProxyGlue<Context>.UnproxyOrObtainProxy))!;
         private static readonly MethodInfo MapArrayContentsMethod = typeof(ProxyGlue<Context>).GetMethod(nameof(ProxyGlue<Context>.MapArrayContents))!;
         private static readonly MethodInfo ProxyInfoListGetMethod = typeof(List<ProxyInfo<Context>>).GetProperty("Item")!.GetGetMethod()!;
+        private static readonly MethodInfo InternalProxyTargetInstanceGetter = typeof(IInternalProxyObject).GetProperty(nameof(IInternalProxyObject.ProxyTargetInstance))!.GetGetMethod()!;
+        private static readonly MethodInfo ProxyTargetInstanceGetter = typeof(IProxyObject.IWithProxyInfoProperty<Context>).GetProperty(nameof(IProxyObject.IWithProxyInfoProperty<Context>.ProxyInfo))!.GetGetMethod()!;
 
         public ProxyInfo<Context> ProxyInfo { get; }
         private readonly EarlyProxyManagerNoMatchingMethodHandler<Context>? EarlyNoMatchingMethodHandler;
@@ -33,6 +37,7 @@ namespace Nanoray.Pintail
         private readonly ProxyManagerEnumMappingBehavior EnumMappingBehavior;
         private readonly ProxyObjectInterfaceMarking ProxyObjectInterfaceMarking;
         private readonly AccessLevelChecking AccessLevelChecking;
+        private readonly ProxyManagerSynchronization Synchronization;
         private readonly ConcurrentDictionary<string, List<Type>> InterfaceMappabilityCache;
 
         private readonly ConditionalWeakTable<object, object> ProxyCache = new();
@@ -48,6 +53,7 @@ namespace Nanoray.Pintail
             ProxyManagerEnumMappingBehavior enumMappingBehavior,
             ProxyObjectInterfaceMarking proxyObjectInterfaceMarking,
             AccessLevelChecking accessLevelChecking,
+            ProxyManagerSynchronization synchronization,
             ConcurrentDictionary<string, List<Type>> interfaceMappabilityCache
         )
         {
@@ -74,6 +80,7 @@ namespace Nanoray.Pintail
             this.ProxyObjectInterfaceMarking = proxyObjectInterfaceMarking;
             this.InterfaceMappabilityCache = interfaceMappabilityCache;
             this.AccessLevelChecking = accessLevelChecking;
+            this.Synchronization = synchronization;
         }
 
         internal void Prepare(ProxyManager<Context> manager, string typeName)
@@ -154,13 +161,13 @@ namespace Nanoray.Pintail
             {
                 (moduleBuilder.Assembly as AssemblyBuilder)?.SetCustomAttribute(
                     new CustomAttributeBuilder(
-                        typeof(IgnoresAccessChecksToAttribute).GetConstructor([typeof(string)])!,
+                        InterfaceOrDelegateProxyFactory.IgnoresAccessChecksToAttributeCtor,
                         [this.ProxyInfo.Target.Type.Assembly.GetName().Name!]
                     )
                 );
                 (moduleBuilder.Assembly as AssemblyBuilder)?.SetCustomAttribute(
                     new CustomAttributeBuilder(
-                        typeof(IgnoresAccessChecksToAttribute).GetConstructor([typeof(string)])!,
+                        InterfaceOrDelegateProxyFactory.IgnoresAccessChecksToAttributeCtor,
                         [this.ProxyInfo.Proxy.Type.Assembly.GetName().Name!]
                     )
                 );
@@ -203,7 +210,7 @@ namespace Nanoray.Pintail
                 var markerInterfaceType = typeof(IProxyObject.IWithProxyTargetInstanceProperty);
                 proxyBuilder.AddInterfaceImplementation(markerInterfaceType);
 
-                var proxyTargetInstanceGetter = markerInterfaceType.GetProperty(nameof(IProxyObject.IWithProxyTargetInstanceProperty.ProxyTargetInstance))!.GetGetMethod()!;
+                var proxyTargetInstanceGetter = InterfaceOrDelegateProxyFactory.ProxyTargetInstanceGetter;
                 var methodBuilder = proxyBuilder.DefineMethod(proxyTargetInstanceGetter.Name, MethodAttributes.Public | MethodAttributes.Final | MethodAttributes.Virtual);
                 methodBuilder.SetParameters();
                 methodBuilder.SetReturnType(typeof(object));
@@ -221,7 +228,7 @@ namespace Nanoray.Pintail
                 var markerInterfaceType = typeof(IProxyObject.IWithProxyInfoProperty<Context>);
                 proxyBuilder.AddInterfaceImplementation(markerInterfaceType);
 
-                var proxyTargetInstanceGetter = markerInterfaceType.GetProperty(nameof(IProxyObject.IWithProxyInfoProperty<Context>.ProxyInfo))!.GetGetMethod()!;
+                var proxyTargetInstanceGetter = ProxyTargetInstanceGetter;
                 var methodBuilder = proxyBuilder.DefineMethod(proxyTargetInstanceGetter.Name, MethodAttributes.Public | MethodAttributes.Final | MethodAttributes.Virtual);
                 methodBuilder.SetParameters();
                 methodBuilder.SetReturnType(typeof(ProxyInfo<Context>));
@@ -236,7 +243,7 @@ namespace Nanoray.Pintail
             {
                 (moduleBuilder.Assembly as AssemblyBuilder)?.SetCustomAttribute(
                     new CustomAttributeBuilder(
-                        typeof(IgnoresAccessChecksToAttribute).GetConstructor([typeof(string)])!,
+                        InterfaceOrDelegateProxyFactory.IgnoresAccessChecksToAttributeCtor,
                         [typeof(IInternalProxyObject).Assembly.GetName().Name!]
                     )
                 );
@@ -244,7 +251,7 @@ namespace Nanoray.Pintail
                 var markerInterfaceType = typeof(IInternalProxyObject);
                 proxyBuilder.AddInterfaceImplementation(markerInterfaceType);
 
-                var proxyTargetInstanceGetter = markerInterfaceType.GetProperty(nameof(IInternalProxyObject.ProxyTargetInstance))!.GetGetMethod()!;
+                var proxyTargetInstanceGetter = InternalProxyTargetInstanceGetter;
                 var methodBuilder = proxyBuilder.DefineMethod(proxyTargetInstanceGetter.Name, MethodAttributes.Public | MethodAttributes.Final | MethodAttributes.Virtual);
                 methodBuilder.SetParameters();
                 methodBuilder.SetReturnType(typeof(object));
@@ -571,44 +578,55 @@ namespace Nanoray.Pintail
         /// <inheritdoc/>
         public object ObtainProxy(IProxyManager<Context> manager, object targetInstance)
         {
-            lock (this.ProxyCache)
+            switch (this.Synchronization)
             {
-                if (this.ProxyCache.TryGetValue(targetInstance, out object? proxyInstance))
-                    return proxyInstance;
-
-                if (this.ProxyCtorDelegate is not { } proxyCtorDelegate)
-                {
-                    if (this.BuiltProxyType?.GetConstructor([this.ProxyInfo.Target.Type, typeof(ProxyGlue<Context>)]) is not { } ctor)
-                        throw new InvalidOperationException($"Couldn't find the constructor for generated proxy type '{this.ProxyInfo.Proxy.Type.Name}'."); // should never happen
-
-                    var ctorDynamicMethod = new DynamicMethod($"Create_{this.BuiltProxyType.Name}", typeof(object), [typeof(object), typeof(ProxyGlue<Context>)]);
-                    var il = ctorDynamicMethod.GetILGenerator();
-                    il.Emit(OpCodes.Ldarg_0);
-                    il.Emit(OpCodes.Castclass, this.ProxyInfo.Target.Type);
-                    il.Emit(OpCodes.Ldarg_1);
-                    il.Emit(OpCodes.Newobj, ctor);
-                    il.Emit(OpCodes.Ret);
-                    proxyCtorDelegate = ctorDynamicMethod.CreateDelegate<Func<object, ProxyGlue<Context>, object>>();
-                    this.ProxyCtorDelegate = proxyCtorDelegate;
-                }
-
-                proxyInstance = proxyCtorDelegate(targetInstance, this.Glue);
-
-                if (this.ProxyInfo.Proxy.Type.IsInterface)
-                {
-                    this.ProxyCache.AddOrUpdate(targetInstance, proxyInstance);
-                    return proxyInstance;
-                }
-
-                // TODO: this most likely can be optimized
-                // has to be a delegate
-                var invokeMethod = this.BuiltProxyType?.GetMethod("Invoke");
-                if (invokeMethod is null)
-                    throw new InvalidOperationException($"Couldn't find the Invoke method for generated proxy delegate type '{this.ProxyInfo.Proxy.Type.Name}'."); // should never happen
-                var @delegate = Delegate.CreateDelegate(this.ProxyInfo.Proxy.Type, proxyInstance, invokeMethod);
-                this.ProxyCache.Add(targetInstance, @delegate);
-                return @delegate;
+                case ProxyManagerSynchronization.None:
+                    return this.ObtainProxySync(targetInstance);
+                case ProxyManagerSynchronization.ViaLock:
+                    lock (this.ProxyCache)
+                        return this.ObtainProxySync(targetInstance);
+                default:
+                    throw new ArgumentOutOfRangeException();
             }
+        }
+
+        private object ObtainProxySync(object targetInstance)
+        {
+            if (this.ProxyCache.TryGetValue(targetInstance, out object? proxyInstance))
+                return proxyInstance;
+
+            if (this.ProxyCtorDelegate is not { } proxyCtorDelegate)
+            {
+                if (this.BuiltProxyType?.GetConstructor([this.ProxyInfo.Target.Type, typeof(ProxyGlue<Context>)]) is not { } ctor)
+                    throw new InvalidOperationException($"Couldn't find the constructor for generated proxy type '{this.ProxyInfo.Proxy.Type.Name}'."); // should never happen
+
+                var ctorDynamicMethod = new DynamicMethod($"Create_{this.BuiltProxyType.Name}", typeof(object), [typeof(object), typeof(ProxyGlue<Context>)]);
+                var il = ctorDynamicMethod.GetILGenerator();
+                il.Emit(OpCodes.Ldarg_0);
+                il.Emit(OpCodes.Castclass, this.ProxyInfo.Target.Type);
+                il.Emit(OpCodes.Ldarg_1);
+                il.Emit(OpCodes.Newobj, ctor);
+                il.Emit(OpCodes.Ret);
+                proxyCtorDelegate = ctorDynamicMethod.CreateDelegate<Func<object, ProxyGlue<Context>, object>>();
+                this.ProxyCtorDelegate = proxyCtorDelegate;
+            }
+
+            proxyInstance = proxyCtorDelegate(targetInstance, this.Glue);
+
+            if (this.ProxyInfo.Proxy.Type.IsInterface)
+            {
+                this.ProxyCache.AddOrUpdate(targetInstance, proxyInstance);
+                return proxyInstance;
+            }
+
+            // TODO: this most likely can be optimized
+            // has to be a delegate
+            var invokeMethod = this.BuiltProxyType?.GetMethod("Invoke");
+            if (invokeMethod is null)
+                throw new InvalidOperationException($"Couldn't find the Invoke method for generated proxy delegate type '{this.ProxyInfo.Proxy.Type.Name}'."); // should never happen
+            var @delegate = Delegate.CreateDelegate(this.ProxyInfo.Proxy.Type, proxyInstance, invokeMethod);
+            this.ProxyCache.Add(targetInstance, @delegate);
+            return @delegate;
         }
 
         /// <inheritdoc/>

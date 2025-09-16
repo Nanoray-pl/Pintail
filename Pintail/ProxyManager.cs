@@ -39,106 +39,147 @@ namespace Nanoray.Pintail
 
         internal ModuleBuilder GetModuleBuilder(ProxyInfo<Context> proxyInfo)
         {
-            lock (this.Factories)
-                return this.ModuleBuilderProvider(proxyInfo);
+            switch (this.Configuration.Synchronization)
+            {
+                case ProxyManagerSynchronization.None:
+                    return this.GetModuleBuilderSync(proxyInfo);
+                case ProxyManagerSynchronization.ViaLock:
+                    lock (this.Factories)
+                        return this.GetModuleBuilderSync(proxyInfo);
+                default:
+                    throw new ArgumentOutOfRangeException();
+            }
         }
+
+        private ModuleBuilder GetModuleBuilderSync(ProxyInfo<Context> proxyInfo)
+            => this.ModuleBuilderProvider(proxyInfo);
 
         /// <inheritdoc/>
         public IProxyFactory<Context>? GetProxyFactory(ProxyInfo<Context> proxyInfo)
         {
-            lock (this.Factories)
+            switch (this.Configuration.Synchronization)
             {
-                if (this.Factories.TryGetValue(proxyInfo, out var factory))
-                    return factory;
+                case ProxyManagerSynchronization.None:
+                    return this.GetProxyFactorySync(proxyInfo);
+                case ProxyManagerSynchronization.ViaLock:
+                    lock (this.Factories)
+                        return this.GetProxyFactorySync(proxyInfo);
+                default:
+                    throw new ArgumentOutOfRangeException();
             }
-            return null;
         }
+
+        private IProxyFactory<Context>? GetProxyFactorySync(ProxyInfo<Context> proxyInfo)
+            => this.Factories.GetValueOrDefault(proxyInfo);
 
         /// <inheritdoc/>
         public IProxyFactory<Context> ObtainProxyFactory(ProxyInfo<Context> proxyInfo)
         {
-            lock (this.Factories)
+            switch (this.Configuration.Synchronization)
             {
-                if (this.FailedProxyTypeExceptions.TryGetValue(proxyInfo, out var priorException))
-                    throw new ArgumentException($"Unhandled proxy/conversion method for info: {proxyInfo}", priorException);
+                case ProxyManagerSynchronization.None:
+                    return this.ObtainProxyFactorySync(proxyInfo);
+                case ProxyManagerSynchronization.ViaLock:
+                    lock (this.Factories)
+                        return this.ObtainProxyFactorySync(proxyInfo);
+                default:
+                    throw new ArgumentOutOfRangeException();
+            }
+        }
 
-                if (!this.Factories.TryGetValue(proxyInfo, out IProxyFactory<Context>? factory))
+        private IProxyFactory<Context> ObtainProxyFactorySync(ProxyInfo<Context> proxyInfo)
+        {
+            if (this.FailedProxyTypeExceptions.TryGetValue(proxyInfo, out var priorException))
+                throw new ArgumentException($"Unhandled proxy/conversion method for info: {proxyInfo}", priorException);
+
+            if (!this.Factories.TryGetValue(proxyInfo, out var factory))
+            {
+                if (proxyInfo.Target.Type == proxyInfo.Proxy.Type)
                 {
-                    if (proxyInfo.Target.Type == proxyInfo.Proxy.Type)
+                    factory = new NoOpProxyFactory<Context>(proxyInfo);
+                    this.Factories[proxyInfo] = factory;
+                }
+                else if (proxyInfo.Target.Type.IsEnum && proxyInfo.Proxy.Type.IsEnum)
+                {
+                    factory = new EnumProxyFactory<Context>(proxyInfo);
+                    this.Factories[proxyInfo] = factory;
+                }
+                else if (proxyInfo.Target.Type.IsArray && proxyInfo.Proxy.Type.IsArray)
+                {
+                    factory = new ArrayProxyFactory<Context>(proxyInfo, this.Configuration.MismatchedArrayMappingBehavior);
+                    this.Factories[proxyInfo] = factory;
+                }
+                else if (proxyInfo.Target.Type.IsConstructedGenericType && proxyInfo.Proxy.Type.IsConstructedGenericType && proxyInfo.Target.Type.GetGenericTypeDefinition() == typeof(Nullable<>) && proxyInfo.Proxy.Type.GetGenericTypeDefinition() == typeof(Nullable<>))
+                {
+                    factory = new NullableProxyFactory<Context>(proxyInfo);
+                    this.Factories[proxyInfo] = factory;
+                }
+                else if (proxyInfo.Proxy.Type.IsInterface || (proxyInfo.Proxy.Type.IsAssignableTo(typeof(Delegate)) && proxyInfo.Target.Type.IsAssignableTo(typeof(Delegate))))
+                {
+                    var newFactory = new InterfaceOrDelegateProxyFactory<Context>(
+                        proxyInfo,
+                        this.Configuration.EarlyNoMatchingMethodHandler,
+                        this.Configuration.NoMatchingMethodHandler,
+                        this.Configuration.ProxyPrepareBehavior,
+                        this.Configuration.EnumMappingBehavior,
+                        this.Configuration.ProxyObjectInterfaceMarking,
+                        this.Configuration.AccessLevelChecking,
+                        this.Configuration.Synchronization,
+                        this.InterfaceMappabilityCache
+                    );
+                    factory = newFactory;
+                    this.Factories[proxyInfo] = factory;
+                    try
                     {
-                        factory = new NoOpProxyFactory<Context>(proxyInfo);
-                        this.Factories[proxyInfo] = factory;
+                        newFactory.Prepare(this, this.Configuration.TypeNameProvider(this.GetModuleBuilder(proxyInfo), proxyInfo));
                     }
-                    else if (proxyInfo.Target.Type.IsEnum && proxyInfo.Proxy.Type.IsEnum)
+                    catch (Exception e)
                     {
-                        factory = new EnumProxyFactory<Context>(proxyInfo);
-                        this.Factories[proxyInfo] = factory;
-                    }
-                    else if (proxyInfo.Target.Type.IsArray && proxyInfo.Proxy.Type.IsArray)
-                    {
-                        factory = new ArrayProxyFactory<Context>(proxyInfo, this.Configuration.MismatchedArrayMappingBehavior);
-                        this.Factories[proxyInfo] = factory;
-                    }
-                    else if (proxyInfo.Target.Type.IsConstructedGenericType && proxyInfo.Proxy.Type.IsConstructedGenericType && proxyInfo.Target.Type.GetGenericTypeDefinition() == typeof(Nullable<>) && proxyInfo.Proxy.Type.GetGenericTypeDefinition() == typeof(Nullable<>))
-                    {
-                        factory = new NullableProxyFactory<Context>(proxyInfo);
-                        this.Factories[proxyInfo] = factory;
-                    }
-                    else if (proxyInfo.Proxy.Type.IsInterface || (proxyInfo.Proxy.Type.IsAssignableTo(typeof(Delegate)) && proxyInfo.Target.Type.IsAssignableTo(typeof(Delegate))))
-                    {
-                        var newFactory = new InterfaceOrDelegateProxyFactory<Context>(
-                            proxyInfo,
-                            this.Configuration.EarlyNoMatchingMethodHandler,
-                            this.Configuration.NoMatchingMethodHandler,
-                            this.Configuration.ProxyPrepareBehavior,
-                            this.Configuration.EnumMappingBehavior,
-                            this.Configuration.ProxyObjectInterfaceMarking,
-                            this.Configuration.AccessLevelChecking,
-                            this.InterfaceMappabilityCache
-                        );
-                        factory = newFactory;
-                        this.Factories[proxyInfo] = factory;
-                        try
-                        {
-                            newFactory.Prepare(this, this.Configuration.TypeNameProvider(this.GetModuleBuilder(proxyInfo), proxyInfo));
-                        }
-                        catch (Exception e)
-                        {
-                            this.Factories.Remove(proxyInfo);
-                            this.FailedProxyTypeExceptions[proxyInfo] = e;
-                            throw new ArgumentException($"Unhandled proxy/conversion method for info: {proxyInfo}", e);
-                        }
-                    }
-                    else
-                    {
-                        var newFactory = new ReconstructingProxyFactory<Context>(proxyInfo, this.Configuration.EnumMappingBehavior, this.Configuration.AccessLevelChecking, this.InterfaceMappabilityCache);
-                        factory = newFactory;
-                        this.Factories[proxyInfo] = factory;
-                        try
-                        {
-                            newFactory.Prepare();
-                        }
-                        catch (Exception e)
-                        {
-                            this.Factories.Remove(proxyInfo);
-                            this.FailedProxyTypeExceptions[proxyInfo] = e;
-                            throw new ArgumentException($"Unhandled proxy/conversion method for info: {proxyInfo}", e);
-                        }
+                        this.Factories.Remove(proxyInfo);
+                        this.FailedProxyTypeExceptions[proxyInfo] = e;
+                        throw new ArgumentException($"Unhandled proxy/conversion method for info: {proxyInfo}", e);
                     }
                 }
-                return factory;
+                else
+                {
+                    var newFactory = new ReconstructingProxyFactory<Context>(proxyInfo, this.Configuration.EnumMappingBehavior, this.Configuration.AccessLevelChecking, this.InterfaceMappabilityCache);
+                    factory = newFactory;
+                    this.Factories[proxyInfo] = factory;
+                    try
+                    {
+                        newFactory.Prepare();
+                    }
+                    catch (Exception e)
+                    {
+                        this.Factories.Remove(proxyInfo);
+                        this.FailedProxyTypeExceptions[proxyInfo] = e;
+                        throw new ArgumentException($"Unhandled proxy/conversion method for info: {proxyInfo}", e);
+                    }
+                }
             }
+            return factory;
         }
 
         /// <inheritdoc/>
         public IProxyFactory<Context>? TryObtainProxyFactory(ProxyInfo<Context> proxyInfo)
         {
-            lock (this.Factories)
+            switch (this.Configuration.Synchronization)
             {
-                if (this.FailedProxyTypeExceptions.ContainsKey(proxyInfo))
-                    return null;
-                return this.ObtainProxyFactory(proxyInfo);
+                case ProxyManagerSynchronization.None:
+                    return this.TryObtainProxyFactorySync(proxyInfo);
+                case ProxyManagerSynchronization.ViaLock:
+                    lock (this.Factories)
+                        return this.TryObtainProxyFactorySync(proxyInfo);
+                default:
+                    throw new ArgumentOutOfRangeException();
             }
+        }
+
+        private IProxyFactory<Context>? TryObtainProxyFactorySync(ProxyInfo<Context> proxyInfo)
+        {
+            if (this.FailedProxyTypeExceptions.ContainsKey(proxyInfo))
+                return null;
+            return this.ObtainProxyFactory(proxyInfo);
         }
     }
 }

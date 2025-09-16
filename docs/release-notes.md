@@ -2,6 +2,11 @@
 
 # Release notes
 
+## Upcoming release
+
+* Added an option to disable synchronization via locks.
+* General optimizations.
+
 ## 2.8.1
 Released 18 March 2025.
 

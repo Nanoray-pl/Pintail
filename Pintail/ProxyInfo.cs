@@ -132,7 +132,7 @@ namespace Nanoray.Pintail
 
         /// <inheritdoc/>
         public override int GetHashCode()
-            => (this.Context, this.Type).GetHashCode();
+            => this.Type.GetHashCode();
 
 #pragma warning disable CS1591 // Missing XML comment for publicly visible type or member
         public static bool operator ==(TypeInfo<C>? left, TypeInfo<C>? right)

@@ -230,6 +230,11 @@ namespace Nanoray.Pintail
         public AccessLevelChecking AccessLevelChecking { get; init; } = AccessLevelChecking.Enabled;
 
         /// <summary>
+        /// Defines whether access level checks should be enabled for generated proxy types.
+        /// </summary>
+        public ProxyManagerSynchronization Synchronization { get; init; } = ProxyManagerSynchronization.ViaLock;
+
+        /// <summary>
         /// Creates a new configuration for <see cref="ProxyManager{Context}"/>.
         /// All configuration is meant to be declared in an object initializer.
         /// </summary>

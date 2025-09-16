@@ -5,7 +5,7 @@ namespace Nanoray.Pintail
 {
     internal class EnumProxyFactory<Context>: IProxyFactory<Context>
     {
-        public ProxyInfo<Context> ProxyInfo { get; private set; }
+        public ProxyInfo<Context> ProxyInfo { get; }
 
         internal EnumProxyFactory(ProxyInfo<Context> proxyInfo)
         {
@@ -30,6 +30,6 @@ namespace Nanoray.Pintail
         }
 
         private static object MapEnum(object input, Type outputType)
-            => Enum.ToObject(outputType, Convert.ChangeType(input, Enum.GetUnderlyingType(outputType)));
+            => Enum.ToObject(outputType, input);
     }
 }
