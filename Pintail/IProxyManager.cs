@@ -48,6 +48,15 @@ namespace Nanoray.Pintail
         [return: NotNullIfNotNull("instance")]
         public static TProxy ObtainProxy<Context, TProxy>(this IProxyManager<Context> self, object instance, Context targetContext, Context proxyContext) where TProxy : class
         {
+            while (true)
+            {
+                if (instance is TProxy proxy)
+                    return proxy;
+                if (instance is not IInternalProxyObject internalProxyObject)
+                    break;
+                instance = internalProxyObject.ProxyTargetInstance;
+            }
+
             var factory = self.ObtainProxyFactory(new ProxyInfo<Context>(
                 target: new TypeInfo<Context>(targetContext, instance.GetType()),
                 proxy: new TypeInfo<Context>(proxyContext, typeof(TProxy))
@@ -70,6 +79,18 @@ namespace Nanoray.Pintail
         {
             try
             {
+                while (true)
+                {
+                    if (toProxy is TProxy preexistingProxy)
+                    {
+                        proxy = preexistingProxy;
+                        return true;
+                    }
+                    if (toProxy is not IInternalProxyObject internalProxyObject)
+                        break;
+                    toProxy = internalProxyObject.ProxyTargetInstance;
+                }
+
                 foreach (var interfaceType in toProxy.GetType().GetInterfacesRecursively(includingSelf: true))
                 {
                     var unproxyFactory = self.GetProxyFactory(new ProxyInfo<Context>(
@@ -119,6 +140,18 @@ namespace Nanoray.Pintail
         {
             try
             {
+                while (true)
+                {
+                    if (toProxy is TProxy preexistingProxy)
+                    {
+                        proxy = preexistingProxy;
+                        return true;
+                    }
+                    if (toProxy is not IInternalProxyObject internalProxyObject)
+                        break;
+                    toProxy = internalProxyObject.ProxyTargetInstance;
+                }
+
                 foreach (var interfaceType in toProxy.GetType().GetInterfacesRecursively(includingSelf: true))
                 {
                     var unproxyFactory = self.GetProxyFactory(new ProxyInfo<Context>(

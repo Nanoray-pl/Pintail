@@ -2,6 +2,10 @@
 
 # Release notes
 
+## Upcoming release
+
+* Fixed a problem with cryptic mismatched type exceptions coming from .NET internals.
+
 ## 2.9.0
 Released 16 September 2025.
 

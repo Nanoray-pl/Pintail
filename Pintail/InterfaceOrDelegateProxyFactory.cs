@@ -647,10 +647,5 @@ namespace Nanoray.Pintail
             MethodInfo Target,
             TypeUtilities.PositionConversion?[] PositionConversions
         );
-
-        internal interface IInternalProxyObject
-        {
-            object ProxyTargetInstance { get; }
-        }
     }
 }

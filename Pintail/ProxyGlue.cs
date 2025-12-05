@@ -37,6 +37,15 @@ namespace Nanoray.Pintail
                 proxyType: proxyToTargetInfo.Proxy.Type.ReplacingGenericArguments(proxyGenericArguments)
             );
 
+            while (true)
+            {
+                if (targetToProxyInfo.Proxy.Type.IsInstanceOfType(toProxy))
+                    return toProxy;
+                if (toProxy is not IInternalProxyObject internalProxyObject)
+                    break;
+                toProxy = internalProxyObject.ProxyTargetInstance;
+            }
+
             var unproxyFactory = this.Manager.GetProxyFactory(proxyToTargetInfo);
             if (unproxyFactory is not null && unproxyFactory.TryUnproxy(this.Manager, toProxy, out object? targetInstance))
                 return targetInstance;
