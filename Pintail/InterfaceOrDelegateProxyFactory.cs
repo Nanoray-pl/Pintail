@@ -92,7 +92,19 @@ namespace Nanoray.Pintail
 
             // Groupby might make this more efficient.
             var allTargetMethods = this.ProxyInfo.Target.Type.FindInterfaceMethods(this.AccessLevelChecking == AccessLevelChecking.Disabled, filterOnlyInvokeMethods).ToList();
-            var allProxyMethods = this.ProxyInfo.Proxy.Type.FindInterfaceMethods(this.AccessLevelChecking == AccessLevelChecking.Disabled, filterOnlyInvokeMethods).ToList();
+
+            #if NET6_0_OR_GREATER
+            var allProxyMethods = this.ProxyInfo.Proxy.Type.FindInterfaceMethods(this.AccessLevelChecking == AccessLevelChecking.Disabled, filterOnlyInvokeMethods)
+                .Reverse() // more concrete are normally first; make them last for Distinct purposes
+                .DistinctBy(m => m.GetBaseDefinition())
+                .ToList();
+            #else
+            var distinctBaseTypeMethods = new HashSet<MethodBase>();
+            var allProxyMethods = this.ProxyInfo.Proxy.Type.FindInterfaceMethods(this.AccessLevelChecking == AccessLevelChecking.Disabled, filterOnlyInvokeMethods)
+                .Reverse() // more concrete are normally first; make them last for Distinct purposes
+                .Where(m => distinctBaseTypeMethods.Add(m.GetBaseDefinition()))
+                .ToList();
+            #endif
 
             var methodsToProxy = new List<MethodProxyInfo>(allProxyMethods.Count);
             var methodsFailedToProxy = new List<MethodInfo>();
@@ -284,8 +296,11 @@ namespace Nanoray.Pintail
 #if DEBUG
             Console.WriteLine($"Proxying {proxy.DeclaringType}.{proxy.Name}[{string.Join(", ", proxy.GetParameters().Select(a => a.Name))}] to {target.DeclaringType}.{target.Name}");
 #endif
+            bool useExplicitInterfaceDeclaration = proxy != target && proxy.DeclaringType!.IsInterface;
             var methodBuilder = proxyBuilder.DefineMethod(
-                name: proxy.Name,
+                name: useExplicitInterfaceDeclaration
+                    ? $"{proxy.DeclaringType!.Namespace}.{proxy.DeclaringType!.Name}.{proxy.Name}"
+                    : proxy.Name,
                 attributes: MethodAttributes.Public | MethodAttributes.Final | MethodAttributes.Virtual
             );
 
@@ -573,6 +588,9 @@ namespace Nanoray.Pintail
                     il.Emit(OpCodes.Ldloc, resultProxyLocal!);
                 il.Emit(OpCodes.Ret);
             }
+
+            if (useExplicitInterfaceDeclaration)
+                proxyBuilder.DefineMethodOverride(methodBuilder, proxy);
         }
 
         /// <inheritdoc/>

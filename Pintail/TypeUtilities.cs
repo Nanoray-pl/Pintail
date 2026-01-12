@@ -338,7 +338,7 @@ namespace Nanoray.Pintail
                     yield return method;
 
             foreach (var interfaceType in baseType.GetInterfaces())
-                foreach (var method in FindInterfaceMethods(interfaceType, includePrivate, onlyInvokeMethods))
+                foreach (var method in interfaceType.FindInterfaceMethods(includePrivate, onlyInvokeMethods))
                     yield return method;
         }
 
@@ -358,6 +358,11 @@ namespace Nanoray.Pintail
                 nameMatches = candidates.ToList();
 
             // okay, we seem to have multiple. Let's try ranking them.
+            // first ordering by their description length... this sounds dumb, but more specific methods are likely to be better matches
+            // grasping at straws here
+            nameMatches = nameMatches
+                .OrderByDescending(m => m.ToString().Length)
+                .ToList();
             nameMatches.Sort((a, b) => CompareTwoMethods(a.Key, b.Key));
             return nameMatches;
         }
@@ -381,29 +386,22 @@ namespace Nanoray.Pintail
             {
                 if (paramA.ParameterType == paramB.ParameterType)
                     continue;
-                else if (paramA.ParameterType.IsAssignableTo(paramB.ParameterType))
-                {
-                    if (direction == 1)
-                        throw new AmbiguousMatchException($"{methodA.DeclaringType!.GetShortName()}::{methodA.Name} and {methodB.DeclaringType!.GetShortName()}::{methodB.Name} are ambiguous matches!");
-                    direction = -1;
-                }
+
+                if (paramA.ParameterType.IsAssignableTo(paramB.ParameterType))
+                    direction--;
                 else if (paramA.ParameterType.IsAssignableFrom(paramB.ParameterType))
-                {
-                    if (direction == -1)
-                        throw new AmbiguousMatchException($"{methodA.DeclaringType!.GetShortName()}::{methodA.Name} and {methodB.DeclaringType!.GetShortName()}::{methodB.Name} are ambiguous matches!");
-                    direction = 1;
-                }
+                    direction++;
             }
 
             if (direction == 0)
             {
                 if (methodA.DeclaringType == methodB.DeclaringType) // somehow you gave me the same method???
                     return 0;
-                else if (methodA.DeclaringType!.IsAssignableTo(methodB.DeclaringType))
+                if (methodA.DeclaringType!.IsAssignableTo(methodB.DeclaringType))
                     return -1;
-                else if (methodA.DeclaringType!.IsAssignableFrom(methodB.DeclaringType))
+                if (methodA.DeclaringType!.IsAssignableFrom(methodB.DeclaringType))
                     return 1;
-                throw new AmbiguousMatchException($"{methodA.DeclaringType!.GetShortName()}::{methodA.Name} and {methodB.DeclaringType!.GetShortName()}::{methodB.Name} are ambiguous matches!");
+                return 0;
             }
             return direction;
         }
