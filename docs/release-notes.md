@@ -2,6 +2,11 @@
 
 # Release notes
 
+## 2.9.2
+Released 12 January 2026.
+
+* Improvements to handling multiple interfaces with same-named methods.
+
 ## 2.9.1
 Released 5 December 2025.
 
